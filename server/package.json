@@ -8,7 +8,7 @@
   },
   "scripts": {
     "devStart": "nodemon server.js",
-    "start": "node src/index.js"
+    "start": "node app.js"
   },
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/MortnMLE/Red#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "express": "^5.2.1",
     "mongoose": "^9.5.0"
   },
