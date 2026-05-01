@@ -2,7 +2,7 @@
 const express = require('express');
 const BSON = require('BSON');
 const user = require('../database/userService');
-const { ValidationError, DatabaseError } = require('../error/error');
+const { ValidationError, DatabaseError } = require('../errors/errors');
 
 //Variables:
 const userRouter = express.Router();
@@ -34,8 +34,13 @@ userRouter.post('/auth', async (req, res) => {
 
         // Compare
         const equal = await user.comparePassword(usr.password, req.body.password);
+
+        // Return UUID
         if (equal) {
-            res.status(200).json('Authentication successful');
+            res.status(200).json({
+                message: 'Authentication successful',
+                id: usr.uuid 
+            });
             return;
         } else {
             res.status(400).json({
@@ -52,6 +57,11 @@ userRouter.post('/auth', async (req, res) => {
         });
         return;
     }
+
+    res.status(500).json({
+        error: 'UNKNOWN',
+        message: 'unkown error in userRouter/POST/auth'
+    });
 });
 
 //User Creation
@@ -98,12 +108,12 @@ userRouter.post('/', async (req, res) => {
 
     res.status(500).json({
         error: 'UNKNOWN',
-        message: 'unkown error in userRouter.POST'
+        message: 'unkown error in userRouter/POST'
     });
 });
 
 //User Deletion
-userRouter.delete('/', (req, res) => {
+userRouter.delete('/', async (req, res) => {
     try {
         // Verify request
         if (typeof req.body.user !== 'string' || req.body.user === '' || 
@@ -131,6 +141,11 @@ userRouter.delete('/', (req, res) => {
             message: err.message
         });
     }
+
+    res.status(500).json({
+        error: 'UNKNOWN',
+        message: 'unkown error in userRouter/DELETE'
+    });
 });
 
 module.exports = userRouter;

@@ -23,6 +23,7 @@
   "homepage": "https://github.com/MortnMLE/Red#readme",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "diff": "^9.0.0",
     "express": "^5.2.1",
     "mongoose": "^9.5.0"
   },

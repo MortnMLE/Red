@@ -3,6 +3,7 @@ const { MongoClient } = require('mongodb');
 //ServerApiVersion
 const fs = require('fs/promises');
 const path = require('path');
+const { DatabaseError } = require('../errors/errors');
 
 //File containing the connection string
 const filePath = path.join(__dirname, 'connectionString.txt');
@@ -30,6 +31,10 @@ async function connectDB() {
 }
 
 async function getConnection(name) {
+    if (typeof name !== 'string' || name === null) {
+        throw new ValidationError('Validation Error: Get Connection');
+    }
+
     const db = await connectDB();
     return db.collection(name);    
 }
