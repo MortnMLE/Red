@@ -1,9 +1,9 @@
 const request = require('supertest');
 const express = require('express');
-const userRouter = require('../../routers/userRouter');
-const user = require('../../database/userService');
+const userRouter = require('../../../routers/userRouter');
+const user = require('../../../database/userService');
 
-jest.mock('../../database/userService');
+jest.mock('../../../database/userService');
 
 const app = express();
 app.use(express.json());

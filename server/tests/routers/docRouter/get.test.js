@@ -1,11 +1,11 @@
 const request = require('supertest');
 const express = require('express');
 const diff = require('diff');
-const docRouter = require('../../routers/docRouter');
-const doc = require('../../database/docService');
+const docRouter = require('../../../routers/docRouter');
+const doc = require('../../../database/docService');
 
 // Mock dependencies
-jest.mock('../../database/docService');
+jest.mock('../../../database/docService');
 
 const app = express();
 app.use(express.json());
