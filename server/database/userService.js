@@ -5,13 +5,14 @@ const { UUID, MongoClient } = require('mongodb');
 const bcrypt = require('bcrypt');
 const { ValidationError, DatabaseError } = require('../errors/errors')
 
+const dbName = 'users';
 async function createUser(user) {
     try {
         //Hashing password
         user.password = await bcrypt.hash(user.password, 10);
 
         //Establish connection to collection 'users'
-        const con = await db.getConnection('users'); 
+        const con = await db.getConnection(dbName); 
         
         //Try insertion:
         return await con.insertOne(user);
@@ -23,7 +24,7 @@ async function createUser(user) {
 async function getUser(username) {
     try {
         //Connect to user db and create query
-        const con = await db.getConnection('users');
+        const con = await db.getConnection(dbName);
         const query = {
             user: username
         }
@@ -37,9 +38,9 @@ async function getUser(username) {
 
 async function deleteUser(user) {
     try {
-        const con = await db.getConnection('user');
+        const con = await db.getConnection(dbName);
         const nonQuery = { user: user.user };
-        return await con.deleteOne(nonQuery); 
+         await con.deleteOne(nonQuery); 
 
     } catch (err) {
         throw new DatabaseError('Database Error: User Deletion');

@@ -23,7 +23,6 @@ async function connectDB() {
         client = new MongoClient(uri);
         
         const a = await client.connect();
-        console.log(a);
         
         db = client.db(dbName);
     }

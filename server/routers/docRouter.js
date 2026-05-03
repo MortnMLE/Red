@@ -3,19 +3,70 @@ const BSON = require('BSON');
 const express = require('express');
 const doc = require('../database/docService');
 const { ValidationError, DatabaseError } = require('../errors/errors');
-const applyPatch = require('diff');
+const diff = require('diff');
 
 //Variables:
 const docRouter = express.Router();
 
-docRouter.get('/', (req, res) => {
-    res.send('Received /docs GET request');
-    // receive list of docs with hashes
-    // check for changes by comparing hashes
-    // return new hashes for files
+docRouter.get('/byUser', async (req, res) => {
+
+    try {
+        //Validation
+        if (typeof req.body.user_id !== 'string' || req.body.user_id === '') {
+            res.status(400).json({
+                error: 'INVALID_INPUT',
+                message: 'invalid user_id provided by client'
+            });
+            return;
+        }
+
+        // fetch all documents for given user_id
+        const docs = await doc.getDocsByUserId(req.body.user_id);
+        
+        res.status(200).json(docs);
+
+    } catch (err) {
+        res.status(err.statusCode).json({
+            error: err.name,
+            message: err.message
+        });
+    }
+});
+
+docRouter.get('/', async (req, res) => {
+
+    try {
+        //Validation
+        if (typeof req.body.id !== 'string' || req.body.id === '') {
+            res.status(400).json({
+                error: 'INVALID_INPUT',
+                message: 'invalid id provided by client'
+            });
+            return;
+        }
+
+        const result = await doc.getDocById(req.body.id);
+        
+        if (!result) {
+            res.status(404).json({
+                error: 'NOT_FOUND',
+                message: 'document not found'
+            });
+            return;
+        }
+
+        res.status(200).json(result);
+
+    } catch (err) {
+        res.status(err.statusCode).json({
+            error: err.name,
+            message: err.message
+        });
+    }
 });
 
 docRouter.post('/', async (req, res) => {
+
     try {
         // Validation
         if (typeof req.body.user_id !== 'string' || req.body.user_id === '' ||
@@ -35,27 +86,27 @@ docRouter.post('/', async (req, res) => {
             req.body.content
         );
 
-        res.status(201).json({ id });
+        res.status(201).json({ 
+            id: id,
+            version: 1 
+        });
+
     } catch (err) {
         res.status(err.statusCode).json({
             error: err.name,
             message: err.message
         });
     }    
-
-    res.status(500).json({
-        error: 'UNKNOWN',
-        message: 'unknown error in docRouter.POST'
-    })
 });
 
 docRouter.patch('/full', async (req, res) => {
+
     try {
         //Validation
-        if (typeof req.body.docId !== 'string' || req.body.docId === '' ||
+        if (typeof req.body.id !== 'string' || req.body.id === '' ||
             typeof req.body.content !== 'string' ||
             typeof req.body.title !== 'string' ||
-            typeof req.body.lastSyncedVersion !== 'number'
+            typeof req.body.localVersion !== 'number'
         ) {
             res.status(400).json({
                 error: 'FULL_DOC_VALIDATION_ERROR',
@@ -64,23 +115,34 @@ docRouter.patch('/full', async (req, res) => {
             return;
         }
 
-        const document = await document.getDocById(req.body.docId);
-        if (document.lastSyncedVersion >= req.body.lastSyncedVersion) {
-            res.status(400).json('DECLINED');
+        const existingDoc = await doc.getDocById(req.body.id);
+        
+        if (!existingDoc) {
+            res.status(404).json({
+                error: 'NOT_FOUND',
+                message: 'document not found'
+            });
             return;
         }
 
-        const newVersion = req.body.lastSyncedVersion++;
-        document.content = req.body.content;
-        document.title = req.body.title;
-        document.version = newVersion;
+        if (existingDoc.version >= req.body.localVersion) {
+            res.status(409).json('VERSION_CONFLICT');
+            return;
+        }
+
+        existingDoc.content = req.body.content;
+        existingDoc.title = req.body.title;
+        existingDoc.version += 1;
         
-        await doc.updateDocument(document);
+        await doc.updateDocument(existingDoc);
 
         res.status(200).json({
-            id: document.uuid,
-            newSyncedVersin: newVersion
+            id: existingDoc.uuid,
+            newSyncedVersion: existingDoc.version 
         });
+
+        return;
+
     } catch (err) {
         res.status(err.statusCode).json({
             error: err.name,
@@ -88,42 +150,60 @@ docRouter.patch('/full', async (req, res) => {
         });
         return;
     }
-
-    res.status(500).json({
-        error: 'UNKNOWN',
-        message: 'unkown error in docRouter/PATCH/full'
-    });
 });
 
 docRouter.patch('/diff', async (req, res) => {
+
     try {
         //validation
-        if (typeof req.body.docId !== 'string' || req.body.docId === '' || 
+        if (typeof req.body.id !== 'string' || req.body.id === '' || 
             typeof req.body.patch !== 'object' ||
-            typeof req.body.patch !== 'string' ||
-            typeof req.body.lastSyncedVersion !== 'int' || req.body.lastSyncedVersion === 0 
+            typeof req.body.title !== 'string' ||
+            typeof req.body.localVersion !== 'number' || req.body.localVersion === 0 
         ) {
             res.status(400).json({
                 error: 'DIFF_DOC_VALIDATION_ERROR',
                 message: 'invalid diff data provided by client'
             });
+            return;
         }
 
-        const document = await doc.getDocById(req.body.docId);
-        
-        if (document.lastSyncedVersion >= req.body.lastSyncedVersion) {
+        // Fetch existing document by id
+        const existingDoc = await doc.getDocById(req.body.id);
+        if (!existingDoc) {
+            res.status(404).json({
+                error: 'NOT_FOUND',
+                message: 'Document not found'
+            });
+            return;
+        }
+
+        // Check for version conflict
+        if (existingDoc.version >= req.body.localVersion) {
             res.status(409).json('DECLINED');
             return;
         }
         
-        if (applyPatch(document, req.body.patch)) {
-            document.title = req.body.title;
-            await doc.updateDocument(document);
+        // Apply patch 
+        const patched = diff.applyPatch(existingDoc.content, req.body.patch);
+        // Update Document on Atlas
+        if (patched) {
+            existingDoc.title = req.body.title;
+            existingDoc.content = patched;
+            existingDoc.version += 1;
+
+            await doc.updateDocument(existingDoc);
+            
+            res.status(200).json({
+                id: existingDoc.uuid,
+                newSyncedVersion: existingDoc.version
+            });
+            return;
         } else {
             res.status(400).json('Patch could not be applied');
             return;
         }
-
+    // Catch Errors
     } catch (err) {
         res.status(err.statusCode).json({
             error: err.name,
@@ -131,11 +211,6 @@ docRouter.patch('/diff', async (req, res) => {
         });
         return;
     }
-
-    res.status(500).json({
-        error: 'UNKNOWN',
-        message: 'unkown error in docRouter/PATCH/full'
-    });
 });
 
 module.exports = docRouter;

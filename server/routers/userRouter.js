@@ -23,6 +23,7 @@ userRouter.post('/auth', async (req, res) => {
 
         // Fetch password
         const usr = await user.getUser(req.body.user);
+
         // check for existing user        
         if (usr == null) {
            res.status(401).json({
@@ -38,7 +39,6 @@ userRouter.post('/auth', async (req, res) => {
         // Return UUID
         if (equal) {
             res.status(200).json({
-                message: 'Authentication successful',
                 id: usr.uuid 
             });
             return;
@@ -57,11 +57,6 @@ userRouter.post('/auth', async (req, res) => {
         });
         return;
     }
-
-    res.status(500).json({
-        error: 'UNKNOWN',
-        message: 'unkown error in userRouter/POST/auth'
-    });
 });
 
 //User Creation
@@ -105,11 +100,6 @@ userRouter.post('/', async (req, res) => {
         });
         return;
     }
-
-    res.status(500).json({
-        error: 'UNKNOWN',
-        message: 'unkown error in userRouter/POST'
-    });
 });
 
 //User Deletion
@@ -126,13 +116,26 @@ userRouter.delete('/', async (req, res) => {
             return;
         }
         
-        const usr = user.getUser(req.body.user);
+        const usr = await user.getUser(req.body.user);
+
+        if (usr == null) {
+            res.status(404).json({
+                error: 'NOT_FOUND',
+                message: 'invalid user provided by client'
+            });
+        }
+
         const equal = await user.comparePassword(usr.password, req.body.password);
         
         if (equal) {
-            const result = deleteUser(usr);
+            const result = await user.deleteUser(usr);
             res.status(200).json('Successfully deleted user');
             return;
+        } else {
+            res.status(401).json({
+                error: 'NOT_AUTHORIZED',
+                message: 'could not delete account'
+            });
         }
 
     } catch (err) {
@@ -141,11 +144,6 @@ userRouter.delete('/', async (req, res) => {
             message: err.message
         });
     }
-
-    res.status(500).json({
-        error: 'UNKNOWN',
-        message: 'unkown error in userRouter/DELETE'
-    });
 });
 
 module.exports = userRouter;

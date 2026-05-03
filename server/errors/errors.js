@@ -9,7 +9,7 @@ class ValidationError extends Error {
 class DatabaseError extends Error {
     constructor(message) {
         super(message);
-        this.name = 'DatabaseError';
+        this.name = 'DB_ERROR';
         this.statusCode = 500;
     }
 }
