@@ -1,5 +1,4 @@
 // Imports:
-const express = require('express');
 const db = require('./connection');
 const { UUID, MongoClient } = require('mongodb');
 const bcrypt = require('bcrypt');

@@ -1,8 +1,6 @@
-//Imports:
 const express = require('express');
-const BSON = require('BSON');
 const user = require('../database/userService');
-const { ValidationError, DatabaseError } = require('../errors/errors');
+const { DatabaseError } = require('../errors/errors');
 
 //Variables:
 const userRouter = express.Router();

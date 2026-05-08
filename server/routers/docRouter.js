@@ -1,5 +1,3 @@
-//Imports:
-const BSON = require('BSON');
 const express = require('express');
 const doc = require('../database/docService');
 const { ValidationError, DatabaseError } = require('../errors/errors');
@@ -134,7 +132,7 @@ docRouter.patch('/full', async (req, res) => {
         existingDoc.title = req.body.title;
         existingDoc.version += 1;
         
-        await doc.updateDocument(existingDoc);
+        await doc.updateDoc(existingDoc);
 
         res.status(200).json({
             id: existingDoc.uuid,
@@ -192,7 +190,7 @@ docRouter.patch('/diff', async (req, res) => {
             existingDoc.content = patched;
             existingDoc.version += 1;
 
-            await doc.updateDocument(existingDoc);
+            await doc.updateDoc(existingDoc);
             
             res.status(200).json({
                 id: existingDoc.uuid,

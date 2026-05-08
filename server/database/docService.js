@@ -1,11 +1,9 @@
-const express = require('express');
 const db = require('./connection');
-const { ObjectId, MongoClient, UUID } = require('mongodb');
-const BSON = require('BSON');
+const { ObjectId } = require('mongodb');
 const { DatabaseError } = require('../errors/errors');
 
 const dbName = 'documents';
-
+//inserts a new document and returns the newly generated _id
 async function createDoc(id, title, content) {
 
     try {
@@ -22,7 +20,7 @@ async function createDoc(id, title, content) {
         return result;
 
     } catch (err) {
-        throw new (DatabaseError('Database Error: Document Creation'));        
+        throw new DatabaseError('Database Error: Document Creation');        
     }
 };
 
@@ -35,7 +33,7 @@ async function getDocsByUserId(id) {
     } catch (err) {
         throw new DatabaseError('Database Error: Get Documents by user id');
     }
-}
+};
 
 async function getDocById(id) {
 
@@ -47,14 +45,14 @@ async function getDocById(id) {
     } catch (err) {
         throw new DatabaseError('Database Error: Get Document');
     }
-}
+};
 
-async function updateDocument(doc) {
+async function updateDoc(doc) {
 
     try {
         const con = await db.getConnection(dbName);
         
-        con.updateOne(
+        const result = await con.updateOne(
             { _id: new ObjectId(doc._id) },
             {
                 $set: { 
@@ -65,16 +63,18 @@ async function updateDocument(doc) {
             }
         );
 
-        return newVersion;
+        if (result.modifiedCount < 1) {
+            throw new DatabaseError('Database Error: No document found');
+        }
 
     } catch (err) {
         throw new DatabaseError('Database Error: Update Document');
     }
-}
+};
 
 module.exports = {
     createDoc,
     getDocById,
-    updateDocument,
+    updateDoc,
     getDocsByUserId
 };
