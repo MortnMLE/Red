@@ -14,7 +14,7 @@ userRouter.post('/auth', async (req, res) => {
         ) {
             res.status(400).json({
                 error: 'INVALID_INPUT',
-                message: 'invalid credentials provided by client'
+                message: 'Invalid credentials provided by client'
             });
             return;
         }
@@ -24,9 +24,9 @@ userRouter.post('/auth', async (req, res) => {
 
         // check for existing user        
         if (usr == null) {
-           res.status(401).json({
+           res.status(400).json({
             error: 'INVALID_CREDENTIALS',
-            message: 'unknown user'
+            message: 'Wrong email or password'
            });
            return;
         }
@@ -43,7 +43,7 @@ userRouter.post('/auth', async (req, res) => {
         } else {
             res.status(400).json({
                 error: 'INVALID_CREDENTIALS',
-                message: 'invalid credentials provided by client'
+                message: 'Wrong email or password'
             });
             return;
         }
