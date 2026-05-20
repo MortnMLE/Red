@@ -83,7 +83,7 @@
 <script>
 
 export default {
-  name: 'AuthPage',
+  name: 'LoginPage',
 
   data() {
     return {
@@ -122,8 +122,8 @@ export default {
       }
       
       const endpoint = this.isLogin
-      ? 'http://localhost:5000/user/auth/'
-      : 'http://localhost:5000/user/';
+      ? 'http://localhost:5000/user/auth'
+      : 'http://localhost:5000/user';
 
       const body = {
         user: this.form.email,
@@ -143,17 +143,16 @@ export default {
 
         const responseData = await response.json();
 
-        if (response.status === 200 ||
-          response.status === 201
-        ) {
-          this.userId = responseData.id;
-          //TODO: Continue to editor
+        if (responseData.success) {
+          localStorage.setItem('userId', responseData.id); 
+          this.$router.push('/editor');
+          console.log('Successfully fetched User ID:', responseData.id);
         } else {
           alert(responseData.message);
           return;
         }
       } catch (err) {
-        alert('unknown error');
+        alert(err.message);
       } finally {
         this.isLoading = false;
       }

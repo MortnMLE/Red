@@ -2,7 +2,7 @@
 const express = require('express');
 const {connectDB, closeDB} = require('./database/connection');
 const MongoClient = require('mongodb');
-
+const cors = require('cors');
 //Local Variables:
 const app = express();
 const port = 5000;
@@ -13,6 +13,9 @@ const docRouter = require('./routers/docRouter');
 
 app.set('view engine');
 app.use(express.json());
+app.use(cors({
+    origin: 'http://localhost:3000'
+}));
 app.use('/user', userRouter);
 app.use('/doc', docRouter);
 

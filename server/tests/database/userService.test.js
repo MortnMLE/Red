@@ -246,8 +246,8 @@ describe('UserService', () => {
 
     test('comparePassword: should return true for matching passwords', async () => {
 
-        bcrypt.compare.mockResolvedValue(true);
-
+        //bcrypt.compare.mockResolvedValue(true);
+        
         const result = await userService.comparePassword(
             'plainPassword',
             'hashedPassword'

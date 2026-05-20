@@ -4,20 +4,17 @@ const { DatabaseError } = require('../errors/errors');
 
 const dbName = 'documents';
 //inserts a new document and returns the newly generated _id
-async function createDoc(id, title, content) {
-
+async function createDoc(id, title, content, version) {
     try {
         const con = await db.getConnection(dbName); 
         const doc = {
             user_id: new ObjectId(id),
             title: title,
             content: content,
-            version: 1
+            version: version
         }
 
-        const result = await con.insertOne(doc);
-
-        return result;
+        return await con.insertOne(doc);
 
     } catch (err) {
         throw new DatabaseError('Database Error: Document Creation');        
@@ -25,18 +22,18 @@ async function createDoc(id, title, content) {
 };
 
 async function getDocsByUserId(id) {
-
     try {
         const con = await db.getConnection(dbName);
+        const result = await con.find({ user_id: new ObjectId(id) }).toArray();
+        
+        return JSON.stringify(result);
 
-        return await con.find({ user_id: new ObjectId(id) }).toArray();
     } catch (err) {
         throw new DatabaseError('Database Error: Get Documents by user id');
     }
 };
 
 async function getDocById(id) {
-
     try {
         const con = await db.getConnection(dbName);
         
@@ -48,7 +45,6 @@ async function getDocById(id) {
 };
 
 async function updateDoc(doc) {
-
     try {
         const con = await db.getConnection(dbName);
         

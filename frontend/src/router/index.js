@@ -1,11 +1,18 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHistory } from 'vue-router';
 
-import AuthPage from "../views/AuthPage.vue";
+import LoginPage from '../views/LoginPage.vue';
+import EditorPage from '../views/EditorPage.vue';
 
 const routes = [
   {
-    path: "/",
-    component: AuthPage,
+    path: '/',
+    name: 'login',
+    component: LoginPage,
+  },
+  {
+    path: '/editor',
+    name: 'editor',
+    component: EditorPage
   },
 ];
 

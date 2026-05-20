@@ -46,8 +46,8 @@ async function deleteUser(user) {
     }
 }
 
-async function comparePassword(one, other) {
-    return await bcrypt.compare(one, other);
+async function comparePassword(plain, hash) {
+    return await bcrypt.compare(plain, hash);
 }
 
 module.exports = { 

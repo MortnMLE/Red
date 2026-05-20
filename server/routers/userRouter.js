@@ -12,11 +12,11 @@ userRouter.post('/auth', async (req, res) => {
         if (typeof req.body.user !== 'string' || req.body.user === '' || 
             typeof req.body.password !== 'string' || req.body.password === ''
         ) {
-            res.status(400).json({
+            return res.status(400).json({
                 error: 'INVALID_INPUT',
-                message: 'Invalid credentials provided by client'
+                message: 'Invalid credentials provided by client',
+                success: false
             });
-            return;
         }
 
         // Fetch password
@@ -24,36 +24,36 @@ userRouter.post('/auth', async (req, res) => {
 
         // check for existing user        
         if (usr == null) {
-           res.status(400).json({
+           return res.status(400).json({
             error: 'INVALID_CREDENTIALS',
-            message: 'Wrong email or password'
+            message: 'Wrong email or password',
+            success: false
            });
-           return;
         }
 
         // Compare
-        const equal = await user.comparePassword(usr.password, req.body.password);
+        const equal = await user.comparePassword(req.body.password, usr.password);
 
         // Return UUID
         if (equal) {
-            res.status(200).json({
-                id: usr.uuid 
+            return res.status(200).json({
+                id: usr._id.toString(),
+                success: true
             });
-            return;
         } else {
-            res.status(400).json({
+            return res.status(400).json({
                 error: 'INVALID_CREDENTIALS',
-                message: 'Wrong email or password'
+                message: '2. Wrong email or password',
+                success: false
             });
-            return;
         }
 
     } catch (err) {
-        res.status(err.statusCode).json({
+        return res.status(err.statusCode).json({
             error: err.name,
-            message: err.message
+            message: err.message,
+            success: false
         });
-        return;
     }
 });
 
@@ -64,22 +64,22 @@ userRouter.post('/', async (req, res) => {
         if (typeof req.body.user !== 'string' || req.body.user === '' || 
             typeof req.body.password !== 'string' || req.body.password === ''
         ) {
-            res.status(400).json({
+            return res.status(400).json({
                 error: 'INVALID_INPUT',
-                message: 'invalid credentials provided by client'
+                message: 'invalid credentials provided by client',
+                success: false
             });
-            return;
         }
         
         // Check if user exists
         const existingUser = await user.getUser(req.body.user);
 
         if (existingUser != null) {
-            res.status(409).json({
+            return res.status(409).json({
                 error: 'CONFLICT',
-                message: 'User already exists'
+                message: 'User already exists',
+                success: false
             });
-            return;
         }
 
         // Create user
@@ -89,14 +89,17 @@ userRouter.post('/', async (req, res) => {
         });
 
         // Return id
-        return res.status(201).json({ id });
+        return res.status(201).json({ 
+            id: id.insertedId.toString(),
+            success: true 
+        });
 
     } catch (err) {
-        res.status(err.statusCode).json({
+        return res.status(err.statusCode).json({
             error: err.name,
-            message: err.message
+            message: err.message,
+            success: false
         });
-        return;
     }
 });
 
@@ -107,11 +110,10 @@ userRouter.delete('/', async (req, res) => {
         if (typeof req.body.user !== 'string' || req.body.user === '' || 
             typeof req.body.password !== 'string' || req.body.password === ''
         ) {
-            res.status(400).json({
+            return res.status(400).json({
                 error: 'USER_VALIDATION_ERROR',
                 message: 'invalid credentials provided by client' 
             });
-            return;
         }
         
         const usr = await user.getUser(req.body.user);
@@ -127,17 +129,16 @@ userRouter.delete('/', async (req, res) => {
         
         if (equal) {
             const result = await user.deleteUser(usr);
-            res.status(200).json('Successfully deleted user');
-            return;
+            return res.status(200).json('Successfully deleted user');
         } else {
-            res.status(401).json({
+            return res.status(401).json({
                 error: 'NOT_AUTHORIZED',
                 message: 'could not delete account'
             });
         }
 
     } catch (err) {
-        res.status(err.statusCode).json({
+        return res.status(err.statusCode).json({
             error: err.name,
             message: err.message
         });
