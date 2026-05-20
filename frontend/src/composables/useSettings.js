@@ -1,7 +1,8 @@
 import { ref, onMounted } from 'vue';
 import { DB_SETTINGS, getLocalRecord, 
     createLocalDatabase, addLocalRecord, 
-    localDbExists } from '@/services/indexedDbService';
+    localDbExists, getLocalDocumentVersionsByUserId, 
+    updateLocalRecordFull} from '@/services/indexedDbService';
 
 export function useSettings() {
     const countTempIds = ref(0);
@@ -21,11 +22,29 @@ export function useSettings() {
 
     }
 
+    async function updateCountTempIds() {
+        const documents = await getLocalDocumentVersionsByUserId(localStorage.userId);
+
+        if (documents.length === 0) {
+            return;
+        }
+
+        documents.value = documents.filter(doc => 
+            doc._id.includes('temp-')
+        );
+
+        const count = documents.value.length;
+        await updateLocalRecordFull(DB_SETTINGS, 'countTemporaryIds', count);
+        countTempIds.value = count;   
+        throw err;
+    }
+
     onMounted(() => {
         loadSettings();
     });
 
     return {
-        countTempIds
+        countTempIds, 
+        updateCountTempIds
     };
 }

@@ -6,6 +6,7 @@ import { DB_DOCUMENTS, getLocalDocumentVersionsByUserId,
  } from '@/services/indexedDbService';
 import { postToServer } from '@/services/apiService';
 import { endpointDocByUser, endpointDocNew } from '@/services/endpoints';
+import { useSettings } from './useSettings';
 
 export function useDocuments() {
     // documents: 
@@ -16,6 +17,12 @@ export function useDocuments() {
     // pendingSync: boolean
 
     const documents = ref([]);
+    const activeDocument = ref(null);
+    const openDocumentIds = ref([]);
+    const { 
+        countTempIds, 
+        updateCountTempIds 
+    } = useSettings();
 
     async function loadDocuments() {
         const serverDocuments = ref([]);
@@ -133,12 +140,73 @@ export function useDocuments() {
         }
     }
 
+    async function createDocument() {
+        const tempId = `temp-${countTempIds.value + 1}`;
+
+        let newDoc = {
+            _id: tempId,
+            user_id: localStorage.userId,
+            title: 'New Document',
+            content: '',
+            version: 0,
+            pendingSync: true
+        } 
+
+        documents.value.push(newDoc);
+        openDocument(newDoc._id);
+        activeDocument.value = newDoc._id;
+        
+        const response = await postToServer({
+            user_id: localStorage.userId,
+            title: newDoc.title,
+            content: newDoc.content,
+            version: newDoc.version
+        }, endpointDocNew);
+
+        if (response.success) {
+            console.log(`New _id for ${tempId}: ${response._id.toString()}`);
+
+            newDoc._id = response.insertedId;
+            newDoc.pendingSync = false;
+
+            const index = documents.value.findIndex(
+                doc => doc._id === tempId
+            );
+            
+            const openDocumentIndex = openDocumentIds.value.findIndex(id => id === tempId);
+            if (index !== -1) {
+                documents.value[index]._id = newDoc._id;
+                documents.value[index].pendingSync = false;
+
+                activeDocument.value = documents.value[index];
+            } else {
+                console.error(`Failed to find document with temporary ID ${tempId} in documents array`);
+                await updateCountTempIds();
+            }
+
+            if (openDocumentIndex !== -1) {
+                openDocumentIds.value[openDocumentIndex] = newDoc._id;
+            }
+        } else {
+            console.log(`Failed to create document on server, keeping temporary ID ${tempId}`);
+            await updateCountTempIds();
+        }
+        
+        await addLocalRecord(DB_DOCUMENTS, newDoc);
+    }
+
+    async function removeDocument(documentId) {
+
+    }
+
     onMounted(async () => {
         const { serverDocuments, localVersions } = await loadDocuments();
         await syncDocuments(serverDocuments, localVersions);
     });
 
     return {
-        documents
+        documents,
+        createDocument,
+        removeDocument
     };
 }

@@ -23,10 +23,10 @@
             <!-- List of Documents -->
             <button
                 v-for="doc in documents"
-                :key="doc.id"
+                :key="doc._id"
                 class="sidebar-item"
-                :class="{ active: activeDocumentId === doc.id }"
-                @click="openDocument(doc.id)"
+                :class="{ active: activeDocumentId === doc._id }"
+                @click="openDocument(doc._id)"
             >
                 {{ doc.title }}
             </button>
@@ -38,16 +38,16 @@
            <header class="menubar">
                     <button
                     v-for="doc in openDocuments"
-                    :key="doc.id"
+                    :key="doc._id"
                     class="tab"
-                    :class="{ active: activeDocumentId === doc.id }"
-                    @click="setActiveDocument(doc.id)"
+                    :class="{ active: activeDocumentId === doc._id }"
+                    @click="setActiveDocument(doc._id)"
                     >
                     {{ doc.title }}
 
                     <span
                         class="close"
-                        @click.stop="closeDocument(doc.id)"
+                        @click.stop="closeDocument(doc._id)"
                     >
                         ×
                     </span>
@@ -90,7 +90,6 @@ import { useDocuments } from '@/composables/useDocuments';
 import { useSettings } from '@/composables/useSettings';
 
 const { documents } = useDocuments();
-const { countTempIds } = useSettings();
 
 const openDocumentIds = ref(['1'])
 
@@ -98,13 +97,13 @@ const activeDocumentId = ref('1')
 
 const openDocuments = computed(() => {
   return documents.value.filter((doc) =>
-    openDocumentIds.value.includes(doc.id),
+    openDocumentIds.value.includes(doc._id),
   )
 });
 
 const activeDocument = computed(() => {
   return documents.value.find(
-    (doc) => doc.id === activeDocumentId.value,
+    (doc) => doc._id === activeDocumentId.value,
   )
 });
 
