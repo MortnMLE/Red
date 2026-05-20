@@ -81,10 +81,10 @@ import {
 import { defaultKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 
-import postToServer from '../services/apiService';
+import { postToServer } from '@/services/apiService';
 import { 
   DB_DOCUMENTS, addLocalRecord
-} from '../services/indexedDbService';
+} from '@/services/indexedDbService';
 
 import { useDocuments } from '@/composables/useDocuments';
 import { useSettings } from '@/composables/useSettings';
@@ -236,9 +236,6 @@ watch(activeDocument, (doc) => {
 });
 
 onMounted(async () => { 
-  const endpointDocByUser = 'http://localhost:5000/doc/byUser';
-  const endpointDocNew = 'http://localhost:5000/doc/new';
-
   createEditor(
     activeDocument.value?.content || '',
   )

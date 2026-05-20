@@ -1,4 +1,4 @@
-export default async function postToServer(body, endpoint) {
+export async function postToServer(body, endpoint) {
     const response = await fetch(endpoint, {
         method: 'POST',
         headers: {

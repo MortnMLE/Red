@@ -198,3 +198,21 @@ export async function deleteLocalRecord(dbName, indexValue) {
         };
     });
 }
+
+export async function clearLocalDatabase(dbName) {
+    const db = await openLocalDatabase(dbName);
+
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(dbName, "readwrite");
+        const store = transaction.objectStore(dbName);
+        const request = store.clear();
+
+        request.onsuccess = () => {
+            resolve(request.result);
+        };
+
+        request.onerror = () => {
+            reject(request.error);
+        };    
+    });
+}

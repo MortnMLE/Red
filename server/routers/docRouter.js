@@ -81,7 +81,7 @@ docRouter.post('/new', async (req, res) => {
         if (typeof req.body.user_id !== 'string' || req.body.user_id === '' ||
             typeof req.body.title !== 'string' || 
             typeof req.body.content !== 'string' ||
-            typeof req.body.version !== 'number' || req.body.version !== 0
+            typeof req.body.version !== 'number'
         ) {
             return res.status(400).json({
                 error: 'INVALID_INPUT',
@@ -90,15 +90,23 @@ docRouter.post('/new', async (req, res) => {
             });
         }
 
-        const id = await doc.createDoc(
+        const dbResponse = await doc.createDoc(
             req.body.user_id,
             req.body.title,
             req.body.content,
             req.body.version
         );
 
+        if (dbResponse.acknowledged !== true) {
+            return res.status(500).json({
+                error: 'DATABASE_ERROR',
+                message: 'Failed to create document in database',
+                success: false
+            });
+        }
+
         return res.status(201).json({ 
-            _id: id,
+            _id: dbResponse.insertedId,
             success: true 
         });
 
