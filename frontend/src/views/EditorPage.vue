@@ -81,29 +81,21 @@ import {
 import { defaultKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 
-import { postToServer } from '@/services/apiService';
-import { 
-  DB_DOCUMENTS, addLocalRecord
-} from '@/services/indexedDbService';
-
 import { useDocuments } from '@/composables/useDocuments';
-import { useSettings } from '@/composables/useSettings';
 
-const { documents } = useDocuments();
-
-const openDocumentIds = ref(['1'])
-
-const activeDocumentId = ref('1')
+const { 
+  documents,
+  activeDocument,
+  openDocumentIds,
+  createDocument,
+  removeDocument,
+  openDocument,
+  setActiveDocument
+ } = useDocuments();
 
 const openDocuments = computed(() => {
   return documents.value.filter((doc) =>
     openDocumentIds.value.includes(doc._id),
-  )
-});
-
-const activeDocument = computed(() => {
-  return documents.value.find(
-    (doc) => doc._id === activeDocumentId.value,
   )
 });
 
@@ -146,43 +138,6 @@ function createEditor(content) {
   });
 }
 
-async function removeDocument() {
-
-}
-
-async function createDocument() {
-  const tempId = `temp-${countTempIds.value}`;
-  let newDoc = {
-    _id:tempId,
-    user_id: localStorage.userId,
-    title: 'New Document',
-    content: '',
-    version: 0,
-    pendingSync: true
-  } 
-
-  documents.value.push(newDoc);
-  openDocument(newDoc._id);
-  activeDocumentId.value = newDoc._id;
-  
-  await addLocalRecord(DB_DOCUMENTS, newDoc);
-
-  const response = await postToServer({
-    user_id: localStorage.userId,
-    title: newDoc.title,
-    content: newDoc.content,
-    version: newDoc.version
-  }, 'http://localhost:5000/doc/new');
-
-  if (response.success) {
-    await udpateLocalDocumentId(tempId, response._id);
-    
-    console.log(`Created new document with id ${response._id} on server`);
-  } else {
-    console.error('Failed to create document on server');
-  }
-}
-
 function updateEditorContent(content) {
   if (!editorView){
     return;
@@ -202,30 +157,6 @@ function updateEditorContent(content) {
       insert: content,
     },
   });
-}
-
-function openDocument(id) {
-  if (!openDocumentIds.value.includes(id)) {
-    openDocumentIds.value.push(id)
-  }
-
-  activeDocumentId.value = id
-}
-
-function setActiveDocument(id) {
-  activeDocumentId.value = id
-}
-
-function closeDocument(id) {
-  openDocumentIds.value =
-    openDocumentIds.value.filter(
-      (docId) => docId !== id,
-    );
-
-  if (activeDocumentId.value === id) {
-    activeDocumentId.value =
-      openDocumentIds.value[0] || '';
-  }
 }
 
 watch(activeDocument, (doc) => {

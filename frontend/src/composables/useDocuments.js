@@ -18,7 +18,7 @@ export function useDocuments() {
 
     const documents = ref([]);
     const activeDocument = ref(null);
-    const openDocumentIds = ref([]);
+    const openDocumentIds = ref(['1']);
     const { 
         countTempIds, 
         updateCountTempIds 
@@ -174,6 +174,7 @@ export function useDocuments() {
             );
             
             const openDocumentIndex = openDocumentIds.value.findIndex(id => id === tempId);
+
             if (index !== -1) {
                 documents.value[index]._id = newDoc._id;
                 documents.value[index].pendingSync = false;
@@ -199,6 +200,29 @@ export function useDocuments() {
 
     }
 
+    // an "open" document appears in the head-bar.
+    function openDocument(id) {
+        if (!openDocumentIds.value.includes(id)) {
+            openDocumentIds.value.push(id);
+        }
+    }
+
+    // removes a document from the head-bar.
+    function closeDocument(id) {
+        openDocumentIds.value =
+            openDocumentIds.value.filter(
+                (docId) => docId !== id,
+            );
+
+        if (activeDocument.value._id === id) {
+            activeDocumentId.value = '';
+        }
+    }
+
+    function setActiveDocument(id) {
+        activeDocument.value = id
+    }
+
     onMounted(async () => {
         const { serverDocuments, localVersions } = await loadDocuments();
         await syncDocuments(serverDocuments, localVersions);
@@ -206,7 +230,12 @@ export function useDocuments() {
 
     return {
         documents,
+        activeDocument,
+        openDocumentIds,
         createDocument,
-        removeDocument
+        removeDocument,
+        openDocument,
+        closeDocument,
+        setActiveDocument
     };
 }
