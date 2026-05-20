@@ -83,23 +83,14 @@ import { markdown } from '@codemirror/lang-markdown';
 
 import postToServer from '../services/apiService';
 import { 
-  createLocalDatabase, localDbExists, 
-  getLocalDocumentVersionsByUserId, updateLocalRecordFull, 
-  updateLocalRecordPartial, getLocalRecord, deleteLocalRecord,
-  DB_DOCUMENTS, DB_SETTINGS, addLocalRecord
+  DB_DOCUMENTS, addLocalRecord
 } from '../services/indexedDbService';
 
-// 
-const documents = ref([{
-  _id: '',
-  user_id: '',
-  title: '',
-  content: '',
-  version: 0,
-  pendingSync: false
-}]);
+import { useDocuments } from '@/composables/useDocuments';
+import { useSettings } from '@/composables/useSettings';
 
-const countTempIds = ref(0);
+const { documents } = useDocuments();
+const { countTempIds } = useSettings();
 
 const openDocumentIds = ref(['1'])
 
@@ -247,99 +238,6 @@ watch(activeDocument, (doc) => {
 onMounted(async () => { 
   const endpointDocByUser = 'http://localhost:5000/doc/byUser';
   const endpointDocNew = 'http://localhost:5000/doc/new';
-
-  let localVersions = [];
-  let serverDocuments = [];
-
-    //========================================================================
-    // initial setup: check if local database exists, fetch documents from server, 
-    // and handle synchronization between local storage and server
-    //========================================================================
-
-  try {
-    if (await localDbExists(DB_SETTINGS)) {
-      countTempIds.value = await getLocalRecord(DB_SETTINGS, "key", "countTemporaryIds");
-    } else {
-      await createLocalDatabase(DB_SETTINGS, "key");
-      await addLocalRecord(DB_SETTINGS, { key: "countTemporaryIds", value: 0 });
-      console.log('Local settings database does not exist, created new database');
-    } 
-  } catch (err) {
-    console.error('Error initializing local settings database: ' + err.message);
-  }
-
-  try {
-    // Check if local database exists and load documents from local storage
-    if (await localDbExists(DB_DOCUMENTS)) {
-      console.log('Local database exists, loading documents from local storage');
-      localVersions = await getLocalDocumentVersionsByUserId(localStorage.userId);
-      console.log(`Local database exists, loading ${localVersions.length} documents from local storage`);
-    } else { 
-      await createLocalDatabase(DB_DOCUMENTS, "_id");
-      console.log('Local database does not exist, created new database');
-    }
-
-    // Fetch documents from server
-    console.log('fetching documents for user: ' + localStorage.userId);
-    const fetchedDocs = await postToServer({ user_id: localStorage.userId }, endpointDocByUser);
-
-    if (fetchedDocs.success) {
-      serverDocuments = await JSON.parse(fetchedDocs.documents);
-      console.log(`Fetched ${serverDocuments.length} documents from server`);
-    } else {
-      console.log('Failed to fetch documents: ' + fetchedDocs.message);
-    }
-
-    // Handle synchronization between local storage and server
-    for (const serverDoc of serverDocuments) {
-      const localDoc = localVersions.find(doc => doc._id === serverDoc.id);
-
-      if (localDoc) {
-        if (localDoc.version < serverDoc.version) {
-          await updateLocalRecordFull(DB_DOCUMENTS, serverDoc._id, serverDoc);
-          localVersions = localVersions.filter(doc => doc._id !== localDoc._id);
-        } else if (localDoc.version === serverDoc.version) {
-          console.log(`Document ${localDoc._id} is up to date with server version`);
-          localVersions = localVersions.filter(doc => doc._id !== localDoc._id);
-        }
-      }
-    }
-
-    // Handle documents that exist in local storage but not on server
-    for (const localDoc of localVersions) {
-      const doc = await getLocalRecord(DB_DOCUMENTS, '_id', localDoc._id);
-      console.log(doc);
-
-      const response = await postToServer({
-        user_id: doc.user_id,
-        title: doc.title,
-        content: doc.content,
-        version: doc.version
-      }, endpointDocNew);
-
-      if (response.success) {
-        console.log(`New _id for ${localDoc._id}: ${response._id.toString()}`);
-        await deleteLocalRecord(DB_DOCUMENTS, localDoc._id);
-
-        await addLocalRecord(DB_DOCUMENTS, {
-          _id: response._id,
-          user_id: doc.user_id,
-          title: doc.title,
-          content: doc.content,
-          version: doc.version,
-          pendingSync: false
-        });
-      } else {
-        console.error(`Failed to update document ${localDoc._id} on server`);
-        continue;
-      }
-
-      localVersions = localVersions.filter(doc => doc._id !== localDoc._id);
-    }
-    documents.value = serverDocuments;
-  } catch (err) {
-      console.error('Could not fetch documents: ' + err.message);
-  }
 
   createEditor(
     activeDocument.value?.content || '',

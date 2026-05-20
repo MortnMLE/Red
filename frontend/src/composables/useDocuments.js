@@ -5,7 +5,14 @@ import { DB_DOCUMENTS, getLocalDocumentVersionsByUserId,
  } from '@/services/indexedDbService';
 import { postToServer } from '@/services/apiService';
 
-export async function useDocuments() {
+export function useDocuments() {
+    // documents: 
+    // _id: string
+    // title: string
+    // content: string
+    // version: number
+    // pendingSync: boolean (optional, only for local storage)
+
     const documents = ref([]);
     const serverDocuments = ref([]);
     const localVersions = ref([]);
