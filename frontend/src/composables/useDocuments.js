@@ -1,7 +1,7 @@
 import { onMounted, ref } from 'vue';
-import { DB_DOCUMENTS, getLocalDocumentVersionsByUserId,
-    createLocalDatabase, localDbExists, updateLocalRecordFull, 
-    getLocalRecord, deleteLocalRecord, addLocalRecord,
+import { DB_DOCUMENTS, getLocalRecordsByIndex,
+    createLocalDatabase, localDbExists, getLocalRecord, 
+    deleteLocalRecord, addOrSetLocalRecord,
     clearLocalDatabase
  } from '@/services/indexedDbService';
 import { postToServer } from '@/services/apiService';
@@ -33,7 +33,11 @@ export function useDocuments() {
         // Check if local database exists and load documents from local storage
             if (await localDbExists(DB_DOCUMENTS)) {
                 console.log('Local database exists, loading documents from local storage');
-                localVersions = await getLocalDocumentVersionsByUserId(localStorage.userId);
+                localVersions = await getLocalRecordsByIndex(
+                    DB_DOCUMENTS,
+                    'user_id',
+                    localStorage.userId
+                );
 
                 console.log(`Local database exists, loading ${localVersions.length} documents from local storage`);
             } else { 
@@ -72,7 +76,9 @@ export function useDocuments() {
             for (let serverDoc of serverDocuments) {
                 const localDoc = localVersions.find(doc => doc._id === serverDoc._id);
 
-                if (!localDoc) {
+                if (!localDoc || 
+                    localDoc.version < serverDoc.version
+                ) {
                     console.log(`Document ${serverDoc._id} exists on server but not in local storage, adding to local storage`);
                     const newDoc = {
                         _id: serverDoc._id,
@@ -83,15 +89,14 @@ export function useDocuments() {
                         pendingSync: false
                     };
 
-                    await addLocalRecord(DB_DOCUMENTS, newDoc);
-                    serverDoc = newDoc;
-                } else if (localDoc.version < serverDoc.version) {
-                    await updateLocalRecordFull(DB_DOCUMENTS, serverDoc._id, serverDoc);
+                    await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
                 } else if (localDoc.version === serverDoc.version) {
                     console.log(`Document ${localDoc._id} is up to date with server version`);
-                } else {
+                } else if (localDoc.version > serverDoc.verison){
                     localOnlyDocs.push(localDoc);
                     console.log(`Document ${localDoc._id} has a newer version in local storage, will attempt to push to server`);
+                } else {
+                    console.log('Check this please');
                 }
 
                 documents.value.push(serverDoc);
@@ -104,6 +109,7 @@ export function useDocuments() {
             // Handle documents that exist in local storage but not on server
             for (const localDoc of localOnlyDocs) {
                 const doc = await getLocalRecord(DB_DOCUMENTS, '_id', localDoc._id);
+                console.log(localDoc);
 
                 const response = await postToServer({
                     user_id: doc.user_id,
@@ -112,21 +118,21 @@ export function useDocuments() {
                     version: doc.version
                 }, endpointDocNew);
 
+                const newDoc = {
+                    _id: response._id,
+                    user_id: doc.user_id,
+                    title: doc.title,
+                    content: doc.content,
+                    version: doc.version,
+                    pendingSync: false
+                }     
+
                 if (response.success) {
                     console.log(`New _id for ${localDoc._id}: ${response._id.toString()}`);
 
                     await deleteLocalRecord(DB_DOCUMENTS, localDoc._id);
+                    await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
 
-                    const newDoc = {
-                        _id: response._id,
-                        user_id: doc.user_id,
-                        title: doc.title,
-                        content: doc.content,
-                        version: doc.version,
-                        pendingSync: false
-                    }
-
-                    await addLocalRecord(DB_DOCUMENTS, newDoc);
                     documents.value.push(newDoc);
                 } else {
                     console.error(`Failed to push document ${localDoc._id} to server`);
@@ -137,7 +143,7 @@ export function useDocuments() {
                 localVersions = localVersions.filter(doc => doc._id !== localDoc._id);
             }
         } catch (err) {
-            console.error('Error synchronizing local-only documents: ' + err.message);
+            console.error('Error synchronizing local-only documents: ' + err.message + ' ');
         }
     }
 
@@ -185,7 +191,7 @@ export function useDocuments() {
         }
         finally {
             console.log(newDoc);
-            await addLocalRecord(DB_DOCUMENTS, newDoc);
+            await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
             await updateCountTempIds();
         }
     }

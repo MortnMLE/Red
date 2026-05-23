@@ -1,9 +1,9 @@
 import { ref, onMounted } from 'vue';
-import { DB_SETTINGS, getLocalRecord, 
-    createLocalDatabase, addLocalRecord, 
-    localDbExists, getLocalDocumentVersionsByUserId, 
-    updateLocalRecordFull,
-    updateLocalRecordPartial} from '@/services/indexedDbService';
+import { DB_SETTINGS, DB_DOCUMENTS,
+    getLocalRecord, 
+    createLocalDatabase, addOrSetLocalRecord, 
+    localDbExists, getLocalRecordsByIndex
+} from '@/services/indexedDbService';
 
 const countTempIds = ref(0);
 
@@ -19,7 +19,7 @@ export function useSettings() {
                 }
             } else {
                 await createLocalDatabase(DB_SETTINGS, 'key');
-                await addLocalRecord(DB_SETTINGS, { key: 'countTemporaryIds', value: 0 });
+                await addOrSetLocalRecord(DB_SETTINGS, { key: 'countTemporaryIds', value: 0 });
                 console.log('Local settings database does not exist, created new database');
             } 
         } catch (err) {
@@ -29,24 +29,19 @@ export function useSettings() {
     }
 
     async function updateCountTempIds() {
-        let documents = await getLocalDocumentVersionsByUserId(localStorage.userId);
-        let count = 0;
+        let documents = await getLocalRecordsByIndex(
+            DB_DOCUMENTS,
+            'user_id', 
+            localStorage.userId);
 
-        if (documents.length === 0) {
-            count = 0;
-        } else {
-            documents = documents.filter(doc => 
-                doc._id.includes('temp-')
-            );
+        const count = documents.filter(doc => 
+            doc._id.includes('temp-')
+        ).length;
 
-            count = documents.length;
-            console.log('count: ' + count);
-            await updateLocalRecordFull(DB_SETTINGS, 'countTemporaryIds', {
-                key: 'countTemporaryIds',
-                value: count
-            });
-        }
-
+        await addOrSetLocalRecord(DB_SETTINGS, {
+            key: 'countTemporaryIds',
+            value: count
+        });
         countTempIds.value = count;   
     }
 
