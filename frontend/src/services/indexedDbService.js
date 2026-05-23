@@ -85,10 +85,7 @@ export async function getLocalRecordsByIndex(storeName, indexName, indexValue) {
             const cursor = event.target.result;
 
             if (cursor) {
-                results.push({
-                    _id: cursor.value._id,
-                    version: cursor.value.version
-                });
+                results.push(cursor.value);
 
                 cursor.continue();
             } else {
