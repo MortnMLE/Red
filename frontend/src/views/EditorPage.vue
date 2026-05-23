@@ -63,25 +63,9 @@
 </template>
 
 <script setup>
-import {
-  ref,
-  computed,
-  onMounted,
-  onBeforeUnmount,
-  watch,
-} from 'vue'
-
-import { EditorState } from '@codemirror/state';
-import {
-  EditorView,
-  keymap,
-  lineNumbers,
-} from '@codemirror/view';
-
-import { defaultKeymap } from '@codemirror/commands';
-import { markdown } from '@codemirror/lang-markdown';
 
 import { useDocuments } from '@/composables/useDocuments';
+import { useEditor } from '@/composables/useEditor';
 
 const { 
   documents,
@@ -92,85 +76,14 @@ const {
   openDocument,
   closeDocument,
   setActiveDocument
- } = useDocuments();
+} = useDocuments();
 
-const editorRef = ref(null);
+const {
+  editorRef,
+  editorView,
+  createEditor
+} = useEditor();
 
-let editorView = null;
-
-function createEditor(content) {
-  if (!editorRef.value) {
-    return;
-  }
-
-  const state = EditorState.create({
-    doc: content,
-    extensions: [
-      lineNumbers(),
-
-      keymap.of(defaultKeymap),
-
-      markdown(),
-
-      EditorView.theme({
-        '&': {
-          height: '100%',
-          fontSize: '14px',
-        },
-
-        '.cm-scroller': {
-          overflow: 'auto',
-          fontFamily:
-            'JetBrains Mono, monospace',
-        },
-      }),
-    ],
-  });
-
-  editorView = new EditorView({
-    state,
-    parent: editorRef.value,
-  });
-}
-
-function updateEditorContent(content) {
-  if (!editorView){
-    return;
-  }
-
-  const current =
-    editorView.state.doc.toString()
-
-  if (current === content) {
-    return;
-  }
-
-  editorView.dispatch({
-    changes: {
-      from: 0,
-      to: current.length,
-      insert: content,
-    },
-  });
-}
-
-watch(activeDocument, (doc) => {
-  if (doc) {
-    updateEditorContent(doc.content);
-  }
-});
-
-onMounted(async () => { 
-  createEditor(
-    activeDocument.value?.content || '',
-  )
-});
-
-onBeforeUnmount(() => {
-  if (editorView) {
-    editorView.destroy();
-  }
-});
 </script>
 
 <style scoped>
