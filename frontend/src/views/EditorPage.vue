@@ -22,10 +22,10 @@
 
             <!-- List of Documents -->
             <button
-                v-for="doc in documents"
+                v-for="doc in documents.value"
                 :key="doc._id"
                 class="sidebar-item"
-                :class="{ active: activeDocumentId === doc._id }"
+                :class="{ active: activeDocument.value._id === doc._id }"
                 @click="openDocument(doc._id)"
             >
                 {{ doc.title }}
@@ -36,22 +36,22 @@
         <div class="main">
             <!-- Menubar -->
            <header class="menubar">
-                    <button
-                    v-for="doc in openDocuments"
-                    :key="doc._id"
-                    class="tab"
-                    :class="{ active: activeDocumentId === doc._id }"
-                    @click="setActiveDocument(doc._id)"
-                    >
-                    {{ doc.title }}
+              <button
+                v-for="id in openDocumentIds.value"
+                :key="id"
+                class="tab"
+                :class="{ active: activeDocument.value._id === id }"
+                @click="setActiveDocument(id)"
+              >
+              {{ doc.title }}
 
-                    <span
-                        class="close"
-                        @click.stop="closeDocument(doc._id)"
-                    >
-                        ×
-                    </span>
-                </button>
+                <span
+                  class="close"
+                  @click.stop="closeDocument(id)"
+                >
+                  ×
+                </span>
+              </button>
             </header>
 
             <!-- Editor -->
@@ -90,6 +90,7 @@ const {
   createDocument,
   removeDocument,
   openDocument,
+  closeDocument,
   setActiveDocument
  } = useDocuments();
 

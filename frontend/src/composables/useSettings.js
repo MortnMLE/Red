@@ -2,19 +2,25 @@ import { ref, onMounted } from 'vue';
 import { DB_SETTINGS, getLocalRecord, 
     createLocalDatabase, addLocalRecord, 
     localDbExists, getLocalDocumentVersionsByUserId, 
-    updateLocalRecordFull} from '@/services/indexedDbService';
+    updateLocalRecordFull,
+    updateLocalRecordPartial} from '@/services/indexedDbService';
+
+const countTempIds = ref(0);
 
 export function useSettings() {
-    const countTempIds = ref(0);
 
     async function loadSettings() {
         try {
             if (await localDbExists(DB_SETTINGS)) {
-            countTempIds.value = await getLocalRecord(DB_SETTINGS, "key", "countTemporaryIds");
+                const response = await getLocalRecord(DB_SETTINGS, 'key', 'countTemporaryIds');
+                
+                if (response) {
+                    countTempIds.value = response.value.value;
+                }
             } else {
-            await createLocalDatabase(DB_SETTINGS, "key");
-            await addLocalRecord(DB_SETTINGS, { key: "countTemporaryIds", value: 0 });
-            console.log('Local settings database does not exist, created new database');
+                await createLocalDatabase(DB_SETTINGS, 'key');
+                await addLocalRecord(DB_SETTINGS, { key: 'countTemporaryIds', value: 0 });
+                console.log('Local settings database does not exist, created new database');
             } 
         } catch (err) {
             console.error('Error initializing local settings database: ' + err.message);
@@ -23,20 +29,25 @@ export function useSettings() {
     }
 
     async function updateCountTempIds() {
-        const documents = await getLocalDocumentVersionsByUserId(localStorage.userId);
+        let documents = await getLocalDocumentVersionsByUserId(localStorage.userId);
+        let count = 0;
 
         if (documents.length === 0) {
-            return;
+            count = 0;
+        } else {
+            documents = documents.filter(doc => 
+                doc._id.includes('temp-')
+            );
+
+            count = documents.length;
+            console.log('count: ' + count);
+            await updateLocalRecordFull(DB_SETTINGS, 'countTemporaryIds', {
+                key: 'countTemporaryIds',
+                value: count
+            });
         }
 
-        documents.value = documents.filter(doc => 
-            doc._id.includes('temp-')
-        );
-
-        const count = documents.value.length;
-        await updateLocalRecordFull(DB_SETTINGS, 'countTemporaryIds', count);
         countTempIds.value = count;   
-        throw err;
     }
 
     onMounted(() => {

@@ -1,5 +1,5 @@
-export const DB_DOCUMENTS = "RedDB";
-export const DB_SETTINGS = "RedSettings";
+export const DB_DOCUMENTS = 'RedDB';
+export const DB_SETTINGS = 'RedSettings';
 const DB_VERSION = 1;
 
 export function openLocalDatabase(dbName) {
@@ -26,7 +26,7 @@ export async function createLocalDatabase(dbName, keyPath) {
             if (!db.objectStoreNames.contains(dbName)) {
                 const store = db.createObjectStore(dbName, { keyPath: keyPath });
 
-                store.createIndex("user_id", "user_id", { unique: false });
+                store.createIndex('user_id', 'user_id', { unique: false });
             }
         };
 
@@ -51,9 +51,10 @@ export async function addLocalRecord(dbName, record) {
     const db = await openLocalDatabase(dbName);
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(dbName, "readwrite");
+        const transaction = db.transaction(dbName, 'readwrite');
         const store = transaction.objectStore(dbName);
-        const request = store.add(record);
+
+        const request = store.put(record);
 
         request.onsuccess = () => {
             resolve(request.result);
@@ -70,11 +71,11 @@ export async function getLocalDocumentVersionsByUserId(userId) {
 
     return new Promise((resolve, reject) => {
         const store = db
-            .transaction(DB_DOCUMENTS, "readonly")
+            .transaction(DB_DOCUMENTS, 'readonly')
             .objectStore(DB_DOCUMENTS);
         
         console.log('found store');
-        const index = store.index("user_id");
+        const index = store.index('user_id');
         const request = index.openCursor(IDBKeyRange.only(userId));
 
         const results = [];
@@ -104,11 +105,12 @@ export async function getLocalRecord(dbName, indexName, value) {
     const db = await openLocalDatabase(dbName);
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(dbName, "readonly");
+        const transaction = db.transaction(dbName, 'readonly');
         const store = transaction.objectStore(dbName);
-        //const index = store.index(indexName);
-        //const request = index.get(value);
-        const request = store.get(value);
+
+        const index = store.index(indexName);
+        const request = index.get(value);
+
         request.onsuccess = () => {
             resolve(request.result);
         };
@@ -119,18 +121,18 @@ export async function getLocalRecord(dbName, indexName, value) {
     });
 }
 
-export async function updateLocalRecordPartial(dbName, indexValue,
+export async function updateLocalRecordPartial(dbName, indexName,
     fieldsToUpdate, valuesToUpdate) {
         
     const db = await openLocalDatabase(dbName);
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(dbName, "readwrite");
+        const transaction = db.transaction(dbName, 'readwrite');
         const store = transaction.objectStore(dbName);
-        const request = store.get(indexValue);
+        const request = store.get(indexName);
 
         request.onsuccess = (event) => {
-            const data = event.target.result; 
+            let data = event.target.result; 
             
             fieldsToUpdate.forEach((field, index) => {
                 data[field] = valuesToUpdate[index];
@@ -157,12 +159,12 @@ export async function updateLocalRecordFull(dbName, indexValue, newRecord) {
     const db = await openLocalDatabase(dbName);
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(dbName, "readwrite");
+        const transaction = db.transaction(dbName, 'readwrite');
         const store = transaction.objectStore(dbName);
         const request = store.get(indexValue);
 
         request.onsuccess = (event) => {
-            const data = event.target.result; 
+            let data = event.target.result; 
             data = newRecord;
 
             const updateRequest = store.put(data);
@@ -185,7 +187,7 @@ export async function updateLocalRecordFull(dbName, indexValue, newRecord) {
 export async function deleteLocalRecord(dbName, indexValue) {
     const db = await openLocalDatabase(dbName);
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(dbName, "readwrite");
+        const transaction = db.transaction(dbName, 'readwrite');
         const store = transaction.objectStore(dbName);
         const request = store.delete(indexValue);
 
@@ -203,7 +205,7 @@ export async function clearLocalDatabase(dbName) {
     const db = await openLocalDatabase(dbName);
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(dbName, "readwrite");
+        const transaction = db.transaction(dbName, 'readwrite');
         const store = transaction.objectStore(dbName);
         const request = store.clear();
 
