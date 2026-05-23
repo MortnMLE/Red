@@ -18,47 +18,48 @@
         <button class="sidebar-item" @click="removeDocument()">
           - Delete
         </button>
-          </div>
-            <!-- List of Documents -->
-            <button
-              v-for="doc in documents"
-              :key="doc._id"
-              class="sidebar-item"
-              :class="{ active: activeDocument._id === doc._id }"
-              @click="openDocument(doc._id)"
+      </div>
+      <!-- List of Documents -->
+      <button
+        v-for="doc in documents"
+        :key="doc._id"
+        class="sidebar-item"
+        :class="{ active: activeDocument && activeDocument._id === doc._id }"
+        @click="openDocument(doc._id, doc.title); setActiveDocument(doc._id)"
+      >
+          {{ doc.title }}
+      </button>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+      <!-- tabbar -->
+      <header
+        class="tabbar">
+        <button
+          v-if="activeDocument"
+          v-for="doc in openDocuments"
+          :key="doc._id"
+          class="tab"
+          :class="{ active: acticeDocument && activeDocument._id === doc._id }"
+          @click="setActiveDocument(doc._id)"
+        >
+          {{ doc.title }}
+          <span
+            class="close"
+            @click.stop="closeDocument(doc._id)"
           >
-              {{ doc.title }}
-            </button>
-        </aside>
+            ×
+          </span>
+        </button>
+      </header>
 
-        <!-- Main -->
-        <div class="main">
-            <!-- tabbar -->
-           <header class="tabbar">
-              <button
-                v-for="id in openDocumentIds"
-                :key="id"
-                class="tab"
-                :class="{ active: activeDocument._id === id }"
-                @click="setActiveDocument(id)"
-              >
-              {{ activeDocument.title }}
-
-                <span
-                  class="close"
-                  @click.stop="closeDocument(id)"
-                >
-                  ×
-                </span>
-              </button>
-            </header>
-
-            <!-- Editor -->
-            <section class="editor-container">
-                <div ref="editorRef" class="editor"></div>
-            </section>
-        </div>
+      <!-- Editor -->
+      <section class="editor-container">
+          <div ref="editorRef" class="editor"></div>
+      </section>
     </div>
+  </div>
 </template>
 
 <script setup>
@@ -85,19 +86,13 @@ import { useDocuments } from '@/composables/useDocuments';
 const { 
   documents,
   activeDocument,
-  openDocumentIds,
+  openDocuments,
   createDocument,
   removeDocument,
   openDocument,
   closeDocument,
   setActiveDocument
  } = useDocuments();
-
-const openDocuments = computed(() => {
-  return documents.value.filter((doc) =>
-    openDocumentIds.value.includes(doc._id),
-  )
-});
 
 const editorRef = ref(null);
 

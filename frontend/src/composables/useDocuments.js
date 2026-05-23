@@ -10,8 +10,10 @@ import { endpointDocByUser, endpointDocNew } from '@/services/endpoints';
 import { useSettings } from './useSettings';
 
 const documents = ref([]);
-const activeDocument = ref({_id: null});
-const openDocumentIds = ref(['1']);
+const activeDocument = ref();
+const openDocuments = ref([]);
+const links = ref([]);
+
 export function useDocuments() {
     // documents: 
     // _id: string
@@ -102,9 +104,7 @@ export function useDocuments() {
                     console.log(`Document ${serverDoc._id} added to local`);
                 }
 
-                console.log('before: ' + documents.value.length);
                 documents.value.push(serverDoc);
-                console.log('after: ' + documents.value.length);
             }
 
             postToServerDocs.push(...localDocuments);
@@ -119,6 +119,7 @@ export function useDocuments() {
             let id = '';
 
             try{
+                //Only try to reach the server once.
                 if (serverIsReachable) {
                     const response = await postToServer({
                         user_id: doc.user_id,
@@ -189,10 +190,10 @@ export function useDocuments() {
                 newDoc._id = response._id;
                 newDoc.pendingSync = false;
 
-                const openDocumentIndex = openDocumentIds.value.findIndex(id => id === tempId);
+                const openDocumentIndex = openDocuments.value.findIndex(id => id === tempId);
 
                 if (openDocumentIndex !== -1) {
-                    openDocumentIds.value[openDocumentIndex] = newDoc._id;
+                    openDocuments.value[openDocumentIndex] = newDoc._id;
                 }
             } else {
                 console.log(`Failed to create document on server, keeping temporary ID ${tempId}`);
@@ -211,17 +212,21 @@ export function useDocuments() {
     }
 
     // an "open" document appears in the head-bar.
-    function openDocument(id) {
-        if (!openDocumentIds.value.includes(id)) {
-            openDocumentIds.value.push(id);
+    function openDocument(id, title) {
+        if (!openDocuments.value.includes({id, title})) {
+            openDocuments.value.push({
+                _id: id,
+                title: title
+            });
         }
     }
 
     // removes a document from the head-bar.
     function closeDocument(id) {
-        openDocumentIds.value =
-            openDocumentIds.value.filter(
-                (docId) => docId !== id,
+        console.log('closeDocument called');
+        openDocuments.value =
+            openDocuments.value.filter(
+                doc => doc._id !== id,
             );
 
         if (activeDocument.value._id === id) {
@@ -230,21 +235,22 @@ export function useDocuments() {
     }
 
     function setActiveDocument(id) {
+        console.log('setActiveDocument called');
         activeDocument.value = documents.value.filter(
-            (doc) => doc._id === id
+            doc => doc._id === id
         );
     }
 
     onMounted(async () => {
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
-        console.log([...documents.value].length);
+        console.log(`Loaded ${[...documents.value].length} documents.`);
     });
 
     return {
         documents,
         activeDocument,
-        openDocumentIds,
+        openDocuments,
         createDocument,
         removeDocument,
         openDocument,
