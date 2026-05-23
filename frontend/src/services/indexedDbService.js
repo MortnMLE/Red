@@ -45,7 +45,6 @@ export async function createLocalDatabase(storeName, keyPath) {
 export async function localDbExists(storeName) {
     const databases = await indexedDB.databases();
     const exists = databases.some(db => db.name === storeName);
-    console.log(databases);
     return exists;
 }
 

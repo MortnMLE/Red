@@ -4,14 +4,14 @@ import { DB_DOCUMENTS, getLocalRecordsByIndex,
     deleteLocalRecord, addOrSetLocalRecord,
     clearLocalDatabase
  } from '@/services/indexedDbService';
+
 import { postToServer } from '@/services/apiService';
 import { endpointDocByUser, endpointDocNew } from '@/services/endpoints';
 import { useSettings } from './useSettings';
 
 const documents = ref([]);
-const activeDocument = ref(null);
+const activeDocument = ref({_id: null});
 const openDocumentIds = ref(['1']);
-
 export function useDocuments() {
     // documents: 
     // _id: string
@@ -102,7 +102,9 @@ export function useDocuments() {
                     console.log(`Document ${serverDoc._id} added to local`);
                 }
 
+                console.log('before: ' + documents.value.length);
                 documents.value.push(serverDoc);
+                console.log('after: ' + documents.value.length);
             }
 
             postToServerDocs.push(...localDocuments);
@@ -110,43 +112,49 @@ export function useDocuments() {
             console.error('Error synchronizing server-documents: ' + err.message);
         }
 
-        try {
-            // Handle documents that exist in local storage but not on server
-            for (const doc of postToServerDocs) {
-                console.log(doc);
+        // Handle documents that exist in local storage but not on server
+        let serverIsReachable = true;
+        for (const doc of postToServerDocs) {
+            let succeeded = false;
+            let id = '';
 
-                const response = await postToServer({
-                    user_id: doc.user_id,
-                    title: doc.title,
-                    content: doc.content,
-                    version: doc.version
-                }, endpointDocNew);
+            try{
+                if (serverIsReachable) {
+                    const response = await postToServer({
+                        user_id: doc.user_id,
+                        title: doc.title,
+                        content: doc.content,
+                        version: doc.version
+                    }, endpointDocNew);
 
-                const newDoc = {
-                    _id: response._id,
-                    user_id: doc.user_id,
-                    title: doc.title,
-                    content: doc.content,
-                    version: doc.version,
-                    pendingSync: false
-                }     
+                    if (response.success) {
+                        console.log(`New _id for ${doc._id}: ${response._id.toString()}`);
 
-                if (response.success) {
-                    console.log(`New _id for ${doc._id}: ${response._id.toString()}`);
+                        await deleteLocalRecord(DB_DOCUMENTS, doc._id);
+                        await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
 
-                    await deleteLocalRecord(DB_DOCUMENTS, doc._id);
-                    await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
-
-                    documents.value.push(newDoc);
-                } else {
-                    console.error(`Failed to push document ${doc._id} to server`);
-                    console.log(response);
-                    documents.value.push(doc);
-                    continue;
+                        succeeded = true;
+                        id = response._id;
+                    } else {
+                        console.error(`Failed to push document ${doc._id} to server: ${response.message}`);
+                        serverIsReachable = false;
+                    }
                 }
+            } catch (err) {
+                console.log('Could not synchronize with server: ' + err.message);
+                serverIsReachable = false;
             }
-        } catch (err) {
-            console.error('Error synchronizing local-only documents: ' + err.message + ' ');
+
+            const newDoc = {
+                _id: succeeded ? id : doc._id,
+                user_id: doc.user_id,
+                title: doc.title,
+                content: doc.content,
+                version: doc.version,
+                pendingSync: false
+            }     
+
+            documents.value.push(newDoc);
         }
     }
 
@@ -193,7 +201,6 @@ export function useDocuments() {
             console.error('failed to add document to server');
         }
         finally {
-            console.log(newDoc);
             await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
             await updateCountTempIds();
         }
@@ -231,6 +238,7 @@ export function useDocuments() {
     onMounted(async () => {
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
+        console.log([...documents.value].length);
     });
 
     return {

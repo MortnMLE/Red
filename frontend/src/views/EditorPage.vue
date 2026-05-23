@@ -1,49 +1,48 @@
 <template>
-    <div class="editor-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <!-- Logo -->
-            <div class="sidebar-logo">
-                Red<span class = logo-dots>
-                    <span>.</span>
-                    <span>.</span>
-                    <span>.</span>
-                </span>
-            </div>
+  <div class="editor-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- Logo -->
+      <div class="sidebar-logo">
+        Red<span class = logo-dots>
+          <span>.</span>
+          <span>.</span>
+          <span>.</span>
+        </span>
+      </div>
 
-            <div class="create-delete">
-                <button class="sidebar-item" @click="createDocument()">
-                    + New
-                </button>
-                <button class="sidebar-item" @click="removeDocument()">
-                    - Delete
-                </button>
-            </div>
-
+      <div class="create-delete">
+        <button class="sidebar-item" @click="createDocument()">
+          + New
+        </button>
+        <button class="sidebar-item" @click="removeDocument()">
+          - Delete
+        </button>
+          </div>
             <!-- List of Documents -->
             <button
-                v-for="doc in documents.value"
-                :key="doc._id"
-                class="sidebar-item"
-                :class="{ active: activeDocument.value._id === doc._id }"
-                @click="openDocument(doc._id)"
-            >
-                {{ doc.title }}
+              v-for="doc in documents"
+              :key="doc._id"
+              class="sidebar-item"
+              :class="{ active: activeDocument._id === doc._id }"
+              @click="openDocument(doc._id)"
+          >
+              {{ doc.title }}
             </button>
         </aside>
 
         <!-- Main -->
         <div class="main">
-            <!-- Menubar -->
-           <header class="menubar">
+            <!-- tabbar -->
+           <header class="tabbar">
               <button
-                v-for="id in openDocumentIds.value"
+                v-for="id in openDocumentIds"
                 :key="id"
                 class="tab"
-                :class="{ active: activeDocument.value._id === id }"
+                :class="{ active: activeDocument._id === id }"
                 @click="setActiveDocument(id)"
               >
-              {{ doc.title }}
+              {{ activeDocument.title }}
 
                 <span
                   class="close"
@@ -265,7 +264,7 @@ onBeforeUnmount(() => {
 
 /* Menubar */
 
-.menubar {
+.tabbar {
   height: 66px;
   display: flex;
   align-items: center;
