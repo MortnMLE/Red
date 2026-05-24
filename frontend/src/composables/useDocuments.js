@@ -9,7 +9,7 @@ import { postToServer } from '@/services/apiService';
 import { endpointDocByUser, endpointDocNew } from '@/services/endpoints';
 
 const documents = ref([]);
-const activeDocument = ref(null);
+const activeDocument = ref();
 const openDocuments = ref([]);
 const links = ref([]);
 
@@ -203,13 +203,17 @@ export function useDocuments(options = {}) {
         }
     }
 
-    async function removeDocument(documentId) {
+    async function deleteDocument(documentId) {
 
     }
 
     // an "open" document appears in the head-bar.
     function openDocument(id, title) {
-        if (!openDocuments.value.includes({id, title})) {
+        const exists = openDocuments.value.some(
+            doc => doc._id === id
+        );
+        
+        if (!exists) {
             openDocuments.value.push({
                 _id: id,
                 title: title
@@ -219,7 +223,6 @@ export function useDocuments(options = {}) {
 
     // removes a document from the head-bar.
     function closeDocument(id) {
-        console.log('closeDocument called');
         openDocuments.value =
             openDocuments.value.filter(
                 doc => doc._id !== id,
@@ -234,6 +237,7 @@ export function useDocuments(options = {}) {
         activeDocument.value = documents.value.find(
             doc => doc._id === id
         );
+
     }
 
     onMounted(async () => {
@@ -247,7 +251,7 @@ export function useDocuments(options = {}) {
         activeDocument,
         openDocuments,
         createDocument,
-        removeDocument,
+        removeDocument: deleteDocument,
         openDocument,
         closeDocument,
         setActiveDocument
