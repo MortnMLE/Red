@@ -7,14 +7,13 @@ import { DB_DOCUMENTS, getLocalRecordsByIndex,
 
 import { postToServer } from '@/services/apiService';
 import { endpointDocByUser, endpointDocNew } from '@/services/endpoints';
-import { useSettings } from './useSettings';
 
 const documents = ref([]);
-const activeDocument = ref();
+const activeDocument = ref(null);
 const openDocuments = ref([]);
 const links = ref([]);
 
-export function useDocuments() {
+export function useDocuments(options = {}) {
     // documents: 
     // _id: string
     // title: string
@@ -22,10 +21,7 @@ export function useDocuments() {
     // version: number
     // pendingSync: boolean
 
-    const { 
-        countTempIds, 
-        updateCountTempIds 
-    } = useSettings();
+    const { countTempIds, updateCountTempIds } = options;
 
     async function loadDocuments() {
         let serverDocuments = [];
@@ -235,8 +231,7 @@ export function useDocuments() {
     }
 
     function setActiveDocument(id) {
-        console.log('setActiveDocument called');
-        activeDocument.value = documents.value.filter(
+        activeDocument.value = documents.value.find(
             doc => doc._id === id
         );
     }

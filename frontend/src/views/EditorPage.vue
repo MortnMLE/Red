@@ -41,7 +41,7 @@
           v-for="doc in openDocuments"
           :key="doc._id"
           class="tab"
-          :class="{ active: acticeDocument && activeDocument._id === doc._id }"
+          :class="{ active: activeDocument && activeDocument._id === doc._id }"
           @click="setActiveDocument(doc._id)"
         >
           {{ doc.title }}
@@ -56,7 +56,9 @@
 
       <!-- Editor -->
       <section class="editor-container">
-          <div ref="editorRef" class="editor"></div>
+          <div v-show="activeDocument"
+            ref="editorRef" class="editor"
+            ></div>
       </section>
     </div>
   </div>
@@ -64,8 +66,14 @@
 
 <script setup>
 
+import { useSettings } from '@/composables/useSettings';
 import { useDocuments } from '@/composables/useDocuments';
 import { useEditor } from '@/composables/useEditor';
+
+const {
+  countTempIds,
+  updateCountTempIds
+} = useSettings();
 
 const { 
   documents,
@@ -76,13 +84,15 @@ const {
   openDocument,
   closeDocument,
   setActiveDocument
-} = useDocuments();
+} = useDocuments({
+  countTempIds,
+  updateCountTempIds
+});
 
 const {
   editorRef,
-  editorView,
-  createEditor
-} = useEditor();
+  editorView
+} = useEditor({ activeDocument });
 
 </script>
 

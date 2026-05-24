@@ -6,11 +6,14 @@ import {
     lineNumbers
 } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
+import { defaultKeymap } from '@codemirror/commands';
 
-export function useEditor() {
-    const editorRef = ref(null);
-    const editorView = ref(null);
-    const editorState = ref(null);
+const editorRef = ref(null);
+const editorView = ref(null);
+
+export function useEditor(options = {}) {
+
+    const activeDocument = options;
 
     function createEditor(content) {
         if (!editorRef.value) {
@@ -81,7 +84,6 @@ export function useEditor() {
 
     return {
         editorRef,
-        editorView,
-        createEditor,
+        editorView
     }
 }
