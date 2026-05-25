@@ -132,9 +132,9 @@ export function useDocuments(options = {}) {
 
         // Handle documents that exist in local storage but not on server
         let serverIsReachable = true;
-        let newDoc = null;
-
+        
         for (const doc of postToServerDocs) {
+            let newDoc = doc;
             try{
                 //Only try to reach the server once.
                 if (serverIsReachable) {
@@ -162,9 +162,7 @@ export function useDocuments(options = {}) {
                         await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
                     } else {
                         console.error(`Failed to push document ${doc._id} to server: ${response.message}`);
-
                         serverIsReachable = false;
-                        newDoc = doc;
                     }
                 }
             } catch (err) {
@@ -172,7 +170,15 @@ export function useDocuments(options = {}) {
                 serverIsReachable = false;
                 newDoc = doc;
             } finally {
-                documents.value.push(newDoc);
+                const index = documents.value.findIndex(
+                    d => d._id === doc._id
+                );
+
+                if (index !== -1) {
+                    documents.value[index] = newDoc;
+                } else {
+                    documents.value.push(newDoc);
+                }
             }
         }
     }
