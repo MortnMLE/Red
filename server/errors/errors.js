@@ -14,7 +14,16 @@ class DatabaseError extends Error {
     }
 }
 
+class InvalidIdError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'INVALID_ID';
+        this.statusCode = 400;
+    }
+}
+
 module.exports = {
     ValidationError,
-    DatabaseError
+    DatabaseError,
+    InvalidIdError
 }

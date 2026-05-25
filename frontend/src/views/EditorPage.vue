@@ -25,7 +25,7 @@
         :key="doc._id"
         class="sidebar-item"
         :class="{ active: activeDocument && activeDocument._id === doc._id }"
-        @click="openDocument(doc._id, doc.title); setActiveDocument(doc._id)"
+        @click="openDocument(doc._id); setActiveDocument(doc._id)"
       >
           {{ doc.title }}
       </button>

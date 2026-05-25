@@ -1,6 +1,10 @@
 const express = require('express');
 const doc = require('../database/docService');
-const { ValidationError, DatabaseError } = require('../errors/errors');
+const { 
+    ValidationError, 
+    DatabaseError, 
+    InvalidIdError 
+} = require('../errors/errors');
 const diff = require('diff');
 
 //Variables:
@@ -87,7 +91,9 @@ docRouter.post('/delete', async (req, res) => {
 
         const dbResponse = await doc.deleteDoc(req.body._id);
 
-        if (dbResponse.deletedCount !== 1) {
+        if (dbResponse.deletedCount !== 1 &&
+            dbResponse.deletedCount !== 0
+        ) {
             return res.status(500).json({
                 error: 'DATABASE_ERROR',
                 message: 'Failed to delete document',
@@ -99,6 +105,12 @@ docRouter.post('/delete', async (req, res) => {
             success: true
         });
     } catch (err) {
+        if (err instanceof InvalidIdError) {
+            return res.status(200).json({
+                success: true
+            });
+        }
+
         return res.status(err.statusCode).json({
             error: err.name,
             message: err.message,

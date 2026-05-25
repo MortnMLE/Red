@@ -1,4 +1,4 @@
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed, toRaw } from 'vue';
 import { DB_DOCUMENTS, getLocalRecordsByIndex,
     createLocalDatabase, localDbExists, getLocalRecord, 
     deleteLocalRecord, addOrSetLocalRecord,
@@ -9,10 +9,23 @@ import { postToServer } from '@/services/apiService';
 import { endpointDocByUser, endpointDocDelete, endpointDocNew } from '@/services/endpoints';
 
 const documents = ref([]);
-const activeDocument = ref();
-const openDocuments = ref([]);
+const activeDocumentId = ref('');
+const openDocumentIds = ref([]);
+
 const links = ref([]);
 let creationInProgress = false;
+
+const activeDocument = computed (() => 
+    documents.value.find(
+        doc => doc._id === activeDocumentId.value
+    )
+);
+
+const openDocuments = computed (() =>
+    documents.value.filter(
+        doc => openDocumentIds.value.includes(doc._id)
+    )
+);
 
 export function useDocuments(options = {}) {
     // documents: 
@@ -70,7 +83,16 @@ export function useDocuments(options = {}) {
 
     async function syncDocuments(serverDocuments, localDocuments) {
         //postToserverDocs = documents that should be updated or added on the server
-        let postToServerDocs = [];
+        let postToServerArr = [];
+        let deleteFromServerArr = [];
+
+        deleteFromServerArr = localDocuments.filter(
+            doc => doc.deleted
+        );
+        
+        localDocuments = localDocuments.filter(
+            doc => !doc.deleted
+        );
 
         try {
             // Handle synchronization between local storage and server
@@ -106,7 +128,7 @@ export function useDocuments(options = {}) {
                 if (localDoc.version === serverDoc.version) {
                     console.log(`Document ${localDoc._id} is up to date with server version`);
                 } else if (localDoc.version > serverDoc.version) {
-                    postToServerDocs.push(localDoc);
+                    postToServerArr.push(localDoc);
                     console.log(`Document ${localDoc._id} has a newer version in local storage, will attempt to push to server`);
                 } else {
                     serverDoc.pendingSync = false;
@@ -125,7 +147,7 @@ export function useDocuments(options = {}) {
                 documents.value.push(serverDoc);
             }
 
-            postToServerDocs.push(...localDocuments);
+            postToServerArr.push(...localDocuments);
         } catch (err) {
             console.error('Error synchronizing server-documents: ' + err.message);
         }
@@ -133,7 +155,7 @@ export function useDocuments(options = {}) {
         // Handle documents that exist in local storage but not on server
         let serverIsReachable = true;
         
-        for (const doc of postToServerDocs) {
+        for (const doc of postToServerArr) {
             let newDoc = doc;
             try{
                 //Only try to reach the server once.
@@ -179,6 +201,25 @@ export function useDocuments(options = {}) {
                 } else {
                     documents.value.push(newDoc);
                 }
+            }
+        }
+
+        if (serverIsReachable) {
+            try {
+                for(const doc of deleteFromServerArr) {
+                    const response = await postToServer(
+                        { _id: doc._id }, 
+                        endpointDocDelete
+                    );
+                    
+                    console.log(`${doc._id}: ${JSON.stringify(response)}`);
+
+                    if (response.success) {
+                        deleteLocalRecord(DB_DOCUMENTS, doc._id);
+                    }
+                }
+            } catch (err) {
+                console.log('Could not delete document from server. Skipping deletion process');
             }
         }
     }
@@ -243,20 +284,25 @@ export function useDocuments(options = {}) {
     }
 
     async function deleteDocument() {
-        const id = activeDocument._id;
         const doc = documents.value.find(
-            doc => doc._id === id
+            doc => doc._id === activeDocumentId.value
         );
 
+        // documents.value = documents.value.filter(
+        //     doc => doc._id !== activeDocumentId.value
+        // );
+
+        // openDocumentIds.value = openDocumentIds.value.filter(
+        //     openDocId => openDocId !== activeDocumentId.value
+        // );
+
+        const id = activeDocumentId.value;
+        
         documents.value = documents.value.filter(
-            doc => doc._id !== id
-        );
-
-        activeDocument.value = null;
-
-        openDocuments.value = openDocuments.value.filter(
-            doc => doc._id !== id
-        );
+            doc => doc._id !== activeDocumentId.value
+        )
+        
+        handleCloseDocuments(doc);
 
         try {
             const response = await postToServer(
@@ -265,63 +311,64 @@ export function useDocuments(options = {}) {
             ); 
 
             if (response.success) {
-                deleteLocalRecord(DB_DOCUMENTS, activeDocument._id);
+                deleteLocalRecord(DB_DOCUMENTS, id);
             } else {
                 doc.deleted = true;
+                addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
             }
         } catch (err) {
-            console.log(`Document ${activeDocument._id} could not be deleted. Set to deleted instead.`);
+            console.log(`Document ${id} could not be deleted. Set to deleted instead.${err.message}`);
             doc.deleted = true;
+            console.log(toRaw(doc));
+            addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
         } 
     }
 
     // an "open" document appears in the head-bar.
-    function openDocument(id, title) {
-        const exists = openDocuments.value.some(
-            doc => doc._id === id
+    function openDocument(id) {
+        const exists = openDocumentIds.value.some(
+            openDocId => openDocId === id
         );
         
         if (!exists) {
-            openDocuments.value.push({
-                _id: id,
-                title: title
-            });
+            openDocumentIds.value.push(id);
         }
     }
 
     // removes a document from the head-bar.
     function closeDocument(id) {
-        openDocuments.value =
-            openDocuments.value.filter(
-                doc => doc._id !== id,
+        openDocumentIds.value = openDocumentIds.value.filter(
+                openDocId => openDocId !== id,
             );
 
-        if (activeDocument.value._id === id) {
+        if (activeDocumentId.value === id) {
             activeDocumentId.value = '';
         }
     }
 
     function setActiveDocument(id) {
-        activeDocument.value = documents.value.find(
+        const doc  = documents.value.find(
             doc => doc._id === id
         );
+
+        activeDocumentId.value = doc._id;
     }
 
     function shiftActiveDocument(docToBeClosed, offset) {
-        const index = openDocuments.value.findIndex(
-            doc => doc._id === docToBeClosed._id
+        const index = openDocumentIds.value.findIndex(
+            openDocId => openDocId === docToBeClosed._id
         );
 
-        if (docToBeClosed._id !== activeDocument.value._id) {
+        if (docToBeClosed._id !== activeDocumentId.value) {
             return;
         }
 
         if (index > 0) {
-            activeDocument.value = openDocuments.value[index + Number(offset)];
-        } else if  (index === 0 && openDocuments.length > 1) {
-            activeDocument.value = openDocuments.value[index + 1];
+            activeDocumentId.value = openDocumentIds.value[index + Number(offset)];
+        } else if  (index === 0 && openDocumentIds.value.length > 1) {
+            activeDocumentId.value = openDocumentIds.value[index + 1];
         } else if (index !== -1) {
-            activeDocument.value = null;
+            activeDocumentId.value = null;
         }
     }
 

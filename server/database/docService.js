@@ -1,6 +1,6 @@
 const db = require('./connection');
 const { ObjectId } = require('mongodb');
-const { DatabaseError } = require('../errors/errors');
+const { DatabaseError, InvalidIdError } = require('../errors/errors');
 
 const dbName = 'documents';
 //inserts a new document and returns the newly generated _id
@@ -70,6 +70,10 @@ async function updateDoc(doc) {
 };
 
 async function deleteDoc(id) {
+    if (!ObjectId.isValid(id)) {
+        throw new InvalidIdError('Invalid document id');
+    }
+
     try {
         const con = await db.getConnection(dbName);
 

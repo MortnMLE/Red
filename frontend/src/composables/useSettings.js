@@ -12,6 +12,7 @@ export function useSettings() {
     async function loadSettings() {
         try {
             if (await localDbExists(DB_SETTINGS)) {
+                updateCountTempIds();
                 const response = await getLocalRecord(DB_SETTINGS, 'key', 'countTemporaryIds');
                 
                 if (response) {
