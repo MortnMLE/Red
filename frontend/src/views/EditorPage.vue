@@ -104,6 +104,15 @@ const {
 
 </script>
 
+<!--global style-->
+<style>
+  .cm-md-faded {
+    opacity: 0.25;
+    transition: opacity 0.12s ease;
+  }
+</style>
+
+<!--local style-->
 <style scoped>
 .editor-layout {
   display: flex;
@@ -122,7 +131,6 @@ const {
   border-right: 1px solid #333;
   width: 15vh;
 }
-
 
 .logo-dots span {
   opacity: 0;

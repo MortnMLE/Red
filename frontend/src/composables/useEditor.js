@@ -5,28 +5,26 @@ import {
     watch,
     computed,
 } from 'vue';
-
 import { EditorState } from '@codemirror/state';
-
 import {
     EditorView,
     keymap,
     lineNumbers,
+    Decoration,
+    ViewPlugin,
+    ViewUpdate
 } from '@codemirror/view';
-
 import { markdown } from '@codemirror/lang-markdown';
 import { defaultKeymap } from '@codemirror/commands';
-
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-
 import { oneDark } from '@codemirror/theme-one-dark';
+
+import { markdownFadeInactiveLines } from '@/services/markdownService';
 
 export function useEditor(options = {}) {
     const { activeDocument } = options;
 
-    // IMPORTANT:
-    // these should live INSIDE the composable
     const editorElement = ref(null);
     const editorView = ref(null);
 
@@ -51,12 +49,12 @@ export function useEditor(options = {}) {
 
                 keymap.of(defaultKeymap),
 
+                markdown(),
+                
+                markdownFadeInactiveLines(),
+
                 oneDark,
 
-                markdown(),
-
-                // IMPORTANT:
-                // update listener must be INSIDE extensions
                 EditorView.updateListener.of((update) => {
                     if (update.docChanged) {
                         content.value =
