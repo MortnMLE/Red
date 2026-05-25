@@ -74,6 +74,39 @@ docRouter.post('/byId', async (req, res) => {
     }
 });
 
+docRouter.post('/delete', async (req, res) => {
+
+    try {
+        if (typeof req.body._id !== 'string' || req.body._id === '') {
+            return res.status(400).json({
+                error: 'INVALID_INPUT',
+                message: 'invalid input values provided by client',
+                success: false
+            });
+        }
+
+        const dbResponse = await doc.deleteDoc(req.body._id);
+
+        if (dbResponse.deletedCount !== 1) {
+            return res.status(500).json({
+                error: 'DATABASE_ERROR',
+                message: 'Failed to delete document',
+                success: false
+            });
+        }
+
+        return res.status(200).json({
+            success: true
+        });
+    } catch (err) {
+        return res.status(err.statusCode).json({
+            error: err.name,
+            message: err.message,
+            success: false
+        });
+    }
+});
+
 docRouter.post('/new', async (req, res) => {
 
     try {
@@ -97,7 +130,7 @@ docRouter.post('/new', async (req, res) => {
             req.body.version
         );
 
-        if (dbResponse.acknowledged !== true) {
+        if (!dbResponse.acknowledged) {
             return res.status(500).json({
                 error: 'DATABASE_ERROR',
                 message: 'Failed to create document in database',

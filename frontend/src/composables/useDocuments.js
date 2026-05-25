@@ -6,12 +6,13 @@ import { DB_DOCUMENTS, getLocalRecordsByIndex,
  } from '@/services/indexedDbService';
 
 import { postToServer } from '@/services/apiService';
-import { endpointDocByUser, endpointDocNew } from '@/services/endpoints';
+import { endpointDocByUser, endpointDocDelete, endpointDocNew } from '@/services/endpoints';
 
 const documents = ref([]);
 const activeDocument = ref();
 const openDocuments = ref([]);
 const links = ref([]);
+let creationInProgress = false;
 
 export function useDocuments(options = {}) {
     // documents: 
@@ -20,6 +21,7 @@ export function useDocuments(options = {}) {
     // content: string
     // version: number
     // pendingSync: boolean
+    // deleted: boolean
 
     const { countTempIds, updateCountTempIds } = options;
 
@@ -73,32 +75,52 @@ export function useDocuments(options = {}) {
         try {
             // Handle synchronization between local storage and server
             for (let serverDoc of serverDocuments) {
-                const localDoc = localDocuments.find(doc => doc._id === serverDoc._id);
+                const localDoc = localDocuments.find(
+                    doc => doc._id === serverDoc._id
+                );
 
-                if (localDoc) {
-                    if (localDoc.version === serverDoc.version) {
-                        console.log(`Document ${localDoc._id} is up to date with server version`);
-                    } else if (localDoc.version > serverDoc.version) {
-                        postToServerDocs.push(localDoc);
-                        console.log(`Document ${localDoc._id} has a newer version in local storage, will attempt to push to server`);
-                    } else {
-                        serverDoc.pendingSync = false;
-                        await addOrSetLocalRecord(
-                            DB_DOCUMENTS,
-                            serverDoc
-                        );
-                    }
-
-                    localDocuments = localDocuments.filter(doc => doc._id !== localDoc._id);
-                } else {
+                if (!localDoc) {
                     serverDoc.pendingSync = false;
+                    serverDoc.deleted = false;
+
                     await addOrSetLocalRecord(
                         DB_DOCUMENTS,
                         serverDoc
                     );
 
                     console.log(`Document ${serverDoc._id} added to local`);
+                    documents.value.push(serverDoc);
+                    continue;
                 }
+
+                if (localDoc.deleted) {
+                    const response = await postToServer(
+                        { _id: localDoc._id },
+                        endpointDocDelete
+                    );
+                    
+                    if (response.success) {
+                        await deleteLocalRecord(DB_DOCUMENTS, localDoc._id);
+                    }
+                }
+                if (localDoc.version === serverDoc.version) {
+                    console.log(`Document ${localDoc._id} is up to date with server version`);
+                } else if (localDoc.version > serverDoc.version) {
+                    postToServerDocs.push(localDoc);
+                    console.log(`Document ${localDoc._id} has a newer version in local storage, will attempt to push to server`);
+                } else {
+                    serverDoc.pendingSync = false;
+                    serverDoc.deleted = false;
+
+                    await addOrSetLocalRecord(
+                        DB_DOCUMENTS,
+                        serverDoc
+                    );
+                }
+
+                localDocuments = localDocuments.filter(
+                    doc => doc._id !== localDoc._id
+                );
 
                 documents.value.push(serverDoc);
             }
@@ -110,10 +132,9 @@ export function useDocuments(options = {}) {
 
         // Handle documents that exist in local storage but not on server
         let serverIsReachable = true;
-        for (const doc of postToServerDocs) {
-            let succeeded = false;
-            let id = '';
+        let newDoc = null;
 
+        for (const doc of postToServerDocs) {
             try{
                 //Only try to reach the server once.
                 if (serverIsReachable) {
@@ -125,37 +146,45 @@ export function useDocuments(options = {}) {
                     }, endpointDocNew);
 
                     if (response.success) {
-                        console.log(`New _id for ${doc._id}: ${response._id.toString()}`);
+                        console.log(`New _id for ${doc._id}: ${response._id}`);
 
+                        newDoc = {
+                            _id: response._id,
+                            user_id: doc.user_id,
+                            title: doc.title,
+                            content: doc.content,
+                            version: doc.version,
+                            pendingSync: false,
+                            deleted: false
+                        }    
+                        
                         await deleteLocalRecord(DB_DOCUMENTS, doc._id);
                         await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
-
-                        succeeded = true;
-                        id = response._id;
                     } else {
                         console.error(`Failed to push document ${doc._id} to server: ${response.message}`);
+
                         serverIsReachable = false;
+                        newDoc = doc;
                     }
                 }
             } catch (err) {
                 console.log('Could not synchronize with server: ' + err.message);
                 serverIsReachable = false;
+                newDoc = doc;
+            } finally {
+                documents.value.push(newDoc);
             }
-
-            const newDoc = {
-                _id: succeeded ? id : doc._id,
-                user_id: doc.user_id,
-                title: doc.title,
-                content: doc.content,
-                version: doc.version,
-                pendingSync: false
-            }     
-
-            documents.value.push(newDoc);
         }
     }
 
     async function createDocument() {
+
+        while(creationInProgress) {
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
+
+        creationInProgress = true;
+
         const tempId = `temp-${Number(countTempIds.value) + 1}`;
         console.log(countTempIds.value);
         
@@ -165,12 +194,13 @@ export function useDocuments(options = {}) {
             title: 'New Document',
             content: '',
             version: 0,
-            pendingSync: true
+            pendingSync: true,
+            deleted: false
         }
 
         documents.value.push(newDoc);
-        openDocument(newDoc._id);
-        activeDocument.value = newDoc._id;
+        openDocument(newDoc._id, newDoc.title);
+        setActiveDocument(newDoc._id);
         
         try {
             const response = await postToServer({
@@ -185,11 +215,12 @@ export function useDocuments(options = {}) {
                 
                 newDoc._id = response._id;
                 newDoc.pendingSync = false;
+                newDoc.deleted = false;
 
-                const openDocumentIndex = openDocuments.value.findIndex(id => id === tempId);
+                const index = openDocuments.value.findIndex(id => id === tempId);
 
-                if (openDocumentIndex !== -1) {
-                    openDocuments.value[openDocumentIndex] = newDoc._id;
+                if (index !== -1) {
+                    openDocuments.value[index] = newDoc._id;
                 }
             } else {
                 console.log(`Failed to create document on server, keeping temporary ID ${tempId}`);
@@ -200,11 +231,42 @@ export function useDocuments(options = {}) {
         finally {
             await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
             await updateCountTempIds();
+            console.log(activeDocument.value);
+            creationInProgress = false;
         }
     }
 
-    async function deleteDocument(documentId) {
+    async function deleteDocument() {
+        const id = activeDocument._id;
+        const doc = documents.value.find(
+            doc => doc._id === id
+        );
 
+        documents.value = documents.value.filter(
+            doc => doc._id !== id
+        );
+
+        activeDocument.value = null;
+
+        openDocuments.value = openDocuments.value.filter(
+            doc => doc._id !== id
+        );
+
+        try {
+            const response = await postToServer(
+                { _id: id },
+                endpointDocDelete
+            ); 
+
+            if (response.success) {
+                deleteLocalRecord(DB_DOCUMENTS, activeDocument._id);
+            } else {
+                doc.deleted = true;
+            }
+        } catch (err) {
+            console.log(`Document ${activeDocument._id} could not be deleted. Set to deleted instead.`);
+            doc.deleted = true;
+        } 
     }
 
     // an "open" document appears in the head-bar.
@@ -237,7 +299,6 @@ export function useDocuments(options = {}) {
         activeDocument.value = documents.value.find(
             doc => doc._id === id
         );
-
     }
 
     onMounted(async () => {
@@ -251,7 +312,7 @@ export function useDocuments(options = {}) {
         activeDocument,
         openDocuments,
         createDocument,
-        removeDocument: deleteDocument,
+        deleteDocument,
         openDocument,
         closeDocument,
         setActiveDocument

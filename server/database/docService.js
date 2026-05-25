@@ -63,14 +63,28 @@ async function updateDoc(doc) {
             throw new DatabaseError('Database Error: No document found');
         }
 
+        return result;
     } catch (err) {
         throw new DatabaseError('Database Error: Update Document');
     }
 };
 
+async function deleteDoc(id) {
+    try {
+        const con = await db.getConnection(dbName);
+
+        return await con.deleteOne(
+            { _id: new ObjectId(id) }
+        );
+    } catch (err) {
+        throw new DatabaseError('Database Error: Delete Document');
+    }
+}
+
 module.exports = {
     createDoc,
     getDocById,
     updateDoc,
-    getDocsByUserId
+    getDocsByUserId,
+    deleteDoc
 };

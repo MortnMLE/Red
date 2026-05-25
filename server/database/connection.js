@@ -16,6 +16,7 @@ async function getConnectionString() {
     const result = data.split(/\r?\n/)[0];
     return result;
 }
+
 //Creates MongoClient and connects to Atlas
 async function connectDB() {
     if (!client) {
@@ -28,6 +29,7 @@ async function connectDB() {
     }
     return db;
 }
+
 //Returns a connection to the individual collection in Atlas
 async function getConnection(name) {
     if (typeof name !== 'string' || name === null) {
@@ -37,6 +39,7 @@ async function getConnection(name) {
     const db = await connectDB();
     return db.collection(name);    
 }
+
 //Closes the connection to Atlas
 async function closeDB(con) {
     if (client) {
@@ -45,6 +48,7 @@ async function closeDB(con) {
         db = null;
     }
 }
+
 //Exports
 module.exports = {
     connectDB,

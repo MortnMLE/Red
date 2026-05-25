@@ -15,7 +15,7 @@
         <button class="sidebar-item" @click="createDocument()">
           + New
         </button>
-        <button class="sidebar-item" @click="removeDocument()">
+        <button class="sidebar-item" @click="deleteDocument()">
           - Delete
         </button>
       </div>
@@ -56,7 +56,7 @@
 
       <!-- Editor -->
       <section class="editor-container">
-          <div v-show="activeDocument"
+          <div v-if="activeDocument"
             ref="editorRef" class="editor"
             ></div>
       </section>
@@ -80,7 +80,7 @@ const {
   activeDocument,
   openDocuments,
   createDocument,
-  removeDocument,
+  deleteDocument,
   openDocument,
   closeDocument,
   setActiveDocument
