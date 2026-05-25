@@ -320,7 +320,7 @@ export function useDocuments(options = {}) {
             activeDocument.value = openDocuments.value[index + Number(offset)];
         } else if  (index === 0 && openDocuments.length > 1) {
             activeDocument.value = openDocuments.value[index + 1];
-        } else {
+        } else if (index !== -1) {
             activeDocument.value = null;
         }
     }
