@@ -325,6 +325,11 @@ export function useDocuments(options = {}) {
         }
     }
 
+    function handleCloseDocuments(doc) {
+        shiftActiveDocument(doc, -1);
+        closeDocument(doc._id);
+    }
+
     onMounted(async () => {
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
@@ -338,8 +343,7 @@ export function useDocuments(options = {}) {
         createDocument,
         deleteDocument,
         openDocument,
-        closeDocument,
         setActiveDocument,
-        shiftActiveDocument
+        handleCloseDocuments
     };
 }

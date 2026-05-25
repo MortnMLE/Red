@@ -4,7 +4,7 @@
     <aside class="sidebar">
       <!-- Logo -->
       <div class="sidebar-logo">
-        Red<span class = logo-dots>
+        Red<span class="logo-dots">
           <span>.</span>
           <span>.</span>
           <span>.</span>
@@ -35,9 +35,9 @@
     <div class="main">
       <!-- tabbar -->
       <header
+        v-if="activeDocument"
         class="tabbar">
         <button
-          v-if="activeDocument"
           v-for="doc in openDocuments"
           :key="doc._id"
           class="tab"
@@ -47,7 +47,7 @@
           {{ doc.title }}
           <span
             class="close"
-            @click.stop="shiftActiveDocument(doc, -1); closeDocument(doc._id)"
+            @click.stop="handleCloseDocuments(doc)"
           >
             ×
           </span>
@@ -82,9 +82,8 @@ const {
   createDocument,
   deleteDocument,
   openDocument,
-  closeDocument,
   setActiveDocument,
-  shiftActiveDocument
+  handleCloseDocuments
 } = useDocuments({
   countTempIds,
   updateCountTempIds

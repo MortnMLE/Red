@@ -1,4 +1,4 @@
-import { onMounted, onBeforeUnmount, ref } from 'vue';
+import { onMounted, onBeforeUnmount, ref, watch} from 'vue';
 import { EditorState } from '@codemirror/state';
 import {
     EditorView,
@@ -8,12 +8,12 @@ import {
 import { markdown } from '@codemirror/lang-markdown';
 import { defaultKeymap } from '@codemirror/commands';
 
-let editorRef = ref(null);
-let editorView = ref(null);
+const editorRef = ref(null);
+const editorView = ref(null);
 
 export function useEditor(options = {}) {
 
-    const activeDocument = options;
+    const { activeDocument } = options;
 
     function createEditor(content) {
         if (!editorRef.value) {
@@ -44,24 +44,24 @@ export function useEditor(options = {}) {
             ],
         });
 
-        editorView = new EditorView({
+        editorView.value = new EditorView({
             state,
             parent: editorRef.value,
         });
     }
 
     function updateEditorContent(content) {
-        if (!editorView){
+        if (!editorView.value){
             return;
         }
 
-        const current = editorView.state.doc.toString();
+        const current = editorView.value.state.doc.toString();
 
         if (current === content) {
             return;
         }
 
-        editorView.dispatch({
+        editorView.value.dispatch({
             changes: {
             from: 0,
             to: current.length,
@@ -77,9 +77,13 @@ export function useEditor(options = {}) {
     });
 
     onBeforeUnmount(() => {
-        if (editorView) {
-            editorView.destroy();
+        if (editorView.value) {
+            editorView.value.destroy();
         }
+    });
+
+    watch(activeDocument, (doc) => {
+        updateEditorContent(doc?.content || '');
     });
 
     return {
