@@ -57,8 +57,14 @@
       <!-- Editor -->
       <section class="editor-container">
           <div v-show="activeDocument"
-            ref="editorRef" class="editor"
+            ref="editorElement" 
+            class="editor"
             ></div>
+
+          <div
+            class="preview"
+            v-html="renderedMarkdown"
+          ></div>
       </section>
     </div>
   </div>
@@ -90,9 +96,11 @@ const {
 });
 
 const {
-  editorRef,
-  editorView
-} = useEditor({ activeDocument });
+  editorElement,
+  renderedMarkdown
+} = useEditor({ 
+  activeDocument 
+});
 
 </script>
 
@@ -238,5 +246,23 @@ const {
   background: #252526;
   color: #858585;
   border-right: 1px solid #333;
+}
+
+.preview {
+  padding: 16px;
+  overflow: auto;
+  background: #fafafa;
+  color: #222;
+}
+
+.preview pre {
+  background: #eee;
+  padding: 12px;
+  overflow-x: auto;
+}
+
+.preview code {
+  background: #eee;
+  padding: 2px 4px;
 }
 </style>

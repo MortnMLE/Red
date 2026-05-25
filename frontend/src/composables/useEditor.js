@@ -1,93 +1,134 @@
-import { onMounted, onBeforeUnmount, ref, watch} from 'vue';
+import {
+    onMounted,
+    onBeforeUnmount,
+    ref,
+    watch,
+    computed,
+} from 'vue';
+
 import { EditorState } from '@codemirror/state';
+
 import {
     EditorView,
     keymap,
-    lineNumbers
+    lineNumbers,
 } from '@codemirror/view';
+
 import { markdown } from '@codemirror/lang-markdown';
 import { defaultKeymap } from '@codemirror/commands';
 
-const editorRef = ref(null);
-const editorView = ref(null);
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+
+import { oneDark } from '@codemirror/theme-one-dark';
 
 export function useEditor(options = {}) {
-
     const { activeDocument } = options;
 
-    function createEditor(content) {
-        if (!editorRef.value) {
+    // IMPORTANT:
+    // these should live INSIDE the composable
+    const editorElement = ref(null);
+    const editorView = ref(null);
+
+    const content = ref('');
+
+    const renderedMarkdown = computed(() =>
+        DOMPurify.sanitize(
+            marked.parse(content.value)
+        )
+    );
+
+    function createEditor(initialContent = '') {
+        if (!editorElement.value) {
             return;
         }
 
         const state = EditorState.create({
-            doc: content,
+            doc: initialContent,
+
             extensions: [
-            lineNumbers(),
+                lineNumbers(),
 
-            keymap.of(defaultKeymap),
+                keymap.of(defaultKeymap),
 
-            markdown(),
+                oneDark,
 
-            EditorView.theme({
-                '&': {
-                height: '100%',
-                fontSize: '14px',
-                },
+                markdown(),
 
-                '.cm-scroller': {
-                overflow: 'auto',
-                fontFamily:
-                    'JetBrains Mono, monospace',
-                },
-            }),
+                // IMPORTANT:
+                // update listener must be INSIDE extensions
+                EditorView.updateListener.of((update) => {
+                    if (update.docChanged) {
+                        content.value =
+                            update.state.doc.toString();
+                    }
+                }),
+
+                EditorView.theme({
+                    '&': {
+                        height: '100%',
+                        fontSize: '14px',
+                    },
+
+                    '.cm-scroller': {
+                        overflow: 'auto',
+                        fontFamily:
+                            'JetBrains Mono, monospace',
+                    },
+                }),
             ],
         });
 
         editorView.value = new EditorView({
             state,
-            parent: editorRef.value,
+            parent: editorElement.value,
         });
+
+        // initial sync
+        content.value = initialContent;
     }
 
-    function updateEditorContent(content) {
-        if (!editorView.value){
+    function updateEditorContent(newContent = '') {
+        if (!editorView.value) {
             return;
         }
 
-        const current = editorView.value.state.doc.toString();
+        const current =
+            editorView.value.state.doc.toString();
 
-        if (current === content) {
+        if (current === newContent) {
             return;
         }
 
         editorView.value.dispatch({
             changes: {
-            from: 0,
-            to: current.length,
-            insert: content,
+                from: 0,
+                to: current.length,
+                insert: newContent,
             },
         });
     }
 
-    onMounted(async () => {
+    onMounted(() => {
         createEditor(
-            activeDocument.value?.content || ''
+            activeDocument?.value?.content || ''
         );
     });
 
     onBeforeUnmount(() => {
-        if (editorView.value) {
-            editorView.value.destroy();
-        }
+        editorView.value?.destroy();
     });
 
-    watch(activeDocument, (doc) => {
-        updateEditorContent(doc?.content || '');
-    });
+    if (activeDocument) {
+        watch(activeDocument, (doc) => {
+            updateEditorContent(doc?.content || '');
+        });
+    }
 
     return {
-        editorRef,
-        editorView
-    }
+        editorElement,
+        editorView,
+        content,
+        renderedMarkdown,
+    };
 }
