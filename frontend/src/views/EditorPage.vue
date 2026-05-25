@@ -47,7 +47,7 @@
           {{ doc.title }}
           <span
             class="close"
-            @click.stop="closeDocument(doc._id)"
+            @click.stop="shiftActiveDocument(doc, -1); closeDocument(doc._id)"
           >
             ×
           </span>
@@ -56,7 +56,7 @@
 
       <!-- Editor -->
       <section class="editor-container">
-          <div v-if="activeDocument"
+          <div v-show="activeDocument"
             ref="editorRef" class="editor"
             ></div>
       </section>
@@ -83,7 +83,8 @@ const {
   deleteDocument,
   openDocument,
   closeDocument,
-  setActiveDocument
+  setActiveDocument,
+  shiftActiveDocument
 } = useDocuments({
   countTempIds,
   updateCountTempIds

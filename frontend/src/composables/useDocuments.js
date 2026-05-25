@@ -307,6 +307,24 @@ export function useDocuments(options = {}) {
         );
     }
 
+    function shiftActiveDocument(docToBeClosed, offset) {
+        const index = openDocuments.value.findIndex(
+            doc => doc._id === docToBeClosed._id
+        );
+
+        if (docToBeClosed._id !== activeDocument.value._id) {
+            return;
+        }
+
+        if (index > 0) {
+            activeDocument.value = openDocuments.value[index + Number(offset)];
+        } else if  (index === 0 && openDocuments.length > 1) {
+            activeDocument.value = openDocuments.value[index + 1];
+        } else {
+            activeDocument.value = null;
+        }
+    }
+
     onMounted(async () => {
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
@@ -321,6 +339,7 @@ export function useDocuments(options = {}) {
         deleteDocument,
         openDocument,
         closeDocument,
-        setActiveDocument
+        setActiveDocument,
+        shiftActiveDocument
     };
 }

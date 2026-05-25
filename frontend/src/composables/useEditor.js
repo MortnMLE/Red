@@ -8,8 +8,8 @@ import {
 import { markdown } from '@codemirror/lang-markdown';
 import { defaultKeymap } from '@codemirror/commands';
 
-const editorRef = ref(null);
-const editorView = ref(null);
+let editorRef = ref(null);
+let editorView = ref(null);
 
 export function useEditor(options = {}) {
 
