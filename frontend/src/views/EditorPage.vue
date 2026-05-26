@@ -89,7 +89,8 @@ const {
   deleteDocument,
   openDocument,
   setActiveDocument,
-  handleCloseDocuments
+  handleCloseDocuments,
+  updateDocumentContent
 } = useDocuments({
   countTempIds,
   updateCountTempIds
@@ -99,7 +100,8 @@ const {
   editorElement,
   renderedMarkdown
 } = useEditor({ 
-  activeDocument 
+  activeDocument,
+  onChange: updateDocumentContent 
 });
 
 </script>

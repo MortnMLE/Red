@@ -8,6 +8,7 @@ import { DB_DOCUMENTS, getLocalRecordsByIndex,
 import { postToServer } from '@/services/apiService';
 import { endpointDocByUser, endpointDocDelete, endpointDocNew } from '@/services/endpoints';
 
+//state
 const documents = ref([]);
 const activeDocumentId = ref('');
 const openDocumentIds = ref([]);
@@ -28,7 +29,7 @@ const openDocuments = computed (() =>
 );
 
 export function useDocuments(options = {}) {
-    // documents: 
+    // document: 
     // _id: string
     // title: string
     // content: string
@@ -37,7 +38,8 @@ export function useDocuments(options = {}) {
     // deleted: boolean
 
     const { countTempIds, updateCountTempIds } = options;
-
+    
+    // synchronization with IndexedDB via indexedDBservice and backend server via apiService
     async function loadDocuments() {
         let serverDocuments = [];
         let localDocuments = [];
@@ -224,6 +226,48 @@ export function useDocuments(options = {}) {
         }
     }
 
+    async function deleteDocument() {
+        const doc = documents.value.find(
+            doc => doc._id === activeDocumentId.value
+        );
+
+        // documents.value = documents.value.filter(
+        //     doc => doc._id !== activeDocumentId.value
+        // );
+
+        // openDocumentIds.value = openDocumentIds.value.filter(
+        //     openDocId => openDocId !== activeDocumentId.value
+        // );
+
+        const id = activeDocumentId.value;
+        
+        documents.value = documents.value.filter(
+            doc => doc._id !== activeDocumentId.value
+        )
+        
+        handleCloseDocuments(doc);
+
+        try {
+            const response = await postToServer(
+                { _id: id },
+                endpointDocDelete
+            ); 
+
+            if (response.success) {
+                deleteLocalRecord(DB_DOCUMENTS, id);
+            } else {
+                doc.deleted = true;
+                addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
+            }
+        } catch (err) {
+            console.log(`Document ${id} could not be deleted. Set to deleted instead.${err.message}`);
+            doc.deleted = true;
+            console.log(toRaw(doc));
+            addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
+        } 
+    }
+
+    // actions for creation, deletion and updating documents 
     async function createDocument() {
 
         while(creationInProgress) {
@@ -283,48 +327,6 @@ export function useDocuments(options = {}) {
         }
     }
 
-    async function deleteDocument() {
-        const doc = documents.value.find(
-            doc => doc._id === activeDocumentId.value
-        );
-
-        // documents.value = documents.value.filter(
-        //     doc => doc._id !== activeDocumentId.value
-        // );
-
-        // openDocumentIds.value = openDocumentIds.value.filter(
-        //     openDocId => openDocId !== activeDocumentId.value
-        // );
-
-        const id = activeDocumentId.value;
-        
-        documents.value = documents.value.filter(
-            doc => doc._id !== activeDocumentId.value
-        )
-        
-        handleCloseDocuments(doc);
-
-        try {
-            const response = await postToServer(
-                { _id: id },
-                endpointDocDelete
-            ); 
-
-            if (response.success) {
-                deleteLocalRecord(DB_DOCUMENTS, id);
-            } else {
-                doc.deleted = true;
-                addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
-            }
-        } catch (err) {
-            console.log(`Document ${id} could not be deleted. Set to deleted instead.${err.message}`);
-            doc.deleted = true;
-            console.log(toRaw(doc));
-            addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
-        } 
-    }
-
-    // an "open" document appears in the head-bar.
     function openDocument(id) {
         const exists = openDocumentIds.value.some(
             openDocId => openDocId === id
@@ -335,7 +337,6 @@ export function useDocuments(options = {}) {
         }
     }
 
-    // removes a document from the head-bar.
     function closeDocument(id) {
         openDocumentIds.value = openDocumentIds.value.filter(
                 openDocId => openDocId !== id,
@@ -377,6 +378,26 @@ export function useDocuments(options = {}) {
         closeDocument(doc._id);
     }
 
+    // persistence
+    function updateDocumentContent(content, title) {
+        console.log('updateDocumentContent called with ' + content);
+
+        activeDocument.value.content = content;
+        activeDocument.value.title = title !== '' ? title : 'Title';
+
+        saveLocalDebounced();
+        syncRemoteDebounced();        
+    }
+
+    function saveLocalDebounced() {
+
+    }
+
+    function syncRemoteDebounced() {
+
+    }
+
+    // initialization
     onMounted(async () => {
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
@@ -391,6 +412,7 @@ export function useDocuments(options = {}) {
         deleteDocument,
         openDocument,
         setActiveDocument,
-        handleCloseDocuments
+        handleCloseDocuments, 
+        updateDocumentContent
     };
 }

@@ -73,3 +73,44 @@ export function markdownFadeInactiveLines() {
         }
     );
 }
+
+export function removeMarkdown(str = '') {
+    return str
+        // headings
+        .replace(/^#{1,6}\s+/gm, '')
+
+        // bold / italic
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/__(.*?)__/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/_(.*?)_/g, '$1')
+
+        // inline code
+        .replace(/`(.*?)`/g, '$1')
+
+        // fenced code blocks
+        .replace(/```[\s\S]*?```/g, '')
+
+        // blockquotes
+        .replace(/^>\s+/gm, '')
+
+        // unordered lists
+        .replace(/^[-*+]\s+/gm, '')
+
+        // ordered lists
+        .replace(/^\d+\.\s+/gm, '')
+
+        // links
+        .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+
+        // images
+        .replace(/!\[(.*?)\]\((.*?)\)/g, '$1')
+
+        // horizontal rules
+        .replace(/^---$/gm, '')
+        .replace(/^\*\*\*$/gm, '')
+
+        // extra whitespace cleanup
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}

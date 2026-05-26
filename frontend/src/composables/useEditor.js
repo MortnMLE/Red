@@ -20,10 +20,13 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { oneDark } from '@codemirror/theme-one-dark';
 
-import { markdownFadeInactiveLines } from '@/services/markdownService';
+import { markdownFadeInactiveLines, removeMarkdown } from '@/services/markdownService';
 
 export function useEditor(options = {}) {
-    const { activeDocument } = options;
+    const { 
+        activeDocument, 
+        onChange 
+    } = options;
 
     const editorElement = ref(null);
     const editorView = ref(null);
@@ -60,6 +63,12 @@ export function useEditor(options = {}) {
                         content.value =
                             update.state.doc.toString();
                     }
+
+                    const firstLine = content.value.split('\n')[0];
+                    onChange?.(
+                        content.value,
+                        removeMarkdown(firstLine)
+                    );
                 }),
 
                 EditorView.theme({
