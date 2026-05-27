@@ -7,6 +7,7 @@ import { DB_DOCUMENTS, getLocalRecordsByIndex,
 
 import { postToServer } from '@/services/apiService';
 import { endpointDocByUser, endpointDocDelete, endpointDocNew } from '@/services/endpoints';
+import { DEFAULT_DOCUMENT } from '@/services/defaultDocument';
 
 //state
 const documents = ref([]);
@@ -19,7 +20,7 @@ let creationInProgress = false;
 const activeDocument = computed (() => 
     documents.value.find(
         doc => doc._id === activeDocumentId.value
-    )
+    ) || DEFAULT_DOCUMENT
 );
 
 const openDocuments = computed (() =>
@@ -282,7 +283,7 @@ export function useDocuments(options = {}) {
         let newDoc = {
             _id: tempId,
             user_id: localStorage.userId,
-            title: 'New Document',
+            title: 'Title',
             content: '',
             version: 0,
             pendingSync: true,
@@ -380,7 +381,9 @@ export function useDocuments(options = {}) {
 
     // persistence
     function updateDocumentContent(content, title) {
-        console.log('updateDocumentContent called with ' + content);
+        if (activeDocument.value._id === 'welcome') {
+            return;
+        }
 
         activeDocument.value.content = content;
         activeDocument.value.title = title !== '' ? title : 'Title';
@@ -398,7 +401,7 @@ export function useDocuments(options = {}) {
     }
 
     // initialization
-    onMounted(async () => {
+    onMounted(async () => {       
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
         console.log(`Loaded ${[...documents.value].length} documents.`);

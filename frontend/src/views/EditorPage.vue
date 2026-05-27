@@ -35,7 +35,6 @@
     <div class="main">
       <!-- tabbar -->
       <header
-        v-if="activeDocument"
         class="tabbar">
         <button
           v-for="doc in openDocuments"
@@ -129,7 +128,7 @@ const {
   /*width: 240px;*/
   display: flex;
   flex-direction: column;
-  background: #252526;
+  background: #252525;
   border-right: 1px solid #333;
   width: 15vh;
 }
@@ -187,7 +186,7 @@ const {
 }
 
 .sidebar-item.active {
-  background: #37373d;
+  background: #393939;
 }
 
 /* Main */
@@ -261,18 +260,18 @@ const {
 .preview {
   padding: 16px;
   overflow: auto;
-  background: #fafafa;
-  color: #222;
+  background: #121212;
+  color: #121212;
 }
 
 .preview pre {
-  background: #eee;
+  background: #121212;
   padding: 12px;
   overflow-x: auto;
 }
 
 .preview code {
-  background: #eee;
+  background: #121212;
   padding: 2px 4px;
 }
 </style>
