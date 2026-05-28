@@ -50,7 +50,7 @@ export async function localDbExists(storeName) {
 
 export async function addOrSetLocalRecord(storeName, record) {
     const db = await openLocalDatabase(storeName);
-
+    console.log('saving ' + record._id);
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(storeName, 'readwrite');
         const store = transaction.objectStore(storeName);

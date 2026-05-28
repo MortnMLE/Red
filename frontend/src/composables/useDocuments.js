@@ -5,9 +5,10 @@ import { DB_DOCUMENTS, getLocalRecordsByIndex,
     clearLocalDatabase
  } from '@/services/indexedDbService';
 
-import { postToServer } from '@/services/apiService';
-import { endpointDocByUser, endpointDocDelete, endpointDocNew } from '@/services/endpoints';
+import { serverRequest } from '@/services/apiService';
+import { endpointDocByUser, endpointDocDelete, endpointDocNew, endpointPatch } from '@/services/endpoints';
 import { DEFAULT_DOCUMENT } from '@/services/defaultDocument';
+import { debouncer } from '@/services/debouncer';
 
 //state
 const documents = ref([]);
@@ -69,7 +70,11 @@ export function useDocuments(options = {}) {
 
         try {
             // Fetch documents from server
-            const fetchedDocs = await postToServer({ user_id: localStorage.userId }, endpointDocByUser);
+            const fetchedDocs = await serverRequest(
+                'POST',
+                { user_id: localStorage.userId }, 
+                endpointDocByUser
+            );
 
             if (fetchedDocs.success) {
                 serverDocuments = await JSON.parse(fetchedDocs.documents);
@@ -119,7 +124,8 @@ export function useDocuments(options = {}) {
                 }
 
                 if (localDoc.deleted) {
-                    const response = await postToServer(
+                    const response = await serverRequest(
+                        'POST',
                         { _id: localDoc._id },
                         endpointDocDelete
                     );
@@ -163,12 +169,15 @@ export function useDocuments(options = {}) {
             try{
                 //Only try to reach the server once.
                 if (serverIsReachable) {
-                    const response = await postToServer({
-                        user_id: doc.user_id,
-                        title: doc.title,
-                        content: doc.content,
-                        version: doc.version
-                    }, endpointDocNew);
+                    const response = await serverRequest(
+                        'POST',
+                        { 
+                            user_id: doc.user_id,
+                            title: doc.title,
+                            content: doc.content,
+                            version: doc.version
+                        }, endpointDocNew
+                    );
 
                     if (response.success) {
                         console.log(`New _id for ${doc._id}: ${response._id}`);
@@ -210,7 +219,8 @@ export function useDocuments(options = {}) {
         if (serverIsReachable) {
             try {
                 for(const doc of deleteFromServerArr) {
-                    const response = await postToServer(
+                    const response = await serverRequest(
+                        'POST',
                         { _id: doc._id }, 
                         endpointDocDelete
                     );
@@ -249,7 +259,8 @@ export function useDocuments(options = {}) {
         handleCloseDocuments(doc);
 
         try {
-            const response = await postToServer(
+            const response = await serverRequest(
+                'POST',
                 { _id: id },
                 endpointDocDelete
             ); 
@@ -295,12 +306,16 @@ export function useDocuments(options = {}) {
         setActiveDocument(newDoc._id);
         
         try {
-            const response = await postToServer({
-                user_id: localStorage.userId,
-                title: newDoc.title,
-                content: newDoc.content,
-                version: newDoc.version
-            }, endpointDocNew);
+            const response = await serverRequest(
+                'POST',
+                {
+                    user_id: localStorage.userId,
+                    title: newDoc.title,
+                    content: newDoc.content,
+                    version: newDoc.version
+                }, 
+                endpointDocNew
+            );
 
             if (response.success) {
                 console.log(`New _id for ${tempId}: ${response._id.toString()}`);
@@ -380,6 +395,45 @@ export function useDocuments(options = {}) {
     }
 
     // persistence
+    const saveLocalDebounced = debouncer(
+        async (doc) => {
+            try {
+                await addOrSetLocalRecord(DB_DOCUMENTS, doc);
+
+            } catch (err) {
+                console.error(err);
+            }
+        },
+        200
+    )
+
+    const syncRemoteDebounced = debouncer(
+        async (doc) => {
+            try {
+                const response = await serverRequest(
+                    'PATCH',
+                    {
+                        _id: doc._id,
+                        content: doc.content,
+                        title: doc.title,
+                        localVersion: doc.version + 1
+                    },
+                    endpointPatch
+                );
+
+                if (response.success) {
+                    activeDocument.version += 1;
+                } else {
+                    // todo: how do I resolve conflicts?
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+        },
+        2000
+    )
+
     function updateDocumentContent(content, title) {
         if (activeDocument.value._id === 'welcome') {
             return;
@@ -388,16 +442,8 @@ export function useDocuments(options = {}) {
         activeDocument.value.content = content;
         activeDocument.value.title = title !== '' ? title : 'Title';
 
-        saveLocalDebounced();
-        syncRemoteDebounced();        
-    }
-
-    function saveLocalDebounced() {
-
-    }
-
-    function syncRemoteDebounced() {
-
+        saveLocalDebounced(structuredClone(toRaw(activeDocument.value)));
+        syncRemoteDebounced(structuredClone(toRaw(activeDocument.value)));
     }
 
     // initialization

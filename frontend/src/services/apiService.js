@@ -1,6 +1,6 @@
-export async function postToServer(body, endpoint) {
+export async function serverRequest(method, body, endpoint) {
     const response = await fetch(endpoint, {
-        method: 'POST',
+        method: method,
         headers: {
             'Content-Type': 'application/json',
         },
