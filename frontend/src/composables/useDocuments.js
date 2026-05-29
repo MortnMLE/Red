@@ -1,6 +1,6 @@
 import { onMounted, ref, computed, toRaw } from 'vue';
 import { DB_DOCUMENTS, getLocalRecordsByIndex,
-    createLocalDatabase, localDbExists, getLocalRecord, 
+    createLocalDatabase, localDbExists, 
     deleteLocalRecord, addOrSetLocalRecord,
     clearLocalDatabase
  } from '@/services/indexedDbService';
@@ -59,7 +59,12 @@ export function useDocuments(options = {}) {
                 console.log('Local database exists.');
                 console.log(`Local Documents: ${localDocuments.length}`);
             } else { 
-                await createLocalDatabase(DB_DOCUMENTS, "_id");
+                await createLocalDatabase(
+                    DB_DOCUMENTS, 
+                    "_id",
+                    ['user_id', 'user_id', { unique: false}]
+                );
+                
                 console.log('Local database does not exist, created new database');
             }
         } catch (err) {
@@ -241,14 +246,6 @@ export function useDocuments(options = {}) {
         const doc = documents.value.find(
             doc => doc._id === activeDocumentId.value
         );
-
-        // documents.value = documents.value.filter(
-        //     doc => doc._id !== activeDocumentId.value
-        // );
-
-        // openDocumentIds.value = openDocumentIds.value.filter(
-        //     openDocId => openDocId !== activeDocumentId.value
-        // );
 
         const id = activeDocumentId.value;
         

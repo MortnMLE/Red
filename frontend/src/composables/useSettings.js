@@ -1,6 +1,5 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { DB_SETTINGS, DB_DOCUMENTS,
-    getLocalRecord, 
     createLocalDatabase, addOrSetLocalRecord, 
     localDbExists, getLocalRecordsByIndex
 } from '@/services/indexedDbService';
@@ -9,18 +8,47 @@ const countTempIds = ref(0);
 
 export function useSettings() {
 
+    const enableVim = ref(Boolean);
+
     async function loadSettings() {
         try {
             if (await localDbExists(DB_SETTINGS)) {
                 updateCountTempIds();
-                const response = await getLocalRecord(DB_SETTINGS, 'key', 'countTemporaryIds');
-                
-                if (response) {
-                    countTempIds.value = response.value.value;
+
+                const settings = await getLocalRecordsByIndex(
+                    DB_SETTINGS,
+                    'user_id',
+                    localStorage.userId
+                );
+
+                if (settings) {
+                    const vimSetting = settings.find(
+                        setting => setting.key === 'vimEnabled'
+                    );
+
+                    enableVim.value = vimSetting?.value ?? false;
+                    
+                    console.log(`fetched enableVim: ${enableVim.value}`);
                 }
             } else {
-                await createLocalDatabase(DB_SETTINGS, 'key');
-                await addOrSetLocalRecord(DB_SETTINGS, { key: 'countTemporaryIds', value: 0 });
+                await createLocalDatabase(
+                    DB_SETTINGS,
+                    'key', 
+                    ['user_id', 'user_id', { unique: false }]
+                );
+
+                await addOrSetLocalRecord(DB_SETTINGS, { 
+                    key: 'countTemporaryIds',
+                    value: 0,
+                    user_id: localStorage.userId
+                });
+
+                await addOrSetLocalRecord(DB_SETTINGS, { 
+                    key: 'enableVim',
+                    value: true, 
+                    user_id: localStorage.userId
+                });
+
                 console.log('Local settings database does not exist, created new database');
             } 
         } catch (err) {
@@ -41,9 +69,10 @@ export function useSettings() {
 
         await addOrSetLocalRecord(DB_SETTINGS, {
             key: 'countTemporaryIds',
-            value: count
+            value: count,
+            user_id: localStorage.userId
         });
-        countTempIds.value = count;   
+        countTempIds.value = count;
     }
 
     onMounted(() => {
@@ -52,6 +81,7 @@ export function useSettings() {
 
     return {
         countTempIds, 
-        updateCountTempIds
+        updateCountTempIds,
+        enableVim
     };
 }

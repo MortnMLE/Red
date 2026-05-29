@@ -11,6 +11,10 @@
         </span>
       </div>
 
+      <button @click="enableVim = !enableVim">
+        Vim: {{ enableVim ? 'ON' : 'OFF' }}
+      </button>
+
       <div class="create-delete">
         <button class="sidebar-item" @click="createDocument()">
           + New
@@ -77,7 +81,8 @@ import { useEditor } from '@/composables/useEditor';
 
 const {
   countTempIds,
-  updateCountTempIds
+  updateCountTempIds,
+  enableVim,
 } = useSettings();
 
 const { 
@@ -100,7 +105,8 @@ const {
   renderedMarkdown
 } = useEditor({ 
   activeDocument,
-  onChange: updateDocumentContent 
+  onChange: updateDocumentContent,
+  enableVim
 });
 
 </script>
@@ -110,6 +116,21 @@ const {
   .cm-md-faded {
     opacity: 0.25;
     transition: opacity 0.12s ease;
+  }
+
+  .cm-image-block {
+    display: block;
+    margin: 16px 0;
+  }
+
+  .cm-image-block img {
+    display: block;
+    max-width: 50%;
+    max-height: 50vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 12px;
   }
 </style>
 
@@ -130,7 +151,7 @@ const {
   flex-direction: column;
   background: #252525;
   border-right: 1px solid #333;
-  width: 15vh;
+  width: 10vh;
 }
 
 .logo-dots span {
@@ -274,4 +295,5 @@ const {
   background: #121212;
   padding: 2px 4px;
 }
+
 </style>

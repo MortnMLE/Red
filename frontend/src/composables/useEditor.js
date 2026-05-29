@@ -5,27 +5,32 @@ import {
     watch,
     computed,
 } from 'vue';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Compartment } from '@codemirror/state';
 import {
+    drawSelection,
     EditorView,
     keymap,
-    lineNumbers,
-    Decoration,
-    ViewPlugin,
-    ViewUpdate
+    lineNumbers
 } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
-import { defaultKeymap } from '@codemirror/commands';
+import { vim } from '@replit/codemirror-vim'
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { oneDark } from '@codemirror/theme-one-dark';
-
+import { markdownImages } from '@/services/markdownImagesPlugin';
+import { basicSetup } from 'codemirror';
 import { markdownFadeInactiveLines, removeMarkdown } from '@/services/markdownService';
+import { addOrSetLocalRecord } from '@/services/indexedDbService';
+import { DB_SETTINGS } from '@/services/indexedDbService';
+import { toRaw, unref } from 'vue';
+
+const vimCompartment = new Compartment();
 
 export function useEditor(options = {}) {
     const { 
         activeDocument, 
-        onChange 
+        onChange,
+        enableVim
     } = options;
 
     const editorElement = ref(null);
@@ -48,15 +53,26 @@ export function useEditor(options = {}) {
             doc: initialContent,
 
             extensions: [
-                lineNumbers(),
+                // lineNumbers(),
 
-                keymap.of(defaultKeymap),
+                basicSetup,
+
+                // vim(),
+                vimCompartment.of(
+                    enableVim.value ? vim() : []
+                ),
+
+                // drawSelection(),
 
                 markdown(),
+
+                markdownImages(),
                 
                 markdownFadeInactiveLines(),
 
                 oneDark,
+
+                EditorView.lineWrapping,
 
                 EditorView.updateListener.of((update) => {
                     if (update.docChanged) {
@@ -82,7 +98,62 @@ export function useEditor(options = {}) {
                         fontFamily:
                             'JetBrains Mono, monospace',
                     },
+
+                    '.cm-content': {
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                    },
+
+                    '.cm-line': {
+                        overflow: 'visible',
+                    }
                 }),
+
+                EditorView.domEventHandlers({
+                    drop(event, view) {
+                        const files =
+                            event.dataTransfer?.files;
+
+                        if (!files?.length) {
+                            return false;
+                        }
+
+                        const file = files[0];
+
+                        if (
+                            !file.type.startsWith('image/')
+                        ) {
+                            return false;
+                        }
+
+                        event.preventDefault();
+
+                        const url =
+                            URL.createObjectURL(file);
+
+                        const markdown =
+                            `\n![image](${url})\n`;
+
+                        const pos =
+                            view.posAtCoords({
+                                x: event.clientX,
+                                y: event.clientY
+                            });
+
+                        if (pos == null) {
+                            return true;
+                        }
+
+                        view.dispatch({
+                            changes: {
+                                from: pos,
+                                insert: markdown
+                            }
+                        });
+
+                        return true;
+                    }
+                })
             ],
         });
 
@@ -124,6 +195,25 @@ export function useEditor(options = {}) {
 
     onBeforeUnmount(() => {
         editorView.value?.destroy();
+    });
+
+    watch(enableVim, async (enabled) => {
+        if (!editorView.value) {
+            return;
+        }
+
+        await addOrSetLocalRecord(DB_SETTINGS, { 
+            key: 'enableVim', 
+            value: toRaw(unref(enableVim.value)),
+            user_id: localStorage.userId
+        });
+
+        editorView.value.dispatch({
+            effects:
+                vimCompartment.reconfigure(
+                    enabled ? vim() : []
+                )
+        });
     });
 
     if (activeDocument) {

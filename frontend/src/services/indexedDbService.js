@@ -16,7 +16,7 @@ export function openLocalDatabase(storeName) {
     });
 }
 
-export async function createLocalDatabase(storeName, keyPath) { 
+export async function createLocalDatabase(storeName, keyPath, indexes) { 
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(storeName, DB_VERSION);
 
@@ -26,9 +26,8 @@ export async function createLocalDatabase(storeName, keyPath) {
             if (!db.objectStoreNames.contains(storeName)) {
                 const store = db.createObjectStore(storeName, { keyPath: keyPath });
 
-                if (storeName === DB_DOCUMENTS) {
-                    store.createIndex('user_id', 'user_id', { unique: false });
-                }
+                    // store.createIndex('user_id', 'user_id', { unique: false });
+                store.createIndex(indexes[0], indexes[1], indexes[2]);
             }
         };
 
@@ -50,7 +49,6 @@ export async function localDbExists(storeName) {
 
 export async function addOrSetLocalRecord(storeName, record) {
     const db = await openLocalDatabase(storeName);
-    console.log('saving ' + record._id);
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(storeName, 'readwrite');
         const store = transaction.objectStore(storeName);
