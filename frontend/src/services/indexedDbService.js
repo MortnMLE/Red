@@ -1,5 +1,6 @@
 export const DB_DOCUMENTS = 'RedDB';
 export const DB_SETTINGS = 'RedSettings';
+export const DB_IMAGES = 'RedImages';
 const DB_VERSION = 1;
 
 export function openLocalDatabase(storeName) {
@@ -130,6 +131,26 @@ export async function deleteLocalRecord(storeName, key) {
         request.onerror = () => {
             reject(request.error);
         };
+    });
+}
+
+export async function getAllForStore(dbName, storeName) {
+    const db = await openLocalDatabase(dbName);
+    return new Promise((resolve, reject) => {
+        const store = db
+            .transaction(dbName, 'readonly')
+            .objectStore(dbName)
+            .index('_id');
+        
+        const getAllRequest = store.getAll();
+        
+        getAllRequest.onsuccess = () => {
+            resolve(getAllRequest.result);
+        }
+
+        getAllRequest.onerror = () => {
+            reject(getAllRequest.error);
+        }
     });
 }
 

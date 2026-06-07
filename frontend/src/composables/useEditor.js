@@ -6,20 +6,15 @@ import {
     computed,
 } from 'vue';
 import { EditorState, Compartment } from '@codemirror/state';
-import {
-    drawSelection,
-    EditorView,
-    keymap,
-    lineNumbers
-} from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
 import { vim } from '@replit/codemirror-vim'
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { markdownImages } from '@/services/markdownImagesPlugin';
+import { markdownImages } from '@/services/imageWidget';
 import { basicSetup } from 'codemirror';
-import { markdownFadeInactiveLines, removeMarkdown } from '@/services/markdownService';
+import { markdownFadeInactiveLines, blurMarkdown } from '@/services/markdownService';
 import { addOrSetLocalRecord } from '@/services/indexedDbService';
 import { DB_SETTINGS } from '@/services/indexedDbService';
 import { toRaw, unref } from 'vue';
@@ -30,7 +25,9 @@ export function useEditor(options = {}) {
     const { 
         activeDocument, 
         onChange,
-        enableVim
+        enableVim,
+        imageCache,
+        createNewLocalImage,
     } = options;
 
     const editorElement = ref(null);
@@ -53,20 +50,15 @@ export function useEditor(options = {}) {
             doc: initialContent,
 
             extensions: [
-                // lineNumbers(),
-
                 basicSetup,
 
-                // vim(),
                 vimCompartment.of(
                     enableVim.value ? vim() : []
                 ),
 
-                // drawSelection(),
-
                 markdown(),
 
-                markdownImages(),
+                markdownImages(imageCache),
                 
                 markdownFadeInactiveLines(),
 
@@ -83,7 +75,7 @@ export function useEditor(options = {}) {
                     const firstLine = content.value.split('\n')[0];
                     onChange?.(
                         content.value,
-                        removeMarkdown(firstLine)
+                        blurMarkdown(firstLine)
                     );
                 }),
 
@@ -110,7 +102,7 @@ export function useEditor(options = {}) {
                 }),
 
                 EditorView.domEventHandlers({
-                    drop(event, view) {
+                    async drop(event, view) {
                         const files =
                             event.dataTransfer?.files;
 
@@ -128,11 +120,14 @@ export function useEditor(options = {}) {
 
                         event.preventDefault();
 
-                        const url =
-                            URL.createObjectURL(file);
+                        const id = await createNewLocalImage(
+                            activeDocument.value._id,
+                            file.name,
+                            file
+                        );
 
                         const markdown =
-                            `\n![image](${url})\n`;
+                            `\n![image](${id})\n`;
 
                         const pos =
                             view.posAtCoords({

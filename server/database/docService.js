@@ -4,11 +4,11 @@ const { DatabaseError, InvalidIdError } = require('../errors/errors');
 
 const dbName = 'documents';
 //inserts a new document and returns the newly generated _id
-async function createDoc(id, title, content, version) {
+async function createDoc(user_id, title, content, version) {
     try {
         const con = await db.getConnection(dbName); 
         const doc = {
-            user_id: new ObjectId(id),
+            user_id: new ObjectId(user_id),
             title: title,
             content: content,
             version: version
@@ -77,9 +77,9 @@ async function deleteDoc(id) {
     try {
         const con = await db.getConnection(dbName);
 
-        return await con.deleteOne(
-            { _id: new ObjectId(id) }
-        );
+        return await con.deleteOne({ 
+            _id: new ObjectId(id) 
+        });
     } catch (err) {
         throw new DatabaseError('Database Error: Delete Document');
     }

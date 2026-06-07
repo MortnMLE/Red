@@ -74,7 +74,7 @@ export function markdownFadeInactiveLines() {
     );
 }
 
-export function removeMarkdown(str = '') {
+export function blurMarkdown(str = '') {
     return str
         // headings
         .replace(/^#{1,6}\s+/gm, '')

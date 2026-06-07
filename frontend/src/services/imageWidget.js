@@ -3,7 +3,7 @@ import {
     ViewPlugin,
     WidgetType
 } from '@codemirror/view';
-import { RangeSetBuilder } from '@codemirror/state';
+import { RangeSetBuilder, StateEffect } from '@codemirror/state';
 
 class ImageWidget extends WidgetType {
     constructor(src, alt = '') {
@@ -11,6 +11,13 @@ class ImageWidget extends WidgetType {
 
         this.src = src;
         this.alt = alt;
+    }
+
+    eq(other) {
+        return (
+            other.src === this.src &&
+            other.alt === this.alt
+        );
     }
 
     toDOM() {
@@ -29,7 +36,7 @@ class ImageWidget extends WidgetType {
     }
 }
 
-export function markdownImages() {
+export function markdownImages(imageCache) {
     return ViewPlugin.fromClass(
         class {
             decorations;
@@ -79,7 +86,8 @@ export function markdownImages() {
                             start + match[0].length;
 
                         const alt = match[1];
-                        const src = match[2];
+                        const src = imageCache.get(match[2]);
+                        //const src = match[2];
 
                         builder.add(
                             start,

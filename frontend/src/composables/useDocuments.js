@@ -39,7 +39,10 @@ export function useDocuments(options = {}) {
     // pendingSync: boolean
     // deleted: boolean
 
-    const { countTempIds, updateCountTempIds } = options;
+    const { 
+        countTempIds,
+        updateCountTempIds 
+    } = options;
     
     // synchronization with IndexedDB via indexedDBservice and backend server via apiService
     async function loadDocuments() {
@@ -62,7 +65,7 @@ export function useDocuments(options = {}) {
                 await createLocalDatabase(
                     DB_DOCUMENTS, 
                     "_id",
-                    ['user_id', 'user_id', { unique: false}]
+                    ['user_id', 'user_id', { unique: false }]
                 );
                 
                 console.log('Local database does not exist, created new database');
@@ -242,19 +245,14 @@ export function useDocuments(options = {}) {
         }
     }
 
-    async function deleteDocument() {
-        const doc = documents.value.find(
-            doc => doc._id === activeDocumentId.value
-        );
-
-        const id = activeDocumentId.value;
+    async function deleteDocument(doc) {
+        const id = doc._id;
         
         documents.value = documents.value.filter(
-            doc => doc._id !== activeDocumentId.value
+            doc => doc._id !== id
         )
         
-        handleCloseDocuments(doc);
-
+        console.log()
         try {
             const response = await serverRequest(
                 'POST',
@@ -271,7 +269,6 @@ export function useDocuments(options = {}) {
         } catch (err) {
             console.log(`Document ${id} could not be deleted. Set to deleted instead.${err.message}`);
             doc.deleted = true;
-            console.log(toRaw(doc));
             addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
         } 
     }
@@ -386,16 +383,15 @@ export function useDocuments(options = {}) {
         }
     }
 
-    function handleCloseDocuments(doc) {
-        shiftActiveDocument(doc, -1);
-        closeDocument(doc._id);
-    }
-
     // persistence
     const saveLocalDebounced = debouncer(
-        async (doc) => {
+        async (ref) => {
             try {
-                await addOrSetLocalRecord(DB_DOCUMENTS, doc);
+                ref.value.version += 1;
+                await addOrSetLocalRecord(
+                    DB_DOCUMENTS,
+                    structuredClone(toRaw(ref.value)), 
+                );
 
             } catch (err) {
                 console.error(err);
@@ -405,30 +401,28 @@ export function useDocuments(options = {}) {
     )
 
     const syncRemoteDebounced = debouncer(
-        async (doc) => {
+        async (ref) => {
             try {
                 const response = await serverRequest(
                     'PATCH',
                     {
-                        _id: doc._id,
-                        content: doc.content,
-                        title: doc.title,
-                        localVersion: doc.version + 1
+                        _id: ref.value._id,
+                        content: ref.value.content,
+                        title: ref.value.title,
+                        localVersion: ref.value.version
                     },
                     endpointPatch
                 );
 
-                if (response.success) {
-                    activeDocument.version += 1;
-                } else {
-                    // todo: how do I resolve conflicts?
+                if (!response.success) {
+                    console.log(`Failed to sync document ${ref.value._id} with server: ${response.message}`);
                 }
 
             } catch (err) {
                 console.error(err);
             }
         },
-        2000
+        300
     )
 
     function updateDocumentContent(content, title) {
@@ -439,8 +433,8 @@ export function useDocuments(options = {}) {
         activeDocument.value.content = content;
         activeDocument.value.title = title !== '' ? title : 'Title';
 
-        saveLocalDebounced(structuredClone(toRaw(activeDocument.value)));
-        syncRemoteDebounced(structuredClone(toRaw(activeDocument.value)));
+        saveLocalDebounced(activeDocument);
+        syncRemoteDebounced(activeDocument);
     }
 
     // initialization
@@ -458,7 +452,8 @@ export function useDocuments(options = {}) {
         deleteDocument,
         openDocument,
         setActiveDocument,
-        handleCloseDocuments, 
-        updateDocumentContent
+        updateDocumentContent,
+        shiftActiveDocument,
+        closeDocument
     };
 }

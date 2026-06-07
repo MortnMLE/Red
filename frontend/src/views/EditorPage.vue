@@ -19,7 +19,7 @@
         <button class="sidebar-item" @click="createDocument()">
           + New
         </button>
-        <button class="sidebar-item" @click="deleteDocument()">
+        <button class="sidebar-item" @click="handleDeleteActiveDocument()">
           - Delete
         </button>
       </div>
@@ -29,7 +29,7 @@
         :key="doc._id"
         class="sidebar-item"
         :class="{ active: activeDocument && activeDocument._id === doc._id }"
-        @click="openDocument(doc._id); setActiveDocument(doc._id)"
+        @click="openDocument(doc._id); handleChangeActiveDocument(doc._id)"
       >
           {{ doc.title }}
       </button>
@@ -45,12 +45,12 @@
           :key="doc._id"
           class="tab"
           :class="{ active: activeDocument && activeDocument._id === doc._id }"
-          @click="setActiveDocument(doc._id)"
+          @click="handleChangeActiveDocument(doc._id)"
         >
           {{ doc.title }}
           <span
             class="close"
-            @click.stop="handleCloseDocuments(doc)"
+            @click.stop="handleCloseDocument(doc)"
           >
             ×
           </span>
@@ -78,12 +78,20 @@
 import { useSettings } from '@/composables/useSettings';
 import { useDocuments } from '@/composables/useDocuments';
 import { useEditor } from '@/composables/useEditor';
+import { useImages } from '@/composables/useImages';
 
 const {
   countTempIds,
   updateCountTempIds,
   enableVim,
 } = useSettings();
+
+const {
+  imageCache,
+  createNewLocalImage,
+  initializeImageCacheForDocument, 
+  revokeImageUrlsForDocId
+} = useImages();
 
 const { 
   documents,
@@ -93,11 +101,13 @@ const {
   deleteDocument,
   openDocument,
   setActiveDocument,
-  handleCloseDocuments,
-  updateDocumentContent
+  updateDocumentContent,
+  shiftActiveDocument,
+  closeDocument
 } = useDocuments({
   countTempIds,
-  updateCountTempIds
+  updateCountTempIds,
+  initializeImageCacheForDocument,
 });
 
 const {
@@ -106,8 +116,35 @@ const {
 } = useEditor({ 
   activeDocument,
   onChange: updateDocumentContent,
-  enableVim
+  enableVim,
+  imageCache,
+  createNewLocalImage
 });
+
+// orchestration layer
+async function handleChangeActiveDocument(documentId) {
+  await initializeImageCacheForDocument(documentId);
+  setActiveDocument(documentId);
+}
+
+async function handleCloseDocument(document) {
+  shiftActiveDocument(document, -1);
+  await revokeImageUrlsForDocId(document._id);
+  closeDocument(document._id);
+}
+
+async function handleDeleteActiveDocument() {
+  if (activeDocument.value._id == 'welcome') {
+    return;
+  }
+
+  const docToBeDeleted = documents.value.find(
+    doc => doc._id === activeDocument.value._id
+  );
+
+  handleCloseDocument(docToBeDeleted);
+  await deleteDocument(docToBeDeleted);
+}
 
 </script>
 

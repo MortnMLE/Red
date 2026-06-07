@@ -1,4 +1,4 @@
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import { DB_SETTINGS, DB_DOCUMENTS,
     createLocalDatabase, addOrSetLocalRecord, 
     localDbExists, getLocalRecordsByIndex
@@ -23,10 +23,10 @@ export function useSettings() {
 
                 if (settings) {
                     const vimSetting = settings.find(
-                        setting => setting.key === 'vimEnabled'
+                        setting => setting.key === 'enableVim'
                     );
 
-                    enableVim.value = vimSetting?.value ?? false;
+                    enableVim.value = vimSetting.value ?? false;
                     
                     console.log(`fetched enableVim: ${enableVim.value}`);
                 }

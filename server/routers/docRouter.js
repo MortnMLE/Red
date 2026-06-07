@@ -190,7 +190,7 @@ docRouter.patch('/full', async (req, res) => {
             });
         }
 
-        if (existingDoc.version >= req.body.localVersion) {
+        if (Number(existingDoc.version) >= req.body.localVersion) {
             return res.status(409).json({
                 error: 'VERSION_CONFLICT',
                 message: 'Version conflict detected',
@@ -200,7 +200,7 @@ docRouter.patch('/full', async (req, res) => {
 
         existingDoc.content = req.body.content;
         existingDoc.title = req.body.title;
-        existingDoc.version += 1;
+        existingDoc.version = req.body.localVersion;
         
         await doc.updateDoc(existingDoc);
 
@@ -254,7 +254,7 @@ docRouter.patch('/diff', async (req, res) => {
         if (patched) {
             existingDoc.title = req.body.title;
             existingDoc.content = patched;
-            existingDoc.version += 1;
+            existingDoc.version = req.body.localVersion;
 
             await doc.updateDoc(existingDoc);
             
