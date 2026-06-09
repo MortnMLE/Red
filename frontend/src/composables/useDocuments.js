@@ -99,10 +99,11 @@ export function useDocuments(options = {}) {
 
     async function syncDocuments(serverDocuments, localDocuments) {
         //postToserverDocs = documents that should be updated or added on the server
-        let postToServerArr = [];
-        let deleteFromServerArr = [];
+        let newDocs = [];
+        let deleteDocs = [];
+        let patchDocs = [];
 
-        deleteFromServerArr = localDocuments.filter(
+        deleteDocs = localDocuments.filter(
             doc => doc.deleted
         );
         
@@ -142,10 +143,11 @@ export function useDocuments(options = {}) {
                         await deleteLocalRecord(DB_DOCUMENTS, localDoc._id);
                     }
                 }
+
                 if (localDoc.version === serverDoc.version) {
                     console.log(`Document ${localDoc._id} is up to date with server version`);
                 } else if (localDoc.version > serverDoc.version) {
-                    postToServerArr.push(localDoc);
+                    patchDocs.push(localDoc);
                     console.log(`Document ${localDoc._id} has a newer version in local storage, will attempt to push to server`);
                 } else {
                     serverDoc.pendingSync = false;
@@ -164,7 +166,7 @@ export function useDocuments(options = {}) {
                 documents.value.push(serverDoc);
             }
 
-            postToServerArr.push(...localDocuments);
+            newDocs.push(...localDocuments);
         } catch (err) {
             console.error('Error synchronizing server-documents: ' + err.message);
         }
@@ -172,7 +174,7 @@ export function useDocuments(options = {}) {
         // Handle documents that exist in local storage but not on server
         let serverIsReachable = true;
         
-        for (const doc of postToServerArr) {
+        for (const doc of newDocs) {
             let newDoc = doc;
             try{
                 //Only try to reach the server once.
@@ -225,8 +227,8 @@ export function useDocuments(options = {}) {
         }
 
         if (serverIsReachable) {
-            try {
-                for(const doc of deleteFromServerArr) {
+            for (const doc of deleteDocs) {
+                try {
                     const response = await serverRequest(
                         'POST',
                         { _id: doc._id }, 
@@ -238,9 +240,26 @@ export function useDocuments(options = {}) {
                     if (response.success) {
                         deleteLocalRecord(DB_DOCUMENTS, doc._id);
                     }
+                } catch (err) {
+                    console.log('Could not delete document from server. Skipping deletion process');
                 }
-            } catch (err) {
-                console.log('Could not delete document from server. Skipping deletion process');
+            }
+
+            for (const doc of patchDocs) {
+                try {
+                    const response = await serverRequest(
+                        'PATCH',
+                        {
+                            _id: doc._id,
+                            content: doc.content,
+                            title: doc.title,
+                            localVersion: doc.localVersion
+                        },
+                        endpointPatch
+                    )
+                } catch (err) {
+                    console.log(`Could not patch document ${doc}`);
+                }
             }
         }
     }
