@@ -14,6 +14,7 @@ import { debouncer } from '@/services/debouncer';
 const documents = ref([]);
 const activeDocumentId = ref('');
 const openDocumentIds = ref([]);
+const docsInitialized = ref(false);
 
 const links = ref([]);
 let creationInProgress = false;
@@ -65,7 +66,11 @@ export function useDocuments(options = {}) {
                 await createLocalDatabase(
                     DB_DOCUMENTS, 
                     "_id",
-                    ['user_id', 'user_id', { unique: false }]
+                    [{
+                        indexName: 'user_id',
+                        keyPath: 'user_id',
+                        options: { unique: false }
+                    }]
                 );
                 
                 console.log('Local database does not exist, created new database');
@@ -99,11 +104,11 @@ export function useDocuments(options = {}) {
 
     async function syncDocuments(serverDocuments, localDocuments) {
         //postToserverDocs = documents that should be updated or added on the server
-        let newDocs = [];
-        let deleteDocs = [];
-        let patchDocs = [];
-
-        deleteDocs = localDocuments.filter(
+        let docsToBeCreated = [];
+        let docsToBeDeleted = [];
+        let docsToBePatched = [];
+        
+        docsToBeDeleted = localDocuments.filter(
             doc => doc.deleted
         );
         
@@ -147,7 +152,7 @@ export function useDocuments(options = {}) {
                 if (localDoc.version === serverDoc.version) {
                     console.log(`Document ${localDoc._id} is up to date with server version`);
                 } else if (localDoc.version > serverDoc.version) {
-                    patchDocs.push(localDoc);
+                    docsToBePatched.push(localDoc);
                     console.log(`Document ${localDoc._id} has a newer version in local storage, will attempt to push to server`);
                 } else {
                     serverDoc.pendingSync = false;
@@ -166,7 +171,7 @@ export function useDocuments(options = {}) {
                 documents.value.push(serverDoc);
             }
 
-            newDocs.push(...localDocuments);
+            docsToBeCreated.push(...localDocuments);
         } catch (err) {
             console.error('Error synchronizing server-documents: ' + err.message);
         }
@@ -174,7 +179,7 @@ export function useDocuments(options = {}) {
         // Handle documents that exist in local storage but not on server
         let serverIsReachable = true;
         
-        for (const doc of newDocs) {
+        for (const doc of docsToBeCreated) {
             let newDoc = doc;
             try{
                 //Only try to reach the server once.
@@ -227,7 +232,7 @@ export function useDocuments(options = {}) {
         }
 
         if (serverIsReachable) {
-            for (const doc of deleteDocs) {
+            for (const doc of docsToBeDeleted) {
                 try {
                     const response = await serverRequest(
                         'POST',
@@ -245,7 +250,7 @@ export function useDocuments(options = {}) {
                 }
             }
 
-            for (const doc of patchDocs) {
+            for (const doc of docsToBePatched) {
                 try {
                     const response = await serverRequest(
                         'PATCH',
@@ -257,6 +262,10 @@ export function useDocuments(options = {}) {
                         },
                         endpointPatch
                     )
+
+                    if (!response.success) {
+                        console.error(`error during patch: ${response.message}; ${doc._id}`);
+                    }
                 } catch (err) {
                     console.log(`Could not patch document ${doc}`);
                 }
@@ -461,6 +470,7 @@ export function useDocuments(options = {}) {
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
         console.log(`Loaded ${[...documents.value].length} documents.`);
+        docsInitialized.value = true;
     });
 
     return {
@@ -473,6 +483,7 @@ export function useDocuments(options = {}) {
         setActiveDocument,
         updateDocumentContent,
         shiftActiveDocument,
-        closeDocument
+        closeDocument,
+        docsInitialized
     };
 }

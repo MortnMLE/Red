@@ -86,13 +86,6 @@ const {
   enableVim,
 } = useSettings();
 
-const {
-  imageCache,
-  createNewLocalImage,
-  initializeImageCacheForDocument, 
-  revokeImageUrlsForDocId
-} = useImages();
-
 const { 
   documents,
   activeDocument,
@@ -103,11 +96,25 @@ const {
   setActiveDocument,
   updateDocumentContent,
   shiftActiveDocument,
-  closeDocument
+  closeDocument,
+  docsInitialized
 } = useDocuments({
   countTempIds,
-  updateCountTempIds,
-  initializeImageCacheForDocument,
+  updateCountTempIds
+});
+
+const {
+  imageCache,
+  createNewLocalImage,
+  initializeImageCacheForDocument, 
+  revokeImageUrlsForDocId,
+  deleteImagesForDocId,
+  createNewServerImage
+} = useImages({
+  documents,
+  docsInitialized,
+  countTempIds,
+  activeDocument
 });
 
 const {
@@ -118,7 +125,9 @@ const {
   onChange: updateDocumentContent,
   enableVim,
   imageCache,
-  createNewLocalImage
+  createNewLocalImage,
+  createNewServerImage,
+  updateCountTempIds
 });
 
 // orchestration layer
@@ -144,6 +153,7 @@ async function handleDeleteActiveDocument() {
 
   handleCloseDocument(docToBeDeleted);
   await deleteDocument(docToBeDeleted);
+  await deleteImagesForDocId(docToBeDeleted);
 }
 
 </script>

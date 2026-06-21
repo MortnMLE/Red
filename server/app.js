@@ -10,6 +10,7 @@ const port = 5000;
 //Import routers:
 const userRouter = require('./routers/userRouter');
 const docRouter = require('./routers/docRouter');
+const imgRouter = require('./routers/imgRouter');
 
 app.set('view engine');
 app.use(express.json());
@@ -18,6 +19,7 @@ app.use(cors({
 }));
 app.use('/user', userRouter);
 app.use('/doc', docRouter);
+app.use('/img', imgRouter);
 
 //Start server and initialize connection to Atlas
 async function start() {

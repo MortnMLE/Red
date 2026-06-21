@@ -14,8 +14,8 @@ import DOMPurify from 'dompurify';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdownImages } from '@/services/imageWidget';
 import { basicSetup } from 'codemirror';
-import { markdownFadeInactiveLines, blurMarkdown } from '@/services/markdownService';
-import { addOrSetLocalRecord } from '@/services/indexedDbService';
+import { markdownFadeInactiveLines, removeMarkdown } from '@/services/markdownService';
+import { addOrSetLocalRecord, DB_IMAGES, deleteLocalRecord } from '@/services/indexedDbService';
 import { DB_SETTINGS } from '@/services/indexedDbService';
 import { toRaw, unref } from 'vue';
 
@@ -28,6 +28,9 @@ export function useEditor(options = {}) {
         enableVim,
         imageCache,
         createNewLocalImage,
+        // replaceImageReference,
+        updateCountTempIds,
+        createNewServerImage
     } = options;
 
     const editorElement = ref(null);
@@ -75,7 +78,7 @@ export function useEditor(options = {}) {
                     const firstLine = content.value.split('\n')[0];
                     onChange?.(
                         content.value,
-                        blurMarkdown(firstLine)
+                        removeMarkdown(firstLine)
                     );
                 }),
 
@@ -120,14 +123,16 @@ export function useEditor(options = {}) {
 
                         event.preventDefault();
 
-                        const id = await createNewLocalImage(
+                        const localImg = await createNewLocalImage(
                             activeDocument.value._id,
                             file.name,
                             file
                         );
 
+                        updateCountTempIds();
+
                         const markdown =
-                            `\n![image](${id})\n`;
+                            `\n![image](${localImg.id})\n`;
 
                         const pos =
                             view.posAtCoords({
@@ -145,6 +150,15 @@ export function useEditor(options = {}) {
                                 insert: markdown
                             }
                         });
+
+                        const doc = activeDocument.value;
+                        handleImageCreationOnServer(
+                            doc,
+                            localImg.id,
+                            file.name,
+                            file,
+                            editorView
+                        );
 
                         return true;
                     }
@@ -178,6 +192,62 @@ export function useEditor(options = {}) {
                 from: 0,
                 to: current.length,
                 insert: newContent,
+            },
+        });
+    }
+
+    async function handleImageCreationOnServer(doc, tempId, name, file) {
+        const serverImg = await createNewServerImage(doc._id, name, file);
+
+        if (!serverImg) {
+            return;
+        }
+
+        if (activeDocument.value._id !== doc._id) {
+            return;
+        }
+
+        const url = imageCache.get(tempId);
+        
+        if (url) {
+            imageCache.delete(tempId);
+            imageCache.set(serverImg.id, url);
+
+            console.log(`Replacing ${tempId} with ${serverImg.id}`);
+            replaceImageReference(tempId, serverImg.id);
+
+            await addOrSetLocalRecord(
+                DB_IMAGES,
+                {
+                    _id: serverImg.id,
+                    doc_id: doc._id,
+                    file,
+                    name
+                }
+            );
+
+            await deleteLocalRecord(DB_IMAGES,tempId);
+            updateCountTempIds();
+        }
+    }
+
+    function replaceImageReference(tempId, uuid) {
+        const text = editorView.value.state.doc.toString();
+
+        const oldRef = `![image](${tempId})`;
+        const newRef = `![image](${uuid})`;
+
+        const from = text.indexOf(oldRef);
+
+        if (from === -1) {
+            return;
+        }
+
+        editorView.value.dispatch({
+            changes: {
+                from,
+                to: from + oldRef.length,
+                insert: newRef,
             },
         });
     }

@@ -26,9 +26,14 @@ export async function createLocalDatabase(storeName, keyPath, indexes) {
 
             if (!db.objectStoreNames.contains(storeName)) {
                 const store = db.createObjectStore(storeName, { keyPath: keyPath });
-
-                    // store.createIndex('user_id', 'user_id', { unique: false });
-                store.createIndex(indexes[0], indexes[1], indexes[2]);
+                
+                for (const index of indexes) {
+                    store.createIndex(
+                        index.indexName,
+                        index.keyPath, 
+                        index.options
+                    );
+                }
             }
         };
 
@@ -97,8 +102,28 @@ export async function getLocalRecordsByIndex(storeName, indexName, indexValue) {
     });
 }
 
+export async function localEntryExists(storeName, id) {
+    const db = await openLocalDatabase(storeName);
+
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(storeName, 'readonly');
+        const store = transaction.objectStore(storeName);
+
+        const request = store.get(id);
+
+        request.onsuccess = () => {
+            resolve(request.result !== undefined);
+        };
+
+        request.onerror = () => {
+            reject(request.error);
+        };
+    });
+}
+
 export async function getLocalRecord(storeName, key) {
     const db = await openLocalDatabase(storeName);
+    console.log(key);
 
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(storeName, 'readonly');

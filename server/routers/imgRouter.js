@@ -1,5 +1,5 @@
 const express = require('express');
-const img = require('../services/imgService');
+const img = require('../database/imgService');
 const {
     ValidationError,
     DatabaseError
@@ -37,12 +37,18 @@ imgRouter.post('/new', upload.single('image'), async (req, res) => {
             req.body.file
         );
 
-        if (response.success) {
-            return res.status(201).json({
-                _id: response.insertedId,
-                success: true
+        if (!response.acknowledged) {
+            return res.status(500).json({
+                error: 'DATABASE_ERROR',
+                message: 'Failed to create image in database',
+                success: false
             });
         }
+
+        return res.status(201).json({
+            id: response.insertedId,
+            success: true
+        });
     } catch (err) {
         return res.status(err.statusCode).json({
             error: err.name,
@@ -78,14 +84,12 @@ imgRouter.get('/:id', async (req, res) => {
             });
         }
 
-        res.set('Content-Type', result.mimeType);
-        res.send(result.data.buffer);
-        // return res.status(200).json({
-        //     mimeType: result.mimeType,
-        //     file: result.data,
-        //     name: result.name,
-        //     success: true
-        // });
+        res.setHeader(
+            'Content-Disposition',
+            `inline; filename="${result.name}"`
+        );
+        
+        return res.status(200).send(result.data.buffer);
     } catch (err) {
         return res.status(err.statusCode).json({
             error: err.name,
@@ -95,11 +99,14 @@ imgRouter.get('/:id', async (req, res) => {
     }
 });
 
-imgRouter.get('/:doc_id', async (req, res) => {
-    const { doc_id } = req.params;
+imgRouter.get('/allForDocId/:doc_Id', async (req, res) => {
 
-    if (typeof doc_id !== 'string' ||
-        doc_id === ''
+    const { doc_Id } = req.params;
+
+    console.log(doc_Id);
+
+    if (typeof doc_Id !== 'string' ||
+        doc_Id === ''
     ) {
         return res.status(400).json({
             error: 'INVALID_INPUT',
@@ -109,9 +116,10 @@ imgRouter.get('/:doc_id', async (req, res) => {
     }
 
     try {
-        const result = await img.getImagesByDocId(docId);
+        console.log(doc_Id);
+        const images = await img.getImagesByDocId(doc_Id); 
 
-        if (!result) {
+        if (!images) {
             return res.status(404).json({
                 error: 'NOT_FOUND',
                 message: 'images not found',
@@ -119,11 +127,18 @@ imgRouter.get('/:doc_id', async (req, res) => {
             });
         }
 
+        let result = [];
+        for (const image of images) {
+            result.push(image._id);
+        }
+
+        console.log(result);
         return res.status(200).json({
             images: result,
             success: true
         });
     } catch (err) {
+        console.log(err);
         return res.status(err.statusCode).json({
             error: err.name,
             message: err.message,
@@ -133,9 +148,30 @@ imgRouter.get('/:doc_id', async (req, res) => {
 })
 
 imgRouter.delete('/delete', async (req,res) => {
+    if (typeof req.body.id !== 'string' || req.body.id === '') {
+        return res.status(400).json({
+            error: 'INVALID_INPUT',
+            message: 'invalid id provided by client',
+            success: false
+        });
+    }
 
     try {
+        const dbResponse = await img.deleteImage(req.body.id);
 
+        if (dbResponse.deletedCount !== 1 &&
+            dbResponse.deletedCount !== 0
+        ) {
+            return status(500).json({
+                error: 'DATABASE_ERROR',
+                message: 'Failed to delete document',
+                success: false
+            });
+        }
+
+        return res.status(200).json({
+            success: true
+        });
     } catch (err) {
         return res.status(err.statusCode).json({
             error: err.name,
@@ -144,3 +180,5 @@ imgRouter.delete('/delete', async (req,res) => {
         });
     }
 });
+
+module.exports = imgRouter;

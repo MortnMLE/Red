@@ -1,7 +1,8 @@
 import { ref, onMounted } from 'vue';
 import { DB_SETTINGS, DB_DOCUMENTS,
     createLocalDatabase, addOrSetLocalRecord, 
-    localDbExists, getLocalRecordsByIndex
+    localDbExists, getLocalRecordsByIndex,
+    DB_IMAGES
 } from '@/services/indexedDbService';
 
 const countTempIds = ref(0);
@@ -34,7 +35,11 @@ export function useSettings() {
                 await createLocalDatabase(
                     DB_SETTINGS,
                     'key', 
-                    ['user_id', 'user_id', { unique: false }]
+                    [{
+                        indexName: 'user_id', 
+                        keyPath: 'user_id', 
+                        options: { unique: false }
+                    }]
                 );
 
                 await addOrSetLocalRecord(DB_SETTINGS, { 
@@ -61,11 +66,24 @@ export function useSettings() {
         let documents = await getLocalRecordsByIndex(
             DB_DOCUMENTS,
             'user_id', 
-            localStorage.userId);
+            localStorage.userId
+        );
 
-        const count = documents.filter(doc => 
+        let images = await getLocalRecordsByIndex(
+            DB_IMAGES,
+            'user_id',
+            localStorage.userId
+        );
+
+        const countDocs = documents.filter(doc => 
             doc._id.includes('temp-')
         ).length;
+
+        const countImgs = images.filter(doc => 
+            doc._id.includes('temp-')
+        ).length;
+
+        const count = countDocs + countImgs;
 
         await addOrSetLocalRecord(DB_SETTINGS, {
             key: 'countTemporaryIds',

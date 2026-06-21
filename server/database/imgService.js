@@ -25,9 +25,7 @@ async function createImage(docId, name, file) {
         data: new Binary(file.buffer)
     };
 
-    const result = await con.insertOne(img);
-
-    return result.insertedId;
+    return result = await con.insertOne(img);
 }
 
 async function getImage(id) {
@@ -58,6 +56,8 @@ async function getImagesByDocId(docId) {
     if (!ObjectId.isValid(docId)) {
         throw new InvalidIdError('Invalid docId');
     }
+
+    console.log(docId);
 
     try {
         const con = await db.getConnection(dbName);

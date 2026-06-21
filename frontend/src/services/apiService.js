@@ -6,8 +6,7 @@ export async function serverRequest(method, body, endpoint) {
         },
         body: JSON.stringify(body)
     });
-    
-    const json = await response.json();
 
+    const json = await response.json();
     return json;
 }
