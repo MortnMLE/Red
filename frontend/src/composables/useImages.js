@@ -4,7 +4,7 @@ import {
     endpointImageGetById, 
     endpointImgDelete, 
     endpointImgNew 
-} from "@/services/endpoints";
+} from "@/constants/endpoints";
 import { 
     createStore,
     storeExists, 
@@ -17,8 +17,11 @@ import {
 } from "@/services/indexedDbService";
 import { getLocalRecordsByIndex } from "@/services/indexedDbService";
 import { onMounted } from "vue";
-
-const imageCache = new Map();
+import { Validator } from "@/services/validator";
+import { 
+    createCacheEntriesForImages, 
+    setImageCache 
+} from '@/services/images/imageCacheService';
 
 export function useImages(options = {}) {
 
@@ -26,8 +29,15 @@ export function useImages(options = {}) {
         documents,
         docsInitialized,
         countTempIds,
-        activeDocument
+        activeDocument,
+        imageCache
     } = options;
+
+    let udpateEditorContent = null;
+
+    function setUpdateEditorContent(fn) {
+        udpateEditorContent = fn;
+    }
 
     async function syncFromLocalToServer(requiredImages, serverImages) {
         if (!requiredImages || !serverImages) {
@@ -50,13 +60,13 @@ export function useImages(options = {}) {
             console.log(`getLocalRecord: ${image.id}`);
 
             const localImage = await getLocalRecord(DB_IMAGES, image.id);
-            console.log(`result getLocalRecord: ${localImage._id}`);
+            
             if (!localImage) {
-                console.log(`localImg ${localImage} not found.`);
+                console.log(`localImg ${image.id} not found.`);
                 continue;
             }
 
-            console.log(`after getLocalRecord: ${localImage._id}`);
+            console.log(`result getLocalRecord: ${localImage._id}`);
 
             const insertedId = await createNewServerImage(
                 localImage.doc_id,
@@ -87,11 +97,22 @@ export function useImages(options = {}) {
             }
 
             console.log(`asdf: ${localImage._id}`);
+            
+            if (localDocument._id === activeDocument._id) {
+                const content = activeDocument.value.content.replace(
+                    localImage._id,
+                    insertedId
+                );
 
-            localDocument.content = localDocument.content.replace(
-                localImage._id,
-                insertedId
-            );
+                udpateEditorContent(content);
+            } else {
+                localDocument.content = localDocument.content.replace(
+                    localImage._id,
+                    insertedId
+                );
+
+                addOrSetLocalRecord(DB_DOCUMENTS, localDocument);
+            }
 
             const doc = documents.value.find(
                 (doc) => doc._id === localImage.doc_id
@@ -175,23 +196,20 @@ export function useImages(options = {}) {
     }
 
     async function initializeImageCacheForDocument(docId) {
-        if (!docId || docId === '') {
-            throw new Error(`useImages.initializeImageCacheForDocument: ${docId}`);
-        }
-
+        // validate parameter
+        Validator.validateStringEmptyNotAllowed(docId);
+        
         console.log(`initializeImageCacheForDocument called with docId: ${docId}`);
 
+        // fetch IndexedDB-images for document id
         const images = await getLocalRecordsByIndex(
             DB_IMAGES,
             'doc_id',
             docId
         );
 
-        for (const image of images) {
-            await setImageToCache(image._id);
-        }
-
-        console.log(`finished initializing images for doc`);
+        // call service
+        createCacheEntriesForImages(images);
     }
 
     async function setImageToCache(imageId) {
@@ -212,23 +230,14 @@ export function useImages(options = {}) {
             return;
         }
 
-        const url = URL.createObjectURL(imageObject.file);
-        imageCache.set(imageId, url);
+        imageCache.setUrl(imageId);
     }
 
     async function createNewServerImage(docId, name, file) {
-        if (
-            docId === '' || !docId ||
-            name === '' || !name ||
-            !(file instanceof File) || file === null
-        ) {
-            throw new Error(
-                `useImages.createNewServerImage:\n` +
-                `docId: ${docId}\n` +
-                `name: ${name}\n` +
-                `file: ${file}`
-            );
-        }
+        // validate Parameters
+        Validator.validateStringEmptyNotAllowed(docId);
+        Validator.validateStringEmptyNotAllowed(name);
+        Validator.validateFile(file);
 
         console.log(`doc_id: ${docId},\nimage size: ${file.size},\nuser_id: ${localStorage.userId}\nname ${name}`);
         const formData = new FormData();
@@ -259,18 +268,10 @@ export function useImages(options = {}) {
     }
 
     async function createNewLocalImage(docId, name, file) {
-        if (
-            !docId || docId === '' ||
-            !name || name === '' ||
-            !(file instanceof File) || !file
-        ) {
-            throw new Error(
-                `useImages.createNewLocalImage:\n` +
-                `docId: ${docId}\n` +
-                `name: ${name}\n` +
-                `file: ${file}`
-            );
-        }
+        // validate Parameters
+        Validator.validateStringEmptyNotAllowed(docId);
+        Validator.validateStringEmptyNotAllowed(name);
+        Validator.validateFile(file);
 
         if (!await storeExists(DB_IMAGES)) {
             await createImageStore();
@@ -290,8 +291,7 @@ export function useImages(options = {}) {
             console.error('Error saving image to local database: ' + err.message);
         }
 
-        const url = URL.createObjectURL(file);
-        imageCache.set(id, url);
+        imageCache.setUrl(id, file);
         return id;
     }
 
@@ -372,6 +372,8 @@ export function useImages(options = {}) {
             console.log('sleeping');
         }
 
+        setImageCache(imageCache);
+
         if (!await storeExists(DB_IMAGES)) {
             console.log()
             await createImageStore();
@@ -442,6 +444,7 @@ export function useImages(options = {}) {
         initializeImageCacheForDocument,
         revokeImageUrlsForDocId,
         deleteImagesForDocId: deleteImagesForDoc,
-        addOrSetImageToCache: setImageToCache
+        addOrSetImageToCache: setImageToCache,
+        setUpdateEditorContent
     };
 }

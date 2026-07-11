@@ -6,8 +6,8 @@ import { DB_DOCUMENTS, getLocalRecordsByIndex,
  } from '@/services/indexedDbService';
 
 import { serverRequest } from '@/services/apiService';
-import { endpointDocByUser, endpointDocDelete, endpointDocNew, endpointPatch } from '@/services/endpoints';
-import { DEFAULT_DOCUMENT } from '@/services/defaultDocument';
+import { endpointDocByUser, endpointDocDelete, endpointDocNew, endpointPatch } from '@/constants/endpoints';
+import { DEFAULT_DOCUMENT } from '@/constants/defaultDocument';
 import { debouncer } from '@/services/debouncer';
 
 //state

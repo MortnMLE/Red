@@ -79,6 +79,9 @@ import { useSettings } from '@/composables/useSettings';
 import { useDocuments } from '@/composables/useDocuments';
 import { useEditor } from '@/composables/useEditor';
 import { useImages } from '@/composables/useImages';
+import { ImageCache } from '../services/images/imageCache';
+
+const imageCache = new ImageCache();
 
 const {
   countTempIds,
@@ -104,18 +107,19 @@ const {
 });
 
 const {
-  imageCache,
   createNewLocalImage,
   initializeImageCacheForDocument, 
   revokeImageUrlsForDocId,
   deleteImagesForDocId,
   createNewServerImage,
-  addOrSetImageToCache
+  addOrSetImageToCache,
+  setUpdateEditorContent
 } = useImages({
   documents,
   docsInitialized,
   countTempIds,
-  activeDocument
+  activeDocument,
+  imageCache
 });
 
 const {
@@ -129,9 +133,10 @@ const {
   imageCache,
   createNewLocalImage,
   createNewServerImage,
-  updateCountTempIds,
-  addOrSetImageToCache
+  updateCountTempIds
 });
+
+setUpdateEditorContent(updateEditorContent);
 
 // orchestration layer
 async function handleChangeActiveDocument(documentId) {

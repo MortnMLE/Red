@@ -12,12 +12,13 @@ import { vim } from '@replit/codemirror-vim'
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { markdownImages } from '@/services/imageWidget';
+import { markdownImages } from '@/services/editor/imageWidget';
 import { basicSetup } from 'codemirror';
-import { markdownFadeInactiveLines, removeMarkdown } from '@/services/markdownService';
-import { addOrSetLocalRecord, DB_IMAGES, deleteLocalRecord } from '@/services/indexedDbService';
+import { markdownFadeInactiveLines, removeMarkdown } from '@/services/editor/markdownService';
+import { addOrSetLocalRecord, DB_DOCUMENTS, DB_IMAGES, deleteLocalRecord } from '@/services/indexedDbService';
 import { DB_SETTINGS } from '@/services/indexedDbService';
 import { toRaw, unref } from 'vue';
+import { Validator } from '@/services/validator';
 
 const vimCompartment = new Compartment();
 
@@ -30,8 +31,7 @@ export function useEditor(options = {}) {
         createNewLocalImage,
         // replaceImageReference,
         updateCountTempIds,
-        createNewServerImage,
-        addOrSetImageToCache
+        createNewServerImage
     } = options;
 
     const editorElement = ref(null);
@@ -201,19 +201,11 @@ export function useEditor(options = {}) {
     }
 
     async function handleImageCreationOnServer(doc, tempId, name, file) {
-        if (
-            !doc ||
-            !tempId || tempId === '' ||
-            !name || name === '' ||
-            !(file instanceof File) || !file
-        ) {
-            throw new Error(
-                `useEditor.handleImageCreationOnServer:\n` +
-                `doc: ${doc}\n` +
-                `name: ${name}\n` +
-                `file: ${file}`
-            );
-        }
+        // validate parameters
+        Validator.validateObjectNotNull(doc);
+        Validator.validateStringEmptyNotAllowed(tempId);
+        Validator.validateArrEmptyAllowed(name);
+        Validator.validateFile(file);
 
         console.log(`entered handleImageCreationOnServer with: ${doc} ${tempId} ${name} ${file}`);
         const insertedId = await createNewServerImage(doc._id, name, file);
@@ -223,18 +215,31 @@ export function useEditor(options = {}) {
             return;
         }
 
+        // true if the user changed the activeDocument during serverRequest
         if (activeDocument.value._id !== doc._id) {
             console.log(`activeDocument not equal to doc._id`);
+            // replace image id
+            doc.content = doc.content.replace(
+                tempId,
+                insertedId
+            );
+
+            // update local document
+            addOrSetLocalRecord(DB_DOCUMENTS, doc);
+            // update server document
+            // todo
             return;
         }
 
-        const url = imageCache.get(tempId);
-        console.log(`url: ${url}`);
-        if (url) {
-            addOrSetImageToCache(tempId);
-
-            console.log(`Replacing ${tempId} with ${insertedId}`);
+        // replace imageCache entry if it exists for tempId
+        if (imageCache.has(tempId)) {
+            // free existing and create new entry in imageCache
+            imageCache.replace(tempId, insertedId);
+            
+            // 
             replaceImageReference(tempId, insertedId);
+            
+            editorView.value.requestMeasure();
 
             await addOrSetLocalRecord(
                 DB_IMAGES,
