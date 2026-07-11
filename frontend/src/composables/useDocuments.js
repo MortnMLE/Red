@@ -1,6 +1,6 @@
 import { onMounted, ref, computed, toRaw } from 'vue';
 import { DB_DOCUMENTS, getLocalRecordsByIndex,
-    createLocalDatabase, localDbExists, 
+    createStore, storeExists, 
     deleteLocalRecord, addOrSetLocalRecord,
     clearLocalDatabase
  } from '@/services/indexedDbService';
@@ -52,7 +52,7 @@ export function useDocuments(options = {}) {
 
         try {
         // Check if local database exists and load documents from local storage
-            if (await localDbExists(DB_DOCUMENTS)) {
+            if (await storeExists(DB_DOCUMENTS)) {
                 console.log('Local database exists, loading documents from local storage');
                 localDocuments = await getLocalRecordsByIndex(
                     DB_DOCUMENTS,
@@ -63,7 +63,7 @@ export function useDocuments(options = {}) {
                 console.log('Local database exists.');
                 console.log(`Local Documents: ${localDocuments.length}`);
             } else { 
-                await createLocalDatabase(
+                await createStore(
                     DB_DOCUMENTS, 
                     "_id",
                     [{
@@ -376,6 +376,10 @@ export function useDocuments(options = {}) {
     }
 
     function closeDocument(id) {
+        if (!id || id === '') {
+            throw new Error(`useDocument.closeDocument: ${id}`);
+        }
+
         openDocumentIds.value = openDocumentIds.value.filter(
                 openDocId => openDocId !== id,
             );
@@ -386,6 +390,10 @@ export function useDocuments(options = {}) {
     }
 
     function setActiveDocument(id) {
+        console.log(`entered setActiveDocument: ${id}`);
+        if (!id || id === '') {
+            throw new Error(`useDocument.setActiveDocument: ${id}`);
+        } 
         const doc  = documents.value.find(
             doc => doc._id === id
         );
@@ -394,6 +402,15 @@ export function useDocuments(options = {}) {
     }
 
     function shiftActiveDocument(docToBeClosed, offset) {
+        if (docToBeClosed === null || 
+            offset === null || offset === 0
+        ){
+            throw new Error(`useDocument.setActiveDocument:` + 
+                `docToBeClosed: ${docToBeClosed}` +
+                `offset: ${offset}`
+            );
+        }
+
         const index = openDocumentIds.value.findIndex(
             openDocId => openDocId === docToBeClosed._id
         );
@@ -411,7 +428,6 @@ export function useDocuments(options = {}) {
         }
     }
 
-    // persistence
     const saveLocalDebounced = debouncer(
         async (ref) => {
             try {

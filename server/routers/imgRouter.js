@@ -6,11 +6,18 @@ const {
 } = require('../errors/errors');
 const fs = require('fs');
 const { Binary } = require('mongodb');
-const multer = require('multer');
 
 const imgRouter = express.Router();
+
+const multer = require('multer');
 const upload = multer({
-    storage: multer.memoryStorage()
+    storage: multer.memoryStorage(),
+    fileFilter(req, file, cb) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+            return cb(new Error('Not an image file.'));
+        }
+        cb(undefined, true);
+    }
 });
 
 imgRouter.post('/new', upload.single('image'), async (req, res) => {
@@ -19,9 +26,13 @@ imgRouter.post('/new', upload.single('image'), async (req, res) => {
     // file
     // name
 
-    if (typeof req.body.doc_id !== 'string' ||
-        req.body.user_id === '' ||
-        req.body.file === null
+    console.log(`doc_id: ${req.body.doc_id}`);
+    console.log(`body: ${req.body.name}`);
+
+    if (typeof req.body.doc_id !== 'string' || req.body.doc_id === '' ||
+        typeof req.body.user_id !== 'string' || req.body.user_id === '' ||
+        typeof req.body.name !== 'string' || req.body.name === '' ||
+        !req.file
     ) {
         return res.status(400).json({
             error: 'INVALID_INPUT',
@@ -34,7 +45,7 @@ imgRouter.post('/new', upload.single('image'), async (req, res) => {
         const response = await img.createImage(
             req.body.doc_id,
             req.body.name,
-            req.body.file
+            req.file
         );
 
         if (!response.acknowledged) {
@@ -50,7 +61,7 @@ imgRouter.post('/new', upload.single('image'), async (req, res) => {
             success: true
         });
     } catch (err) {
-        return res.status(err.statusCode).json({
+        res.status(err.statusCode).json({
             error: err.name,
             message: err.messsage,
             success: false
@@ -84,6 +95,7 @@ imgRouter.get('/:id', async (req, res) => {
             });
         }
 
+        res.setHeader('Content-Type', result.mimeType);
         res.setHeader(
             'Content-Disposition',
             `inline; filename="${result.name}"`
@@ -91,6 +103,7 @@ imgRouter.get('/:id', async (req, res) => {
         
         return res.status(200).send(result.data.buffer);
     } catch (err) {
+        console.log(err);
         return res.status(err.statusCode).json({
             error: err.name,
             message: err.message,
@@ -103,8 +116,6 @@ imgRouter.get('/allForDocId/:doc_Id', async (req, res) => {
 
     const { doc_Id } = req.params;
 
-    console.log(doc_Id);
-
     if (typeof doc_Id !== 'string' ||
         doc_Id === ''
     ) {
@@ -116,7 +127,6 @@ imgRouter.get('/allForDocId/:doc_Id', async (req, res) => {
     }
 
     try {
-        console.log(doc_Id);
         const images = await img.getImagesByDocId(doc_Id); 
 
         if (!images) {
@@ -132,7 +142,6 @@ imgRouter.get('/allForDocId/:doc_Id', async (req, res) => {
             result.push(image._id);
         }
 
-        console.log(result);
         return res.status(200).json({
             images: result,
             success: true

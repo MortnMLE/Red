@@ -1,7 +1,7 @@
 import { ref, onMounted } from 'vue';
 import { DB_SETTINGS, DB_DOCUMENTS,
-    createLocalDatabase, addOrSetLocalRecord, 
-    localDbExists, getLocalRecordsByIndex,
+    createStore, addOrSetLocalRecord, 
+    storeExists, getLocalRecordsByIndex,
     DB_IMAGES
 } from '@/services/indexedDbService';
 
@@ -13,7 +13,7 @@ export function useSettings() {
 
     async function loadSettings() {
         try {
-            if (await localDbExists(DB_SETTINGS)) {
+            if (await storeExists(DB_SETTINGS)) {
                 updateCountTempIds();
 
                 const settings = await getLocalRecordsByIndex(
@@ -32,7 +32,7 @@ export function useSettings() {
                     console.log(`fetched enableVim: ${enableVim.value}`);
                 }
             } else {
-                await createLocalDatabase(
+                await createStore(
                     DB_SETTINGS,
                     'key', 
                     [{

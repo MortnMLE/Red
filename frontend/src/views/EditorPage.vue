@@ -109,7 +109,8 @@ const {
   initializeImageCacheForDocument, 
   revokeImageUrlsForDocId,
   deleteImagesForDocId,
-  createNewServerImage
+  createNewServerImage,
+  addOrSetImageToCache
 } = useImages({
   documents,
   docsInitialized,
@@ -119,7 +120,8 @@ const {
 
 const {
   editorElement,
-  renderedMarkdown
+  renderedMarkdown,
+  updateEditorContent
 } = useEditor({ 
   activeDocument,
   onChange: updateDocumentContent,
@@ -127,7 +129,8 @@ const {
   imageCache,
   createNewLocalImage,
   createNewServerImage,
-  updateCountTempIds
+  updateCountTempIds,
+  addOrSetImageToCache
 });
 
 // orchestration layer

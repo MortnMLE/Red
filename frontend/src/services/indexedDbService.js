@@ -1,11 +1,11 @@
-export const DB_DOCUMENTS = 'RedDB';
-export const DB_SETTINGS = 'RedSettings';
-export const DB_IMAGES = 'RedImages';
+export const DB_DOCUMENTS = { database: 'RedDB', name: 'RedDocuments' };
+export const DB_SETTINGS = { database: 'RedDB', name: 'RedSettings' };
+export const DB_IMAGES = { database: 'RedDB', name: 'RedImages' };
 const DB_VERSION = 1;
 
-export function openLocalDatabase(storeName) {
+export function openLocalDatabase(database) {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(storeName, DB_VERSION);
+        const request = indexedDB.open(database);
 
         request.onsuccess = () => {
             resolve(request.result);
@@ -17,47 +17,114 @@ export function openLocalDatabase(storeName) {
     });
 }
 
-export async function createLocalDatabase(storeName, keyPath, indexes) { 
+export async function createStore(storeObject, keyPath, indexes = []) {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(storeName, DB_VERSION);
+        const request = indexedDB.open(storeObject.database);
 
-        request.onupgradeneeded = (event) => { 
-            const db = event.target.result; 
+        request.onsuccess = () => {
+            const db = request.result;
 
-            if (!db.objectStoreNames.contains(storeName)) {
-                const store = db.createObjectStore(storeName, { keyPath: keyPath });
-                
+            if (db.objectStoreNames.contains(storeObject.name)) {
+                resolve(db);
+                return;
+            }
+
+            const newVersion = db.version + 1;
+            db.close();
+
+            const upgradeRequest = indexedDB.open(
+                storeObject.database,
+                newVersion
+            );
+
+            upgradeRequest.onupgradeneeded = (event) => {
+                const upgradeDb = event.target.result;
+
+                const store = upgradeDb.createObjectStore(
+                    storeObject.name,
+                    { keyPath }
+                );
+
                 for (const index of indexes) {
                     store.createIndex(
                         index.indexName,
-                        index.keyPath, 
+                        index.keyPath,
+                        index.options
+                    );
+                }
+            };
+
+            upgradeRequest.onsuccess = () => {
+                resolve(upgradeRequest.result);
+            };
+
+            upgradeRequest.onerror = () => {
+                reject(upgradeRequest.error);
+            };
+        };
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+
+            if (!db.objectStoreNames.contains(storeObject.name)) {
+                const store = db.createObjectStore(
+                    storeObject.name,
+                    { keyPath }
+                );
+
+                for (const index of indexes) {
+                    store.createIndex(
+                        index.indexName,
+                        index.keyPath,
                         index.options
                     );
                 }
             }
         };
 
-        request.onsuccess = () => {
-            resolve(request.result);
-        };
-
         request.onerror = () => {
             reject(request.error);
         };
     });
 }
 
-export async function localDbExists(storeName) {
+export async function storeExists(storeObject) {
     const databases = await indexedDB.databases();
-    const exists = databases.some(db => db.name === storeName);
-    return exists;
+
+    const dbExists = databases.some(
+        db => db.name === storeObject.database
+    );
+
+    if (!dbExists) {
+        return false;
+    }
+
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(storeObject.database);
+
+        request.onsuccess = () => {
+            const db = request.result;
+
+            const storeExists = db.objectStoreNames.contains(
+                storeObject.name
+            );
+
+            db.close();
+            resolve(storeExists);
+        }
+
+        request.onerror = () => {
+            reject(request.error);
+        }
+    });
 }
 
-export async function addOrSetLocalRecord(storeName, record) {
-    const db = await openLocalDatabase(storeName);
+export async function addOrSetLocalRecord(storeObject, record) {
+    const db = await openLocalDatabase(storeObject.database);
+
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readwrite');
-        const store = transaction.objectStore(storeName);
+        const transaction = db.transaction(storeObject.name, 'readwrite');
+        const store = transaction.objectStore(storeObject.name);
 
         const request = store.put(record);
 
@@ -71,13 +138,13 @@ export async function addOrSetLocalRecord(storeName, record) {
     });
 }
 
-export async function getLocalRecordsByIndex(storeName, indexName, indexValue) {
-    const db = await openLocalDatabase(storeName);
+export async function getLocalRecordsByIndex(storeObject, indexName, indexValue) {
+    const db = await openLocalDatabase(storeObject.database);
 
     return new Promise((resolve, reject) => {
         const store = db
-            .transaction(storeName, 'readonly')
-            .objectStore(storeName);
+            .transaction(storeObject.name, 'readonly')
+            .objectStore(storeObject.name);
         
         const index = store.index(indexName);
         const request = index.openCursor(IDBKeyRange.only(indexValue));
@@ -102,12 +169,12 @@ export async function getLocalRecordsByIndex(storeName, indexName, indexValue) {
     });
 }
 
-export async function localEntryExists(storeName, id) {
-    const db = await openLocalDatabase(storeName);
+export async function localEntryExists(storeObject, id) {
+    const db = await openLocalDatabase(storeObject.database);
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readonly');
-        const store = transaction.objectStore(storeName);
+        const transaction = db.transaction(storeObject.name, 'readonly');
+        const store = transaction.objectStore(storeObject.name);
 
         const request = store.get(id);
 
@@ -121,15 +188,15 @@ export async function localEntryExists(storeName, id) {
     });
 }
 
-export async function getLocalRecord(storeName, key) {
-    const db = await openLocalDatabase(storeName);
+export async function getLocalRecord(storeObject, key) {
+    const db = await openLocalDatabase(storeObject.database);
     console.log(key);
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readonly');
-        const store = transaction.objectStore(storeName);
+        const transaction = db.transaction(storeObject.name, 'readonly');
+        const store = transaction.objectStore(storeObject.name);
 
-        let request = store.get(key);
+        const request = store.get(key);
 
         request.onsuccess = () => {
             resolve(request.result);
@@ -141,11 +208,12 @@ export async function getLocalRecord(storeName, key) {
     });
 }
 
-export async function deleteLocalRecord(storeName, key) {
-    const db = await openLocalDatabase(storeName);
+export async function deleteLocalRecord(storeObject, key) {
+    const db = await openLocalDatabase(storeObject.database);
+
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readwrite');
-        const store = transaction.objectStore(storeName);
+        const transaction = db.transaction(storeObject.name, 'readwrite');
+        const store = transaction.objectStore(storeObject.name);
 
         const request = store.delete(key);
 
@@ -159,12 +227,13 @@ export async function deleteLocalRecord(storeName, key) {
     });
 }
 
-export async function getAllForStore(dbName, storeName) {
-    const db = await openLocalDatabase(dbName);
+export async function getAllForStore(storeObject) {
+    const db = await openLocalDatabase(storeObject.database);
+
     return new Promise((resolve, reject) => {
         const store = db
-            .transaction(dbName, 'readonly')
-            .objectStore(dbName)
+            .transaction(storeObject.name, 'readonly')
+            .objectStore(storeObject.name)
             .index('_id');
         
         const getAllRequest = store.getAll();
@@ -179,12 +248,12 @@ export async function getAllForStore(dbName, storeName) {
     });
 }
 
-export async function clearLocalDatabase(storeName) {
-    const db = await openLocalDatabase(storeName);
+export async function clearLocalDatabase(storeObject) {
+    const db = await openLocalDatabase(storeObject.database);
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeName, 'readwrite');
-        const store = transaction.objectStore(storeName);
+        const transaction = db.transaction(storeObject.name, 'readwrite');
+        const store = transaction.objectStore(storeObject.name);
         const request = store.clear();
 
         request.onsuccess = () => {

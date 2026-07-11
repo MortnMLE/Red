@@ -30,7 +30,8 @@ export function useEditor(options = {}) {
         createNewLocalImage,
         // replaceImageReference,
         updateCountTempIds,
-        createNewServerImage
+        createNewServerImage,
+        addOrSetImageToCache
     } = options;
 
     const editorElement = ref(null);
@@ -123,16 +124,18 @@ export function useEditor(options = {}) {
 
                         event.preventDefault();
 
-                        const localImg = await createNewLocalImage(
+                        const insertedId = await createNewLocalImage(
                             activeDocument.value._id,
                             file.name,
                             file
                         );
 
+                        console.log(`OnDrop: new insertedId: ${insertedId}`);
+
                         updateCountTempIds();
 
                         const markdown =
-                            `\n![image](${localImg.id})\n`;
+                            `\n![image](${insertedId})\n`;
 
                         const pos =
                             view.posAtCoords({
@@ -152,9 +155,10 @@ export function useEditor(options = {}) {
                         });
 
                         const doc = activeDocument.value;
+
                         handleImageCreationOnServer(
                             doc,
-                            localImg.id,
+                            insertedId,
                             file.name,
                             file,
                             editorView
@@ -197,32 +201,49 @@ export function useEditor(options = {}) {
     }
 
     async function handleImageCreationOnServer(doc, tempId, name, file) {
-        const serverImg = await createNewServerImage(doc._id, name, file);
+        if (
+            !doc ||
+            !tempId || tempId === '' ||
+            !name || name === '' ||
+            !(file instanceof File) || !file
+        ) {
+            throw new Error(
+                `useEditor.handleImageCreationOnServer:\n` +
+                `doc: ${doc}\n` +
+                `name: ${name}\n` +
+                `file: ${file}`
+            );
+        }
 
-        if (!serverImg) {
+        console.log(`entered handleImageCreationOnServer with: ${doc} ${tempId} ${name} ${file}`);
+        const insertedId = await createNewServerImage(doc._id, name, file);
+        console.log(`POST to server returned id: ${insertedId}`);
+
+        if (!insertedId) {
             return;
         }
 
         if (activeDocument.value._id !== doc._id) {
+            console.log(`activeDocument not equal to doc._id`);
             return;
         }
 
         const url = imageCache.get(tempId);
-        
+        console.log(`url: ${url}`);
         if (url) {
-            imageCache.delete(tempId);
-            imageCache.set(serverImg.id, url);
+            addOrSetImageToCache(tempId);
 
-            console.log(`Replacing ${tempId} with ${serverImg.id}`);
-            replaceImageReference(tempId, serverImg.id);
+            console.log(`Replacing ${tempId} with ${insertedId}`);
+            replaceImageReference(tempId, insertedId);
 
             await addOrSetLocalRecord(
                 DB_IMAGES,
                 {
-                    _id: serverImg.id,
+                    _id: insertedId,
                     doc_id: doc._id,
                     file,
-                    name
+                    name,
+                    user_id: localStorage.userId
                 }
             );
 
@@ -232,8 +253,18 @@ export function useEditor(options = {}) {
     }
 
     function replaceImageReference(tempId, uuid) {
-        const text = editorView.value.state.doc.toString();
+        if (
+            !tempId || tempId === '' ||
+            !uuid || uuid === ''
+        ){
+            throw new Error(
+                `useEditor.replaceImageReference:\n` +
+                `tempId: ${tempId}\n` +
+                `uuid: ${uuid}`
+            );
+        }
 
+        const text = editorView.value.state.doc.toString();
         const oldRef = `![image](${tempId})`;
         const newRef = `![image](${uuid})`;
 
@@ -292,5 +323,6 @@ export function useEditor(options = {}) {
         editorView,
         content,
         renderedMarkdown,
+        updateEditorContent
     };
 }
