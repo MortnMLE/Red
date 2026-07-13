@@ -5,23 +5,20 @@ export class ImageCache{
         this.map = new Map();
     }
 
-    // delete imageCache entry and create new one for same blob
+    // delete imageCache entry and create new one for same url
     replace(oldId, newId) {
         // validate parameters
         Validator.validateStringEmptyNotAllowed(oldId);
         Validator.validateStringEmptyNotAllowed(newId);
 
-        // release existing URL
-        const oldUrl = this.map.get(oldId);
+        // fetch existing url
+        const url = this.map.get(oldId);
 
-        // revoke oldUrl
-        if (oldUrl) {
-            URL.revokeObjectURL(oldUrl);
+        // delete and create new cache entry
+        if (url) {
             this.map.delete(oldId);
+            this.map.set(newId, url);
         }
-
-        // create new Entry with new URL
-        this.setUrl(newId);
     }
 
     // set multiple URLs
@@ -48,15 +45,19 @@ export class ImageCache{
         Validator.validateStringEmptyNotAllowed(id);
         Validator.validateObjectNotNull(file);
 
-        // check for existing entry
-        if (this.map.has(id)) {
-            this.revokeUrl(id);
-        }
-
         // create url
         const url = URL.createObjectURL(file);
+       
+        // check for an already existing cache entry
+        const oldUrl = this.get(id);
+
         // set new entry 
         this.map.set(id, url);
+        
+        // revoke existing url if it exists
+        if (oldUrl) {
+            URL.revokeObjectURL(oldUrl);
+        }
     }
 
     // returns true if the a Url exists for id
@@ -71,7 +72,7 @@ export class ImageCache{
     // returns the Url for id
     get(id) {
         // validate parameter, string expected
-        Validator.validateArrEmptyNotAllowed(id);
+        Validator.validateStringEmptyNotAllowed(id);
 
         return this.map.get(id);
     }
@@ -80,11 +81,6 @@ export class ImageCache{
         // validate parameter
         Validator.validateArrEmptyAllowed(arr);
         
-        // return if the array is empty -> nothing to delete
-        if (arr.length === 0) {
-            return;
-        }
-
         // free individual Urls
         for (const id of arr) {
             // validate individual id
@@ -101,9 +97,10 @@ export class ImageCache{
         // fetch url from this.map
         const url = this.map.get(id);
         
-        // revoke url, if it exists
+        // revoke and delete url, if it exists
         if (url) {
             URL.revokeObjectURL(url);
+            this.map.delete(id);
         }
     }
 }

@@ -10,23 +10,31 @@ export class Validator{
 
     // validates a string. String may be empty
     static validateStringEmptyAllowed(str) {
-        if (typeof str !== 'string') {
-            throw new Error('Input must be a string');
-        }
-
         if (str == null) {
             throw new Error('Input must not be null');
+        }
+
+        if (typeof str !== 'string') {
+            throw new Error('Input must be a string');
         }
     }
 
     // validates a number. Number may be 0
     static validateNumber(num) {
+        if (num == null) {
+            throw new Error('Input must not be null');
+        }
+
         if (typeof num !== 'number') {
             throw new Error('Input must be a number');
         }
 
-        if (num == null) {
-            throw new Error('Input must not be null');
+        if (Number.isNaN(num)) {
+            throw new Error('Input must be a number');
+        }
+
+        if (!Number.isFinite(num)) {
+            throw new Error('Input must be finite');
         }
     }
     
@@ -34,45 +42,46 @@ export class Validator{
     static validateArrEmptyNotAllowed(arr) {
         this.validateArrEmptyAllowed(arr);
         
-        if (arr.length == 0) {
+        if (arr.length === 0) {
             throw new Error('Array must not be empty');
-        } 
+        }
     }
 
     // validates an array. Array may be empty
     static validateArrEmptyAllowed(arr) {
         if (!Array.isArray(arr)) {
-            throw new Error('Array must not be null');
+            throw new Error('Input must be an array');
         }
     }
 
     // validates an object of type File.
     static validateFile(file) {
-        if (!(file instanceof File)) {
-            throw new Error('File must be of type File');
+        if (file == null) {
+            throw new Error('File must not be null');
         }
 
-        if (!file) {
-            throw new Error('File must not be null');
+        if (!(file instanceof File)) {
+            throw new Error('File must be of type File');
         }
     }
 
     // validates an object. Must not be null
     static validateObjectNotNull(obj) {
+         if (obj == null) {
+            throw new Error('object must not be null or undefined');
+        }
+
         if (typeof obj !== 'object') {
             throw new Error('Input must be an object');
         }
-        
-        if (obj === null) {
-            throw new Error('object must not be null');
-        }
     }
 
+    // validates if the passed obj of Type type
     static validateObjectType(obj, type) {
         this.validateObjectNotNull(obj);
 
         if (!(obj instanceof type)) {
-            throw new Error(`object must be of type ${type}`);
+            throw new Error(`object must be of type ${type.name}`);
         }
     }
 }
