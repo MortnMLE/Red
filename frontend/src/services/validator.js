@@ -14,7 +14,7 @@ export class Validator{
             throw new Error('Input must be a string');
         }
 
-        if (!str) {
+        if (str == null) {
             throw new Error('Input must not be null');
         }
     }
@@ -25,7 +25,7 @@ export class Validator{
             throw new Error('Input must be a number');
         }
 
-        if (!num) {
+        if (num == null) {
             throw new Error('Input must not be null');
         }
     }
@@ -34,21 +34,21 @@ export class Validator{
     static validateArrEmptyNotAllowed(arr) {
         this.validateArrEmptyAllowed(arr);
         
-        if (arr.length === 0) {
+        if (arr.length == 0) {
             throw new Error('Array must not be empty');
         } 
     }
 
     // validates an array. Array may be empty
     static validateArrEmptyAllowed(arr) {
-        if (!arr) {
+        if (!Array.isArray(arr)) {
             throw new Error('Array must not be null');
         }
     }
 
     // validates an object of type File.
     static validateFile(file) {
-        if (!file instanceof File) {
+        if (!(file instanceof File)) {
             throw new Error('File must be of type File');
         }
 
@@ -59,13 +59,19 @@ export class Validator{
 
     // validates an object. Must not be null
     static validateObjectNotNull(obj) {
-        if (!obj) {
+        if (typeof obj !== 'object') {
+            throw new Error('Input must be an object');
+        }
+        
+        if (obj === null) {
             throw new Error('object must not be null');
         }
     }
 
     static validateObjectType(obj, type) {
-        if (!obj instanceof type) {
+        this.validateObjectNotNull(obj);
+
+        if (!(obj instanceof type)) {
             throw new Error(`object must be of type ${type}`);
         }
     }
