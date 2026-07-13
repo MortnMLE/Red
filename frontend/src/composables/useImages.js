@@ -6,22 +6,29 @@ import {
     endpointImgNew 
 } from "@/constants/endpoints";
 import { 
-    createStore,
     storeExists, 
     DB_IMAGES, 
     addOrSetLocalRecord, 
-    localEntryExists,
     deleteLocalRecord,
-    getLocalRecord,
-    DB_DOCUMENTS
-} from "@/services/indexedDbService";
-import { getLocalRecordsByIndex } from "@/services/indexedDbService";
+    getLocalRecord
+} from "@/services/indexedDB/indexedDbService";
+import { getLocalRecordsByIndex } from "@/services/indexedDB/indexedDbService";
 import { onMounted } from "vue";
 import { Validator } from "@/services/validator";
 import { 
     createCacheEntriesForImages, 
-    setImageCache 
+    setImageCache,
+    revokeAllForDocId,
+    addImageToCache
 } from '@/services/images/imageCacheService';
+import { 
+    getEmbeddedImages, 
+    getServerImageIds,
+    fetchMissingImages,
+    syncFromLocalToServer
+} from "@/services/images/imageInitService";
+import { deleteImageFromServer, newServerImage } from "@/services/images/imageServerService";
+import { Parser } from '@/services/parser';
 
 export function useImages(options = {}) {
 
@@ -35,251 +42,44 @@ export function useImages(options = {}) {
 
     let udpateEditorContent = null;
 
-    function setUpdateEditorContent(fn) {
+    // sets the reference to 'updateEditorContent' function
+    function compSetUpdateEditorContent(fn) {
         udpateEditorContent = fn;
     }
 
-    async function syncFromLocalToServer(requiredImages, serverImages) {
-        if (!requiredImages || !serverImages) {
-            throw new Error(
-                `useImages.syncFromLocalToServer:\n` +
-                `requiredImages: ${requiredImages}\n` +
-                `serverImages: ${serverImages}`
-            );
-        }
-
-        console.log(`entered syncFromLocalToServer with requiredImages: ${requiredImages}`);
-        for (const image of requiredImages) {
-            console.log(`reqImg: ${image.id}`);
-
-            if (serverImages.includes(image.id)) {
-                console.log(`image ${image.id} already exists on server. continue.`);
-                continue;
-            }
-            
-            console.log(`getLocalRecord: ${image.id}`);
-
-            const localImage = await getLocalRecord(DB_IMAGES, image.id);
-            
-            if (!localImage) {
-                console.log(`localImg ${image.id} not found.`);
-                continue;
-            }
-
-            console.log(`result getLocalRecord: ${localImage._id}`);
-
-            const insertedId = await createNewServerImage(
-                localImage.doc_id,
-                localImage.name,
-                localImage.file
-            );
-
-            console.log(`deleteLocalRecord: ${localImage.id}`);
-
-            console.log(`response: ${insertedId}`);
-            if (!insertedId) {
-                console.log(`Invalid response from server. continue`);
-                continue;
-            }
-
-            console.log(`Requesting with localImg.doc_Id ${localImage.doc_id}`);
-
-            let localDocument = await getLocalRecord(
-                DB_DOCUMENTS,
-                localImage.doc_id
-            );
-
-            console.log(`received local record: ${localDocument._id}`);
-
-            if (!localDocument) {
-                console.error(`could not fetch local document ${localImage.doc_id}`);
-                continue;
-            }
-
-            console.log(`asdf: ${localImage._id}`);
-            
-            if (localDocument._id === activeDocument._id) {
-                const content = activeDocument.value.content.replace(
-                    localImage._id,
-                    insertedId
-                );
-
-                udpateEditorContent(content);
-            } else {
-                localDocument.content = localDocument.content.replace(
-                    localImage._id,
-                    insertedId
-                );
-
-                addOrSetLocalRecord(DB_DOCUMENTS, localDocument);
-            }
-
-            const doc = documents.value.find(
-                (doc) => doc._id === localImage.doc_id
-            );
-
-            doc.content = doc.content.replace(
-                localImage._id,
-                insertedId
-            );
-
-            console.log(`replacing ${localImage._id}, with ${insertedId}`);
-            await addOrSetLocalRecord(
-                DB_IMAGES, 
-                {
-                    _id: insertedId,
-                    file: localImage.file,
-                    name: localImage.name,
-                    doc_id: localImage.doc_id,
-                    user_id: localStorage.userId
-                }
-            );
-
-            console.log(`deleteLocalRecord: ${localImage._id}`);
-            await deleteLocalRecord(DB_IMAGES, localImage._id);
-        }
+    // creates Urls for all images embedded in docId & adds them to imageCache
+    async function compCreateCacheEntriesForDocument(docId) {
+        createCacheEntriesForImages(docId);
     }
 
-    async function fetchMissingImages(requiredImages, serverImages) {
-        if (!requiredImages || !serverImages) {
-            throw new Error(
-                `useImages.fetchMissingImages:\n` +
-                `requiredImages: ${requiredImages}\n` +
-                `serverImages: ${serverImages}`
-            );
-        }
-        for (const reqImg of requiredImages) {
-            console.log(`Local image: ${reqImg.id}`);
-
-            const exists = await localEntryExists(DB_IMAGES, reqImg.id); 
-            if (exists) {
-                console.log(`${reqImg.id} already exists. Continue.`);
-                continue;
-            }
-
-            if (!serverImages.includes(reqImg.id)) {
-                continue;
-            }
-
-            let response = undefined;
-            try {
-                response = await fetch(
-                    endpointImageGetById + reqImg.id
-                );
-            } catch (err) {
-                console.error(err);
-                return;
-            }
-            
-            if (!response.ok) {
-                continue;
-            }
-            console.log(`adding ${reqImg.id} to local Storage`);
-
-            const blob = await response.blob();
-
-            addOrSetLocalRecord(
-                DB_IMAGES,
-                {
-                    _id: reqImg.id,
-                    file: blob,
-                    name: response.headers
-                        .get('Content-Disposition')
-                        ?.match(/filename="(.+)"/)?.[1] ?? '',
-                    user_id: localStorage.userId,
-                    doc_id: reqImg.doc_id
-                }
-            );
-
-            setImageToCache(reqImg.id);
-        }
+    // create a Url imageId
+    async function compSetImageToCache(imageId) {
+        addImageToCache(imageId);
     }
 
-    async function initializeImageCacheForDocument(docId) {
-        // validate parameter
-        Validator.validateStringEmptyNotAllowed(docId);
-        
-        console.log(`initializeImageCacheForDocument called with docId: ${docId}`);
-
-        // fetch IndexedDB-images for document id
-        const images = await getLocalRecordsByIndex(
-            DB_IMAGES,
-            'doc_id',
-            docId
-        );
-
-        // call service
-        createCacheEntriesForImages(images);
+    // sends the image to the server
+    async function compCreateNewServerImage(docId, name, file) {
+        newServerImage(docId, name, file);
     }
 
-    async function setImageToCache(imageId) {
-        console.log(`setImageToCache called with: ${imageId}`);
-
-        if (imageId === '' || !imageId) {
-            throw new Error(`useImages.addOrSetImageCache: ${imageId}`);
-        }
-
-        if (imageCache.has(imageId)) {
-            return;
-        }
-
-        const imageObject = await getLocalRecord(DB_IMAGES, imageId);
-
-        if (!imageObject) {
-            console.error(`local image: ${imageId} not found`);
-            return;
-        }
-
-        imageCache.setUrl(imageId);
-    }
-
-    async function createNewServerImage(docId, name, file) {
+    // creates a new local image with a temporary id
+    async function compCreateNewLocalImage(docId, name, file) {
         // validate Parameters
         Validator.validateStringEmptyNotAllowed(docId);
         Validator.validateStringEmptyNotAllowed(name);
         Validator.validateFile(file);
 
-        console.log(`doc_id: ${docId},\nimage size: ${file.size},\nuser_id: ${localStorage.userId}\nname ${name}`);
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('name', name);
-        formData.append('user_id', localStorage.userId);
-        formData.append('doc_id', docId);
-
-        try {
-            const response = await fetch(
-                endpointImgNew, 
-                {
-                    method: 'POST',
-                    body: formData
-                }
-            );
-
-            console.log(formData);
-            const json = await response.json();
-            console.log(`new image returned: ${json.id}`);
-
-            if (json.success) {
-                return json.id;
-            }
-        } catch (err) {
-            console.error(err.message);
-        }
-    }
-
-    async function createNewLocalImage(docId, name, file) {
-        // validate Parameters
-        Validator.validateStringEmptyNotAllowed(docId);
-        Validator.validateStringEmptyNotAllowed(name);
-        Validator.validateFile(file);
-
+        // create the image store if it does not exist yet
         if (!await storeExists(DB_IMAGES)) {
             await createImageStore();
         }
 
+        // create a temporary id, in case that post to server fails or internet access was lost
+        // will later be replaced with the actual id returned from the server
         const id = `temp-${Number(countTempIds.value) + 1}`;
 
         try {
+            // create the local image record
             await addOrSetLocalRecord(DB_IMAGES, {
                 _id: id,
                 name: name,
@@ -291,160 +91,121 @@ export function useImages(options = {}) {
             console.error('Error saving image to local database: ' + err.message);
         }
 
+        // create the Url object
         imageCache.setUrl(id, file);
+
         return id;
     }
 
-    async function deleteImagesForDoc(doc) {
-        if (!doc) {
-            throw new Error(`useImages.deleteImagesForDocId: ${doc}`);
-        }
-        const imagePaths = [];
-        const regex = /!\[(.*?)\]\((.*?)\)/g;
+    // deletes all images for a document from the server and locally
+    async function compDeleteImagesForDoc(doc) {
+        // validate parameter
+        Validator.validateObjectNotNull(doc);
 
-        for (const match of doc.content.matchAll(regex)) {
-            console.log(`adding ${match[2]}`);
-            imagePaths.push(match[2]);
-        }
+        // parse for image ids
+        const ids = Parser.parseImages(doc.value.content);
 
-        for (const path of imagePaths) {
+        // delete all images from the server and local storage
+        for (const id of ids) {
             try {
-                const response = serverRequest(
-                    'DELETE',
-                    { id: path },
-                    endpointImgDelete
-                );
 
-                if (response.success) {
+                // delete the id from the server
+                const deleted = deleteImageFromServer(id);
+
+                // delete local record
+                if (deleted) {
                     await deleteLocalRecord(
                         DB_IMAGES,
-                        path
+                        id
                     );
                 }
+
+                // revoke url if it currently exists
+                imageCache.revokeUrl(id);
             } catch (err) {
-                console.error(`could not delete ${path}`);
+                console.error(`could not delete ${id}`);
             }
         }
     }
 
-    async function revokeImageUrlsForDocId(id) {
-        if (!id || id === '') {
-            throw new Error(`useImages.revokeImageUrlsForDocId: ${id}`);
-        }
+    // revokes all currently existing Urls for docId
+    async function compRevokeImageUrlsForDocId(docId) {
+        // validate parameter
+        Validator.validateStringEmptyNotAllowed(docId);
 
+        // fetch image objects for doc_id
         const images = await getLocalRecordsByIndex(
             DB_IMAGES,
             'doc_id',
-            id
+            docId
         );
 
-        images.forEach((image) => {
-            const url = imageCache.get(image._id);
-            if (url) {
-                URL.revokeObjectURL(url);
-                imageCache.delete(image._id);
-            }
-        });
-    }
-    
-    async function createImageStore() {
-        await createStore(
-            DB_IMAGES,
-            '_id',
-            [
-                {
-                    indexName: 'doc_id', 
-                    keyPath: 'doc_id', 
-                    options: { unique: false }
-                },
-                {
-                    indexName: 'user_id',
-                    keyPath: 'user_id',
-                    options: { unique: false }
-                }
-            ]
-        );
+        // initialize ids that should be revoked
+        const ids = [];
+
+        // push individual ids to array
+        for (const image of images) {
+            ids.push(image._id);
+        }
+
+        // revoke ids
+        imageCache.revokeUrls(ids);
     }
 
-    onMounted(async () => {        
+    onMounted(async () => { 
+        // wait for documents to finish intializing       
         while (!docsInitialized.value) {
+            console.log(`waiting for documentSync to finish`);
             await new Promise(r => setTimeout(r, 100));
-            console.log('sleeping');
         }
-
+ 
+        // set imageCache reference in imageCacheService
         setImageCache(imageCache);
+        console.log(`imageCache set: ${imageCache}`);
 
-        if (!await storeExists(DB_IMAGES)) {
-            console.log()
-            await createImageStore();
-        }
+        // fetch imageIds that are already embedded in documents
+        const embeddedImages = getEmbeddedImages(documents.value);
+        console.log(`imbeddedImages elements: ${embeddedImages.length}`);
 
-        const regex = /!\[(.*?)\]\((.*?)\)/g;
-
-        let requiredImages = [];
-        let counter = 0;
-        for (const doc of documents.value) {
-            for (const match of doc.content.matchAll(regex)) {
-                requiredImages.push({
-                    id: match[2],
-                    doc_id: doc._id
-                });
-                console.log(`requiredImages, iteration ${counter}: ${requiredImages[counter].id}; ${typeof requiredImages[counter].id}`);
-                console.log(`match[2] typeof: ${typeof match[2]}`);
-                counter++;
-            }
-        }
-
-        if (requiredImages.length === 0) {
+        // if there are no embedded images, we do nothing
+        if (embeddedImages.length === 0) {
+            console.log(`embedded Images are 0`);
             return;
         }
 
-        let serverIsReachable = true;
-        let serverImages = [];
+        // for all currently existing documents, fetch the imageIds on the server
+        const serverImages = await getServerImageIds(documents.value);
+        console.log(`serverImages elements: ${serverImages.length}`)
 
-        for (const doc of documents.value) {
-            if (!serverIsReachable) {
-                continue;
-            }
-
-            try {
-                console.log(`onMounted useImages: fetch imgs for docId: ${doc._id}`);
-                const response = await fetch(
-                    endpointGetImageidsForDocId + doc._id
-                );
-
-                if (!response) {
-                    continue;
-                }
-
-                const json = await response.json();
-                let images = [];
-
-                for (const img of json.images) {
-                    images.push(img);
-                }
-                serverImages.push(...images);
-            } catch (err) {
-                console.log(`onMounted: useImages: could not fetch images for ${doc._id}. ${err}`);
-                serverIsReachable = false;
-            }    
+        // if a request was not successful, we continue with locally existing images and
+        // do not synchronize images with server
+        if (
+            serverImages.arr.length === 0 ||
+            !serverImages.serverWasReached
+        ) {
+            return;
         }
 
-        console.log(`serverIsReachable: ${serverIsReachable}`);
-        if (serverIsReachable) {
-            await fetchMissingImages(requiredImages, serverImages);
-            await syncFromLocalToServer(requiredImages, serverImages);
-        }
+        // fetch images that do not exist locally
+        await fetchMissingImages(embeddedImages, serverImages);
+        // post images to server if they do not exist yet
+        await syncFromLocalToServer(
+            embeddedImages,
+            serverImages,
+            activeDocument.value,
+            udpateEditorContent,
+            imageCache
+        );
     });
 
     return {
         imageCache,
-        createNewLocalImage,
-        createNewServerImage,
-        initializeImageCacheForDocument,
-        revokeImageUrlsForDocId,
-        deleteImagesForDocId: deleteImagesForDoc,
-        addOrSetImageToCache: setImageToCache,
-        setUpdateEditorContent
+        createNewLocalImage: compCreateNewLocalImage,
+        createNewServerImage: compCreateNewServerImage,
+        initializeImageCacheForDocument: compCreateCacheEntriesForDocument,
+        revokeImageUrlsForDocId: compRevokeImageUrlsForDocId,
+        deleteImagesForDocId: compDeleteImagesForDoc,
+        addOrSetImageToCache: compSetImageToCache,
+        setUpdateEditorContent: compSetUpdateEditorContent
     };
 }

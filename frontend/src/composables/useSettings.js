@@ -3,7 +3,7 @@ import { DB_SETTINGS, DB_DOCUMENTS,
     createStore, addOrSetLocalRecord, 
     storeExists, getLocalRecordsByIndex,
     DB_IMAGES
-} from '@/services/indexedDbService';
+} from '@/services/indexedDB/indexedDbService';
 
 const countTempIds = ref(0);
 

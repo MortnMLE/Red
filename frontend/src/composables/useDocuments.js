@@ -3,7 +3,7 @@ import { DB_DOCUMENTS, getLocalRecordsByIndex,
     createStore, storeExists, 
     deleteLocalRecord, addOrSetLocalRecord,
     clearLocalDatabase
- } from '@/services/indexedDbService';
+ } from '@/services/indexedDB/indexedDbService';
 
 import { serverRequest } from '@/services/apiService';
 import { endpointDocByUser, endpointDocDelete, endpointDocNew, endpointPatch } from '@/constants/endpoints';

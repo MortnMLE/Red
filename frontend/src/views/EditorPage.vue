@@ -112,7 +112,6 @@ const {
   revokeImageUrlsForDocId,
   deleteImagesForDocId,
   createNewServerImage,
-  addOrSetImageToCache,
   setUpdateEditorContent
 } = useImages({
   documents,
@@ -175,7 +174,7 @@ async function handleDeleteActiveDocument() {
 
   .cm-image-block {
     display: block;
-    margin: 16px 0;
+    margin: 1px 0;
   }
 
   .cm-image-block img {

@@ -87,7 +87,6 @@ export function markdownImages(imageCache) {
 
                         const alt = match[1];
                         const src = imageCache.get(match[2]);
-                        //const src = match[2];
 
                         builder.add(
                             start,

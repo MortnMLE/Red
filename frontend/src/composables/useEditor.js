@@ -15,8 +15,8 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { markdownImages } from '@/services/editor/imageWidget';
 import { basicSetup } from 'codemirror';
 import { markdownFadeInactiveLines, removeMarkdown } from '@/services/editor/markdownService';
-import { addOrSetLocalRecord, DB_DOCUMENTS, DB_IMAGES, deleteLocalRecord } from '@/services/indexedDbService';
-import { DB_SETTINGS } from '@/services/indexedDbService';
+import { addOrSetLocalRecord, DB_DOCUMENTS, DB_IMAGES, deleteLocalRecord } from '@/services/indexedDB/indexedDbService';
+import { DB_SETTINGS } from '@/services/indexedDB/indexedDbService';
 import { toRaw, unref } from 'vue';
 import { Validator } from '@/services/validator';
 
