@@ -2,7 +2,8 @@ import { Validator } from "../validator";
 
 export class ImageCache{
     constructor() {
-        this.map = new Map();
+        // holds the image Cache entries, <id : string, URL>
+        this.urlMap = new Map();
     }
 
     // delete imageCache entry and create new one for same url
@@ -12,12 +13,17 @@ export class ImageCache{
         Validator.validateStringEmptyNotAllowed(newId);
 
         // fetch existing url
-        const url = this.map.get(oldId);
+        const oldUrl = this.get(oldId);
+       
+        // in the case that the newId already exists, revoke the URL
+        if (this.has(newId)) {
+            this.revokeUrl(newId);
+        }
 
-        // delete and create new cache entry
-        if (url) {
-            this.map.delete(oldId);
-            this.map.set(newId, url);
+        // delete the old id and create new cache entry with new id
+        if (oldUrl) {
+            this.urlMap.delete(oldId);
+            this.urlMap.set(newId, oldUrl);
         }
     }
 
@@ -29,13 +35,10 @@ export class ImageCache{
 
         // set entries
         for (const e of arr) {
-            // skip if id already exists
-            if (this.has(e.id)) { 
-                continue; 
+            // add the url to the cache if the entry for id does not exist yet
+            if (!this.urlMap.has(e.id)) { 
+                this.setUrl(e.id, e.blob);
             }
-
-            // create individual urls
-            this.setUrl(e.id, e.blob);
         }
     }
 
@@ -52,7 +55,7 @@ export class ImageCache{
         const oldUrl = this.get(id);
 
         // set new entry 
-        this.map.set(id, url);
+        this.urlMap.set(id, url);
         
         // revoke existing url if it exists
         if (oldUrl) {
@@ -66,7 +69,7 @@ export class ImageCache{
         Validator.validateStringEmptyNotAllowed(id);
 
         // return result
-        return this.map.has(id);
+        return this.urlMap.has(id);
     }
 
     // returns the Url for id
@@ -74,7 +77,7 @@ export class ImageCache{
         // validate parameter, string expected
         Validator.validateStringEmptyNotAllowed(id);
 
-        return this.map.get(id);
+        return this.urlMap.get(id);
     }
 
     revokeUrls(arr) {
@@ -83,8 +86,7 @@ export class ImageCache{
         
         // free individual Urls
         for (const id of arr) {
-            // validate individual id
-            Validator.validateStringEmptyNotAllowed(id);
+            // revoke individual id
             this.revokeUrl(id);
         }
     }
@@ -95,12 +97,12 @@ export class ImageCache{
         Validator.validateStringEmptyNotAllowed(id);
 
         // fetch url from this.map
-        const url = this.map.get(id);
+        const url = this.urlMap.get(id);
         
         // revoke and delete url, if it exists
         if (url) {
             URL.revokeObjectURL(url);
-            this.map.delete(id);
+            this.urlMap.delete(id);
         }
     }
 }

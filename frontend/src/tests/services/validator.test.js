@@ -1,4 +1,6 @@
-import { Validator } from './Validator';
+import { describe, expect, test } from 'vitest';
+
+import { Validator } from '@/services/validator';
 
 describe('Validator', () => {
     describe('validateStringEmptyAllowed', () => {
@@ -184,7 +186,7 @@ describe('Validator', () => {
 
         test('throws for incorrect type', () => {
             expect(() => Validator.validateObjectType(new Animal(), Car))
-                .toThrow('object must be of type Dog');
+                .toThrow('object must be of type Car');
         });
 
         test('throws for null', () => {
