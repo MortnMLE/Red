@@ -1,5 +1,7 @@
-import { ImageCache } from './imageCache';
-import { Validator } from '../validator';
+import { ImageCache } from '@/services/images/imageCache';
+import { Validator } from '@/services/validator';
+import { getLocalRecordsByIndex } from '@/services/indexedDB/indexedDbService';
+import { DB_IMAGES } from '@/constants/stores';
 
 let imageCache = null;
 
@@ -13,9 +15,9 @@ export function setImageCache(obj) {
     imageCache = obj;
 }
 
-// initializes all imageCache for all elements in images. 
+// creates cache entries for all passed images
 // Expected: array[{id: string, file: File}]
-export async function createCacheEntriesForImages(images) {
+export function createCacheEntriesForImages(images) {
     // validate parameter
     Validator.validateObjectNotNull(imageCache);
     Validator.validateArrEmptyAllowed(images);
@@ -31,68 +33,76 @@ export async function createCacheEntriesForImages(images) {
     // populate urlCreations
     for (const image of images) {
         Validator.validateObjectNotNull(image);
-        Validator.validateStringEmptyNotAllowed(image._id);
+        Validator.validateStringEmptyNotAllowed(image.id);
         Validator.validateObjectNotNull(image.file);
-        Validator.validateObjectType(image.file, File);
 
         urlCreations.push({
-            id: image._id,
-            blob: image.file 
+            id: image.id,
+            file: image.file
         });
     }
 
     // call setUrls
-    imageCache.setUrls(urlCreations);
+    if (urlCreations.length > 0) {
+        imageCache.setUrls(urlCreations);
+    }
 }
 
 // revokes all currently active 
 export async function revokeAllForDocId(docId) {
     // validate parameters
     Validator.validateStringEmptyNotAllowed(docId);
+    Validator.validateObjectNotNull(imageCache);
 
-    if (images.length === 0) {
-        return;
-    } 
-
-    for (const image of images) {
-        imageCache.revokeUrl(image._id);
-    }
-}
-
-// fetches the document and creates Urls for all embedded images that exist locally
-export async function createCacheEntriesForDocument(docId) {
-    // validate parameter
-    Validator.validateStringEmptyNotAllowed(docId);
-    
-    console.log(`initializeImageCacheForDocument called with docId: ${docId}`);
-
-    // fetch IndexedDB-images for document id
+    // fetch all images for given docId
     const images = await getLocalRecordsByIndex(
         DB_IMAGES,
         'doc_id',
         docId
     );
 
-    // create all Url objects and set them to imageCache
-    createCacheEntriesForImages(images);
+    // validate that images is an array, may be empty
+    Validator.validateArrEmptyAllowed(images);
+
+    const revokeUrls = [];
+
+    // push individual ids to revokeUrls
+    for (const image of images) {
+        revokeUrls.push(image._id);
+    }
+
+    // free all in revokeUrls
+    if (revokeUrls.length > 0) {
+        imageCache.revokeUrls(revokeUrls);
+    }
 }
 
-export async function addImageToCache(imageId) {
-    // validate parameter, not-empty string expected
-    Validator.validateStringEmptyNotAllowed(imageId);
+// fetches all images for docId and creates new cache entries
+export async function createCacheEntriesForDocument(docId) {
+    // validate parameter
+    Validator.validateStringEmptyNotAllowed(docId);
+    Validator.validateObjectNotNull(imageCache);
+    
+    // fetch IndexedDB-images for document id
+    const localImages = await getLocalRecordsByIndex(
+        DB_IMAGES,
+        'doc_id',
+        docId
+    );
+    
+    // validate that localImages is an array, may be empty
+    Validator.validateArrEmptyAllowed(localImages);
 
-    console.log(`setImageToCache called with: ${imageId}`);
+    const urlCreationImages = [];
 
-    if (imageCache.has(imageId)) {
-        return;
+    // push individual objects to urlCreationImages
+    for (const image of localImages) {
+        urlCreationImages.push({
+            id: image._id,
+            file: image.file
+        });
     }
 
-    const imageObject = await getLocalRecord(DB_IMAGES, imageId);
-
-    if (!imageObject) {
-        console.error(`local image: ${imageId} not found`);
-        return;
-    }
-
-    imageCache.setUrl(imageId);
+    // create all Url objects and set them to imageCache
+    await createCacheEntriesForImages(urlCreationImages);
 }

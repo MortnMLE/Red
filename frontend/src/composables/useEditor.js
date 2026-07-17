@@ -15,8 +15,8 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { markdownImages } from '@/services/editor/imageWidget';
 import { basicSetup } from 'codemirror';
 import { markdownFadeInactiveLines, removeMarkdown } from '@/services/editor/markdownService';
-import { addOrSetLocalRecord, DB_DOCUMENTS, DB_IMAGES, deleteLocalRecord } from '@/services/indexedDB/indexedDbService';
-import { DB_SETTINGS } from '@/services/indexedDB/indexedDbService';
+import { addOrSetLocalRecord, deleteLocalRecord } from '@/services/indexedDB/indexedDbService';
+import { DB_SETTINGS, DB_DOCUMENTS, DB_IMAGES} from '@/constants/stores';
 import { toRaw, unref } from 'vue';
 import { Validator } from '@/services/validator';
 
@@ -204,7 +204,7 @@ export function useEditor(options = {}) {
         // validate parameters
         Validator.validateObjectNotNull(doc);
         Validator.validateStringEmptyNotAllowed(tempId);
-        Validator.validateArrEmptyAllowed(name);
+        Validator.validateStringEmptyAllowed(name);
         Validator.validateFile(file);
 
         console.log(`entered handleImageCreationOnServer with: ${doc} ${tempId} ${name} ${file}`);
@@ -225,7 +225,7 @@ export function useEditor(options = {}) {
             );
 
             // update local document
-            addOrSetLocalRecord(DB_DOCUMENTS, doc);
+            await addOrSetLocalRecord(DB_DOCUMENTS, doc);
             // update server document
             // todo
             return;

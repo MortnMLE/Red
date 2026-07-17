@@ -1,28 +1,30 @@
 import { Validator } from "./validator";
 
 export class Parser {
-    constructor() {
-        this.regexImage = /!\[(.*?)\]\((.*?)\)/g;
-        this.regexLink = /!\[(.*?)\]\((.*?)\)/g; // change later
-    }
+    static regexImage = /!\[(.*?)\]\((.*?)\)/g
+    static regexLink = /!\[(.*?)\]\((.*?)\)/g; // fix later
 
     // returns all ids of all embedded images
-    static parseImages(str) {
-        const ids = parse(str, regexImage);
+    static parseImageIds(str) {
+        const ids = this.parseId(str, this.regexImage);
         return ids;
     }
 
     // returns all link embedded in images
-    static parseLinks(str) {
-        const links = parse(str, regexLink);
+    static parseLinkIds(str) {
+        const links = this.parseId(str, this.regexLink);
         return links;
     }
 
-    static parse(str, regex) {
+    // parses individual string given passed regex
+    static parseId(str, regex) {
+        // validate
         Validator.validateStringEmptyAllowed(str);
 
+        // initialize result
         const result = [];
 
+        // parse and push matches
         for (const match of str.matchAll(regex)) {
             result.push(match[2]);
         }

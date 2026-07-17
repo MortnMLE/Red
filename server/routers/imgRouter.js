@@ -100,6 +100,10 @@ imgRouter.get('/:id', async (req, res) => {
             'Content-Disposition',
             `inline; filename="${result.name}"`
         );
+        res.setHeader(
+            'Access-Control-Expose-Headers',
+            `Content-Disposition`
+        );
         
         return res.status(200).send(result.data.buffer);
     } catch (err) {

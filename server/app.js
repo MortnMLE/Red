@@ -15,7 +15,8 @@ const imgRouter = require('./routers/imgRouter');
 app.set('view engine');
 app.use(express.json());
 app.use(cors({
-    origin: 'http://localhost:3000'
+    origin: 'http://localhost:3000',
+    exposedHeaders: ['Content-Disposition']
 }));
 app.use('/user', userRouter);
 app.use('/doc', docRouter);

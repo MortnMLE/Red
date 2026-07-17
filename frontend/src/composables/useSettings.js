@@ -1,9 +1,16 @@
 import { ref, onMounted } from 'vue';
-import { DB_SETTINGS, DB_DOCUMENTS,
-    createStore, addOrSetLocalRecord, 
-    storeExists, getLocalRecordsByIndex,
-    DB_IMAGES
+import { 
+    createStore,
+    addOrSetLocalRecord, 
+    storeExists,
+    getLocalRecordsByIndex,
 } from '@/services/indexedDB/indexedDbService';
+
+import { 
+    DB_DOCUMENTS,
+    DB_IMAGES,
+    DB_SETTINGS
+} from '@/constants/stores';
 
 const countTempIds = ref(0);
 

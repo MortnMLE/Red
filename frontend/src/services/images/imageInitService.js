@@ -1,14 +1,24 @@
-import { endpointGetImageidsForDocId, endpointImageGetById } from "@/constants/endpoints";
-import { Validator } from "../validator"
-import { addOrSetLocalRecord, DB_DOCUMENTS, DB_IMAGES, deleteLocalRecord, getLocalRecord } from "../indexedDB/indexedDbService";
-import { newServerImage } from "./imageServerService";
-import { Parser } from '../parser/';
+import { Validator } from "@/services/validator"
+import { 
+    addOrSetLocalRecord, 
+    deleteLocalRecord, 
+    getLocalRecord,
+    localEntryExists
+} from "@/services/indexedDB/indexedDbService";
+import { serverFetchImageIdsForDocuments, serverFetchImagesForIds, newServerImage } from "@/services/images/imageServerService";
+import { Parser } from '@/services/parser';
+import { 
+    DB_DOCUMENTS,
+    DB_IMAGES
+} from "@/constants/stores";
+import { ImageCache } from "./imageCache";
 
 // collects all embedded images from local documents
 // returns {id: string, doc_id: string}
-export function getEmbeddedImages(documents) {
+export function getEmbeddedImageIds(documents, imageIdToDocId) {
     // validate parameter
     Validator.validateArrEmptyAllowed(documents);
+    Validator.validateObjectType(imageIdToDocId, Map);
 
     // initialize result
     const result = [];
@@ -21,238 +31,250 @@ export function getEmbeddedImages(documents) {
     // search documents and match against regex
     for (const doc of documents) {
         // parse
-        const ids = Parser.parseImages(doc.content);
+        const ids = Parser.parseImageIds(doc.content);
 
-        // add the returned ids array to result
-        result.push(...ids);
+        // add the returned ids to result and set map entries
+        for (const id of ids) {
+            result.push(id);
+            imageIdToDocId.set(id, doc._id)
+        }
     }
 
     return result;
 }
 
 // Fetches all imageIds for documents that exist locally
-// Returns {arr: string[], serverWasReached: boolean}
 export async function getServerImageIds(documents) {
     // validate parameter
     Validator.validateArrEmptyAllowed(documents);
 
-    // initialize result
-    const result = {
-        arr: [],
-        serverWasReached: true
-    }
-
     // if no documents exist return empty array
     if (documents.length === 0) {
-        return result;
+        return {arr: [], serverWasReached: true};
     }
 
-    // initialize tasks
-    const tasks = [];
-    
-    // start individual fetch requests
-    for (const doc of documents) {
-        tasks.push(fetch(
-            endpointGetImageidsForDocId + doc._id
-        ));
-    }
+    // fetch imageIds that belong to the passed documents
+    // result: { tasks: string[], serverWasReached: boolean }
+    const result = await serverFetchImageIdsForDocuments(documents);
 
-    // initialize responses
-    let responses = [];
+    Validator.validateObjectNotNull(result);
 
-    // try block, errors may be thrown during the await all
-    try { 
-        // wait for all fetch requests to finish
-        responses = await Promise.all(tasks);
-    } catch (err) {
-        // if fetch is unsuccessful the server is unreachable and we exit
-        result.serverWasReached = false;
-        return result;
-    }
-
-    console.log(`getServerImageIds awaited all tasks`);
-
-    // loop through all responses and add images to result
-    for (const response of responses) {
-        // continue if a request resulted in an empty response
-        if (!response) {
-            continue;
-        }
-
-        // get json content
-        const json = await response.json();
-
-        // push image to result
-        for (const imageId of json) {
-            result.push(imageId);
-        }
-    }
+    if (!result.serverWasReached) {
+        return {arr: [], serverWasReached: true};
+    } 
 
     return result;
 }
 
 // fetches images that do not exist locally from server
-// void
-export async function fetchMissingImages(embeddedImages, serverImages, imageCache) {
+export async function fetchMissingImages(embeddedImageIds, serverImageIds, imageCache, imageIdToDocId) {
     // validate parameters
-    Validator.validateArrEmptyAllowed(embeddedImages);
-    Validator.validateArrEmptyAllowed(serverImages);
+    Validator.validateArrEmptyAllowed(embeddedImageIds);
+    Validator.validateArrEmptyAllowed(serverImageIds);
     Validator.validateObjectNotNull(imageCache);
     Validator.validateObjectType(imageCache, ImageCache);
+    Validator.validateObjectType(imageIdToDocId, Map);
 
     // if requiredImages is empty no further work is needed
-    if (embeddedImages.length === 0) {
+    if (embeddedImageIds.length === 0) {
+        console.log(`embeddedImages.length = 0`);
         return;
-    } 
+    }
 
     const requests = [];
-    for (const requiredImage of embeddedImages) {
-        // if the local entry exists we do not need to fetch it
-        if (await localEntryExists(DB_IMAGES, requiredImage.id)) {
-            continue;
-        }
+    const requestedImageIds = [];
 
-        // if serverImages does not contain the imageId then there is no need to fetch
-        // --> it is a faulty or temporary embedding
-        if (!serverImages.includes(requiredImage.id) ) {
-            continue;
-        }
+    for (const id of embeddedImageIds) {
+        Validator.validateStringEmptyNotAllowed(id);
 
-        // add the id to requests, since the local entry does not exist
-        requests.push(requiredImage.id);
+        // add the id to requests, if the local entry does not exist
+        if (await requiresFetch(id, serverImageIds)) {
+            console.log(`pushing fetch for ${id}`);
+            requestedImageIds.push(id)
+            requests.push(id);
+        } 
     }
 
-    // asynchronous fetch of all required images
-    const tasks = [];
-    for (const request of request) {
-        tasks.push(fetch(
-            endpointImageGetById + requiredImage.id
-        ));
+    // if there is nothing to request exit the function
+    if (requests.length === 0) {
+        console.log(`zero requests`);
+        return;
     }
 
-    // await for all fetches to finish
-    await Promise.all(tasks);
+    // fetch the image objects from the server
+    const serverImages = await serverFetchImagesForIds(requests);
+    console.log(`serverImages fetched: ${serverImages.length}`);
 
-    for (const response of tasks) {
-        // skip if server responded is not ok
-        if (!response.ok) {
-            continue;
-        }
+    Validator.validateArrEmptyAllowed(serverImages);
 
-        // get the blob
-        const blob = await response.blob();
-
-        // add blob to local indexedDB storage
-        await addOrSetLocalRecord(
-            DB_IMAGES,
-            {
-                _id: reqImg.id,
-                file: blob,
-                name: response.headers
-                    .get('Content-Disposition')
-                    ?.match(/filename="(.+)"/)?.[1] ?? '',
-                user_id: localStorage.userId,
-                doc_id: reqImg.doc_id
-            }
+    for (let i = 0; i < serverImages.length; i++) {
+        console.log(`adding image to local: ${requestedImageIds[i]}`);
+        await addServerImageToLocalStorage(
+            serverImages[i], 
+            requestedImageIds[i], 
+            imageIdToDocId.get(serverImages[i])
         );
-
-        // create URL entry in imageCache
-        imageCache.setUrl(requiredImage.id, blob);
     }
+}
+
+async function addServerImageToLocalStorage(image, id, docId) {
+    Validator.validateObjectNotNull(image);
+    Validator.validateStringEmptyNotAllowed(id);
+
+    console.log(`addServerImageToLocalStorage has been called`);
+    // skip if server responded is not ok
+    if (!image.ok) {
+        return;
+    }
+
+    // get the blob
+    const blob = await image.blob();
+
+    console.log(`blob: ${blob}`);
+
+    // add blob to local indexedDB storage
+
+    console.log(`addServerImageToLocalStorage: ${id}`);
+    console.log(`file: ${typeof blob}`);
+    console.log(`headers: ${image.headers}`);
+    console.log(`doc_id: ${docId}`);
+
+    for (const [key, value] of image.headers.entries()) {
+        console.log(key, value);
+    }
+
+    console.log(`${image.headers.get('Content-Disposition')}`);
+
+    await addOrSetLocalRecord(
+        DB_IMAGES,
+        {
+            _id: id,
+            file: blob,
+            name: image.headers
+                .get('Content-Disposition')
+                ?.match(/filename="(.+)"/)?.[1] ?? '',
+            user_id: localStorage.userId,
+            doc_id: docId
+        }
+    );
+}
+
+async function requiresFetch(id, serverImageIds) {
+    Validator.validateStringEmptyNotAllowed(id);
+    Validator.validateArrEmptyAllowed(serverImageIds);
+    let result = false;
+
+    if (
+        // if the image does not exist locally, but exists in the serverImages
+        // we need to fetch it
+        !(await localEntryExists(DB_IMAGES, id)) &&
+        serverImageIds.includes(id)
+    ){
+        result = true;
+    }
+
+    return result;
 }
 
 // posts images to server if they are missing or the current image
 // is temporary and has no valid id
-export async function syncFromLocalToServer(embeddedImages, serverImages, 
+export async function syncFromLocalToServer(embeddedImageIds, serverImages, 
     activeDocument, udpateEditorContent, imageCache
 ) {
-    console.log(`entered syncFromLocalToServer`)
+    console.log(`syncFromLocalToServer: ${embeddedImageIds}`); // delete later
+    console.log(`serverImages: ${serverImages}`); // delete later
+    console.log(`activeDocument: ${activeDocument.id}`); // delete later
+
     // validate parameters
-    Validator.validateArrEmptyAllowed(embeddedImages);
+    Validator.validateArrEmptyAllowed(embeddedImageIds);
     Validator.validateArrEmptyAllowed(serverImages);
+    Validator.validateObjectNotNull(imageCache);
 
     // if embeddedImages is empty, no work is needed
-    if (embeddedImages.length === 0) {
+    if (embeddedImageIds.length === 0) {
         return;
     }
 
     // create array of objects for later processing
-    // holds objects: {image: {
-    // }, newId: string}
+    // array of { image, newId }
     const tasks = [];
+    const requestedImages = [];
 
-    for (const image of embeddedImages) {
+    for (const id of embeddedImageIds) {
         // if serverImages includes the image id, image is already on the server
-        if (serverImages.includes(image.id)) {
+        if (serverImages.includes(id)) {
             continue;
         }
 
         // fetch image from local storage
-        const localImage = await getLocalRecord(DB_IMAGES, image.id);
+        const localImage = await getLocalRecord(DB_IMAGES, id);
 
         // if no image object was returned, it is a faulty embedding
         if (!localImage) {
             continue;
         }
 
+        requestedImages.push(localImage);
         // create asynchronous posts to server
-        tasks.push({
-            image: localImage,
-            newId: newServerImage(
+        tasks.push(
+            newServerImage(
                 localImage.doc_id,
                 localImage.name,
                 localImage.file
             )
-        });
+        );
     }
 
-    // wait for all requests to finish
-    await Promise.all(tasks.map(task => task.newId));
+    // // wait for all requests to finish
+    const newIds = await Promise.all(tasks);
+
+    if (newIds.length != requestedImages.length) {
+        throw new Error(`should be the same length: ${newIds.length}, ${requestedImages.length}`);
+    }
 
     // loop through all tasks
     // key contains old imageId, value contains the new imageId
-    for (const task of tasks) {
-        // catch bugs
-        Validator.validateStringEmptyNotAllowed(task.image._id);
-        Validator.validateArrEmptyNotAllowed(task.image.doc_id);
-        Validator.validateObjectNotNull(task.image.file);
-
-        console.log(`task.image._id: ${task.image._id}`);
-
-        // if newId is null, the post to server was not successful, we continue
-        if (!task.newId) {
+    for (let i = 0; i < requestedImages.length; i++) {
+        // if newId is null or empty, the post to server was not successful, we continue
+        if (!newIds[i]) {
             continue;
         }
+
+        // validate
+        Validator.validateStringEmptyNotAllowed(requestedImages[i]._id)
+        Validator.validateStringEmptyNotAllowed(requestedImages[i].doc_id);
+        Validator.validateObjectNotNull(requestedImages[i].file);
+        Validator.validateStringEmptyAllowed(requestedImages[i].name);
 
         // create new image entry in local storage
         await addOrSetLocalRecord(
             DB_IMAGES,
             {
-                _id: task.newId,
-                file: task.image.file,
-                name: task.image.name,
-                doc_id: task.image.doc_id,
+                _id: newIds[i],
+                file: requestedImages[i].file,
+                name: requestedImages[i].name,
+                doc_id: requestedImages[i].doc_id,
                 user_id: localStorage.userId
             }
         );
 
         // if the document in question is currently active, update editor content
-        if (activeDocument._id === task.image.doc_id) {
+        if (activeDocument._id === requestedImages.doc_id) {
             // replace the oldId with the newId
             const newContent = activeDocument.content.replace(
-                task.image._id,
-                task.newId
+                requestedImages[i]._id,
+                newIds[i] 
             );
 
             // update editor content
             udpateEditorContent(newContent);
 
             // replace existing URL
-            imageCache.replace(task.image._id, task.newId);
+            imageCache.replace(requestedImages[i]._id, newIds[i]);
         // for other documents replace the id in the stored document entry
         } else {
             // fetch local document from storage
-            let doc = await getLocalRecord(DB_DOCUMENTS, task.image.doc_id);
+            const doc = await getLocalRecord(DB_DOCUMENTS, requestedImages[i].doc_id);
             
             // if doc is null continue, as it has been deleted during the server request
             if (!doc) {
@@ -260,13 +282,13 @@ export async function syncFromLocalToServer(embeddedImages, serverImages,
             }
 
             // replace oldId with newId for fetched local document
-            doc.content = doc.content.replace(task.oldId, task.newId);
+            doc.content = doc.content.replace(requestedImages[i]._id, newIds[i]);
 
             // save the new document state to local storage
             await addOrSetLocalRecord(DB_DOCUMENTS, doc);
         }
 
         // delete old image entry from local storage
-        await deleteLocalRecord(DB_IMAGES, task.image._id);
+        await deleteLocalRecord(DB_IMAGES, requestedImages[i]._id);
     }
 }

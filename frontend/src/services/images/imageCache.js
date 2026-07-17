@@ -1,4 +1,4 @@
-import { Validator } from "../validator";
+import { Validator } from "@/services/validator";
 
 export class ImageCache{
     constructor() {
@@ -28,7 +28,7 @@ export class ImageCache{
     }
 
     // set multiple URLs
-    // takes array of {id: string, blob: blob}
+    // takes array of {id: string, file: File}
     setUrls(arr) {
         // validate parameter
         Validator.validateArrEmptyNotAllowed(arr);
@@ -37,7 +37,7 @@ export class ImageCache{
         for (const e of arr) {
             // add the url to the cache if the entry for id does not exist yet
             if (!this.urlMap.has(e.id)) { 
-                this.setUrl(e.id, e.blob);
+                this.setUrl(e.id, e.file);
             }
         }
     }
@@ -55,6 +55,7 @@ export class ImageCache{
         const oldUrl = this.get(id);
 
         // set new entry 
+        console.log(`setting url for: ${id}, ${url}`);
         this.urlMap.set(id, url);
         
         // revoke existing url if it exists

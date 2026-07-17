@@ -73,12 +73,12 @@ describe('ImageCache', () => {
                 .mockReturnValueOnce('url1');
 
             cache.setUrls([
-                { id: 'id1', blob: {} }
+                { id: 'id1', file: {} }
             ]);
 
             expect(Validator.validateArrEmptyNotAllowed)
                 .toHaveBeenCalledWith([
-                    { id: 'id1', blob: {} }
+                    { id: 'id1', file: {} }
                 ]);
         });
 
@@ -88,8 +88,8 @@ describe('ImageCache', () => {
                 .mockReturnValueOnce('url2');
 
             cache.setUrls([
-                { id: 'id1', blob: {} },
-                { id: 'id2', blob: {} }
+                { id: 'id1', file: {} },
+                { id: 'id2', file: {} }
             ]);
 
             expect(cache.get('id1')).toBe('url1');
@@ -102,11 +102,11 @@ describe('ImageCache', () => {
                 .mockReturnValueOnce('url2');
 
             cache.setUrls([
-                { id: 'id1', blob: {} }
+                { id: 'id1', file: {} }
             ]);
 
             cache.setUrls([
-                { id: 'id1', blob: {} }
+                { id: 'id1', file: {} }
             ]);
 
             expect(URL.createObjectURL).toHaveBeenCalledTimes(1);

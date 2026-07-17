@@ -80,6 +80,7 @@ import { useDocuments } from '@/composables/useDocuments';
 import { useEditor } from '@/composables/useEditor';
 import { useImages } from '@/composables/useImages';
 import { ImageCache } from '../services/images/imageCache';
+import { revokeAllForDocId } from '@/services/images/imageCacheService';
 
 const imageCache = new ImageCache();
 
@@ -137,10 +138,10 @@ const {
 
 setUpdateEditorContent(updateEditorContent);
 
-// orchestration layer
 async function handleChangeActiveDocument(documentId) {
   await initializeImageCacheForDocument(documentId);
   setActiveDocument(documentId);
+  await revokeAllForDocId(documentId);
 }
 
 async function handleCloseDocument(document) {

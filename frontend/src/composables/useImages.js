@@ -1,34 +1,30 @@
-import { serverRequest } from "@/services/apiService";
-import { 
-    endpointGetImageidsForDocId, 
-    endpointImageGetById, 
-    endpointImgDelete, 
-    endpointImgNew 
-} from "@/constants/endpoints";
 import { 
     storeExists, 
-    DB_IMAGES, 
     addOrSetLocalRecord, 
-    deleteLocalRecord,
-    getLocalRecord
+    deleteLocalRecord
 } from "@/services/indexedDB/indexedDbService";
 import { getLocalRecordsByIndex } from "@/services/indexedDB/indexedDbService";
 import { onMounted } from "vue";
 import { Validator } from "@/services/validator";
+
 import { 
-    createCacheEntriesForImages, 
     setImageCache,
-    revokeAllForDocId,
-    addImageToCache
+    createCacheEntriesForDocument
 } from '@/services/images/imageCacheService';
+
 import { 
-    getEmbeddedImages, 
+    getEmbeddedImageIds, 
     getServerImageIds,
     fetchMissingImages,
     syncFromLocalToServer
 } from "@/services/images/imageInitService";
+
 import { deleteImageFromServer, newServerImage } from "@/services/images/imageServerService";
 import { Parser } from '@/services/parser';
+
+import {
+    DB_IMAGES
+} from '@/constants/stores';
 
 export function useImages(options = {}) {
 
@@ -49,12 +45,11 @@ export function useImages(options = {}) {
 
     // creates Urls for all images embedded in docId & adds them to imageCache
     async function compCreateCacheEntriesForDocument(docId) {
-        createCacheEntriesForImages(docId);
-    }
-
-    // create a Url imageId
-    async function compSetImageToCache(imageId) {
-        addImageToCache(imageId);
+        // validate parameter
+        Validator.validateStringEmptyNotAllowed(docId);
+        // create the cache entries for docId
+        await createCacheEntriesForDocument(docId);
+        // refresh the editor content to correctly display the images
     }
 
     // sends the image to the server
@@ -103,7 +98,7 @@ export function useImages(options = {}) {
         Validator.validateObjectNotNull(doc);
 
         // parse for image ids
-        const ids = Parser.parseImages(doc.value.content);
+        const ids = Parser.parseImageIds(doc.value.content);
 
         // delete all images from the server and local storage
         for (const id of ids) {
@@ -155,43 +150,48 @@ export function useImages(options = {}) {
     onMounted(async () => { 
         // wait for documents to finish intializing       
         while (!docsInitialized.value) {
-            console.log(`waiting for documentSync to finish`);
             await new Promise(r => setTimeout(r, 100));
+            console.log(`sleeping`);
         }
+
+        console.log(`not sleeping anymore`);
  
         // set imageCache reference in imageCacheService
         setImageCache(imageCache);
-        console.log(`imageCache set: ${imageCache}`);
-
+        
+        const imageIdToDocId = new Map();
+        
         // fetch imageIds that are already embedded in documents
-        const embeddedImages = getEmbeddedImages(documents.value);
-        console.log(`imbeddedImages elements: ${embeddedImages.length}`);
+        const embeddedImageIds = getEmbeddedImageIds(documents.value, imageIdToDocId);
+
+        console.log(`embeddedImageIds: ${embeddedImageIds}`);
 
         // if there are no embedded images, we do nothing
-        if (embeddedImages.length === 0) {
-            console.log(`embedded Images are 0`);
+        if (embeddedImageIds.length === 0) {
+            console.log(`useImages.onMounted: skipped because length of embeddedImages is 0`);
             return;
         }
 
         // for all currently existing documents, fetch the imageIds on the server
         const serverImages = await getServerImageIds(documents.value);
-        console.log(`serverImages elements: ${serverImages.length}`)
 
         // if a request was not successful, we continue with locally existing images and
         // do not synchronize images with server
+
         if (
             serverImages.arr.length === 0 ||
             !serverImages.serverWasReached
         ) {
+            console.log(`useImages.onMounted: skipped because server not reachable or 0 serverImages`);
             return;
         }
 
         // fetch images that do not exist locally
-        await fetchMissingImages(embeddedImages, serverImages);
+        await fetchMissingImages(embeddedImageIds, serverImages.arr, imageCache, imageIdToDocId);
         // post images to server if they do not exist yet
         await syncFromLocalToServer(
-            embeddedImages,
-            serverImages,
+            embeddedImageIds,
+            serverImages.arr,
             activeDocument.value,
             udpateEditorContent,
             imageCache
@@ -205,7 +205,6 @@ export function useImages(options = {}) {
         initializeImageCacheForDocument: compCreateCacheEntriesForDocument,
         revokeImageUrlsForDocId: compRevokeImageUrlsForDocId,
         deleteImagesForDocId: compDeleteImagesForDoc,
-        addOrSetImageToCache: compSetImageToCache,
         setUpdateEditorContent: compSetUpdateEditorContent
     };
 }

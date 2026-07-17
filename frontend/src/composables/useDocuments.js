@@ -1,7 +1,9 @@
 import { onMounted, ref, computed, toRaw } from 'vue';
-import { DB_DOCUMENTS, getLocalRecordsByIndex,
-    createStore, storeExists, 
-    deleteLocalRecord, addOrSetLocalRecord,
+import { getLocalRecordsByIndex,
+    createStore,
+    storeExists, 
+    deleteLocalRecord,
+    addOrSetLocalRecord,
     clearLocalDatabase
  } from '@/services/indexedDB/indexedDbService';
 
@@ -9,6 +11,7 @@ import { serverRequest } from '@/services/apiService';
 import { endpointDocByUser, endpointDocDelete, endpointDocNew, endpointPatch } from '@/constants/endpoints';
 import { DEFAULT_DOCUMENT } from '@/constants/defaultDocument';
 import { debouncer } from '@/services/debouncer';
+import { DB_DOCUMENTS } from '@/constants/stores';
 
 //state
 const documents = ref([]);
