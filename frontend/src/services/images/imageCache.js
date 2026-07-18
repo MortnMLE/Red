@@ -12,6 +12,10 @@ export class ImageCache{
         Validator.validateStringEmptyNotAllowed(oldId);
         Validator.validateStringEmptyNotAllowed(newId);
 
+        if (oldId === newId) {
+            throw new Error(`oldId must not be equal to newId`);
+        }
+
         // fetch existing url
         const oldUrl = this.get(oldId);
        
