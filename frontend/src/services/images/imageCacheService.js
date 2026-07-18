@@ -101,6 +101,7 @@ export async function createCacheEntriesForDocument(docId) {
             id: image._id,
             file: image.file
         });
+        console.log(`pushed to urlCreationImages: ${image._id}`);
     }
 
     // create all Url objects and set them to imageCache

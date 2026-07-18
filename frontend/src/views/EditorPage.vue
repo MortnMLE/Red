@@ -80,7 +80,6 @@ import { useDocuments } from '@/composables/useDocuments';
 import { useEditor } from '@/composables/useEditor';
 import { useImages } from '@/composables/useImages';
 import { ImageCache } from '../services/images/imageCache';
-import { revokeAllForDocId } from '@/services/images/imageCacheService';
 
 const imageCache = new ImageCache();
 
@@ -138,10 +137,22 @@ const {
 
 setUpdateEditorContent(updateEditorContent);
 
-async function handleChangeActiveDocument(documentId) {
-  await initializeImageCacheForDocument(documentId);
-  setActiveDocument(documentId);
-  await revokeAllForDocId(documentId);
+async function handleChangeActiveDocument(nextDocumentId) {
+  // hold the id of the currently active id
+  const previousDocumentId = activeDocument.value?._id;
+
+  // if the function was triggered by a click on the activeDocument then exit
+  if (nextDocumentId === previousDocumentId) {
+    return;
+  }
+  
+  // initialize imageCache for the new document
+  await initializeImageCacheForDocument(nextDocumentId);
+  // revoke imageCache entries for the previous document
+  await revokeImageUrlsForDocId(previousDocumentId);
+
+  // change the active document
+  setActiveDocument(nextDocumentId);
 }
 
 async function handleCloseDocument(document) {

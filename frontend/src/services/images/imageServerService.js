@@ -31,8 +31,6 @@ export async function newServerImage(docId, name, file) {
             }
         );
 
-        console.log(formData);
-
         // catch bug
         Validator.validateObjectNotNull(response);
 

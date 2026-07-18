@@ -9,7 +9,8 @@ import { Validator } from "@/services/validator";
 
 import { 
     setImageCache,
-    createCacheEntriesForDocument
+    createCacheEntriesForDocument,
+    revokeAllForDocId
 } from '@/services/images/imageCacheService';
 
 import { 
@@ -54,7 +55,7 @@ export function useImages(options = {}) {
 
     // sends the image to the server
     async function compCreateNewServerImage(docId, name, file) {
-        newServerImage(docId, name, file);
+        await newServerImage(docId, name, file);
     }
 
     // creates a new local image with a temporary id
@@ -125,26 +126,7 @@ export function useImages(options = {}) {
 
     // revokes all currently existing Urls for docId
     async function compRevokeImageUrlsForDocId(docId) {
-        // validate parameter
-        Validator.validateStringEmptyNotAllowed(docId);
-
-        // fetch image objects for doc_id
-        const images = await getLocalRecordsByIndex(
-            DB_IMAGES,
-            'doc_id',
-            docId
-        );
-
-        // initialize ids that should be revoked
-        const ids = [];
-
-        // push individual ids to array
-        for (const image of images) {
-            ids.push(image._id);
-        }
-
-        // revoke ids
-        imageCache.revokeUrls(ids);
+        revokeAllForDocId(docId);
     }
 
     onMounted(async () => { 

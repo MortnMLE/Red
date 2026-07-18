@@ -15,10 +15,13 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { markdownImages } from '@/services/editor/imageWidget';
 import { basicSetup } from 'codemirror';
 import { markdownFadeInactiveLines, removeMarkdown } from '@/services/editor/markdownService';
-import { addOrSetLocalRecord, deleteLocalRecord } from '@/services/indexedDB/indexedDbService';
+import { addOrSetLocalRecord, deleteLocalRecord, getLocalRecord, replaceLocalDbEntry } from '@/services/indexedDB/indexedDbService';
 import { DB_SETTINGS, DB_DOCUMENTS, DB_IMAGES} from '@/constants/stores';
 import { toRaw, unref } from 'vue';
 import { Validator } from '@/services/validator';
+import { newServerImage } from '@/services/images/imageServerService';
+import { serverRequest } from '@/services/apiService';
+import { endpointPatch } from '@/constants/endpoints';
 
 const vimCompartment = new Compartment();
 
@@ -156,7 +159,7 @@ export function useEditor(options = {}) {
 
                         const doc = activeDocument.value;
 
-                        handleImageCreationOnServer(
+                        uploadTempImageAndReplaceReferences(
                             doc,
                             insertedId,
                             file.name,
@@ -200,74 +203,102 @@ export function useEditor(options = {}) {
         });
     }
 
-    async function handleImageCreationOnServer(doc, tempId, name, file) {
+    async function uploadTempImageAndReplaceReferences(doc, tempId, name, file) {
         // validate parameters
         Validator.validateObjectNotNull(doc);
         Validator.validateStringEmptyNotAllowed(tempId);
         Validator.validateStringEmptyAllowed(name);
         Validator.validateFile(file);
 
-        console.log(`entered handleImageCreationOnServer with: ${doc} ${tempId} ${name} ${file}`);
-        const insertedId = await createNewServerImage(doc._id, name, file);
-        console.log(`POST to server returned id: ${insertedId}`);
+        // post the image to the server
+        const insertedId = await newServerImage(doc._id, name, file);
 
         if (!insertedId) {
             return;
         }
 
-        // true if the user changed the activeDocument during serverRequest
-        if (activeDocument.value._id !== doc._id) {
-            console.log(`activeDocument not equal to doc._id`);
-            // replace image id
-            doc.content = doc.content.replace(
-                tempId,
-                insertedId
-            );
+        // replace the temporary image with a server image
+        const replacedImage = await replaceLocalDbEntry(
+            DB_IMAGES,
+            {
+                _id: insertedId,
+                doc_id: doc._id,
+                file,
+                name,
+                user_id: localStorage.userId
+            },
+            tempId
+        );
 
-            // update local document
-            await addOrSetLocalRecord(DB_DOCUMENTS, doc);
-            // update server document
-            // todo
+        if (!replacedImage) {
+            console.error(`could not replace image`);
             return;
         }
 
-        // replace imageCache entry if it exists for tempId
-        if (imageCache.has(tempId)) {
-            // free existing and create new entry in imageCache
+        // if the user is still in the original document, change the editor content,
+        // which prompts the subsequent storing process for local storage and server
+        if (activeDocument.value?._id === doc._id) {
+            // replace the imageCache entry
             imageCache.replace(tempId, insertedId);
-            
-            // 
-            replaceImageReference(tempId, insertedId);
-            
+
+            replaceImageReferenceInLiveEditor(tempId, insertedId);
+
+            // refresh display
             editorView.value.requestMeasure();
 
-            await addOrSetLocalRecord(
-                DB_IMAGES,
-                {
-                    _id: insertedId,
-                    doc_id: doc._id,
-                    file,
-                    name,
-                    user_id: localStorage.userId
-                }
-            );
-
-            await deleteLocalRecord(DB_IMAGES,tempId);
+            // update the count of current temporary ids
             updateCountTempIds();
+
+            return;
+        }
+
+        // if active document has changed while awaiting newServerImage:
+        // fetch document from local storage, as it may have changed during await
+        const storedDocument = await getLocalRecord(DB_DOCUMENTS, doc._id);
+
+        // if true document has been deleted then exit
+        if (!storedDocument) {
+            return;
+        }
+
+        // if the content of the storedDocument does not contain the tempId then exit
+        if (!storedDocument.content?.includes(tempId)) {
+            return;
+        }
+
+        // replace the tempId with the serverId
+        const newContent = storedDocument.content?.replaceAll(tempId, insertedId);
+
+        // update content + verison
+        storedDocument.content = newContent;
+        storedDocument.version += 1;
+
+        // udpate document in local storage
+        await addOrSetLocalRecord(DB_DOCUMENTS, storedDocument);
+
+        try {
+            // update the document on the server
+            await serverRequest(
+                'PATCH',
+                { 
+                    _id: storedDocument._id,
+                    content: storedDocument.content,
+                    title: storedDocument.title,
+                    localVersion: storedDocument.version
+                },
+                endpointPatch
+            );
+        } catch (err) {
+            // if an error occurs, the document will be updated with the next sync
+            console.error(`handleTempImageToServerImage throws: ${err}`);
+            return;
         }
     }
 
-    function replaceImageReference(tempId, uuid) {
-        if (
-            !tempId || tempId === '' ||
-            !uuid || uuid === ''
-        ){
-            throw new Error(
-                `useEditor.replaceImageReference:\n` +
-                `tempId: ${tempId}\n` +
-                `uuid: ${uuid}`
-            );
-        }
+    function replaceImageReferenceInLiveEditor(tempId, uuid) { 
+        Validator.validateStringEmptyNotAllowed(tempId);
+        Validator.validateStringEmptyNotAllowed(uuid);
+        Validator.validateObjectNotNull(editorView.value);
 
         const text = editorView.value.state.doc.toString();
         const oldRef = `![image](${tempId})`;

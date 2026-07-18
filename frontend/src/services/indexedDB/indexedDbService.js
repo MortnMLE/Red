@@ -1,3 +1,5 @@
+import { Validator } from "../validator";
+
 const DB_VERSION = 1;
 
 export function openLocalDatabase(database) {
@@ -261,4 +263,22 @@ export async function clearLocalDatabase(storeObject) {
             reject(request.error);
         };    
     });
+}
+
+export async function replaceLocalDbEntry(store, newEntry, oldId) {
+    Validator.validateObjectNotNull(store);
+    Validator.validateObjectNotNull(newEntry);
+    Validator.validateStringEmptyNotAllowed(oldId);
+
+    let result = true;
+
+    try {
+        await addOrSetLocalRecord(store, newEntry);
+        await deleteLocalRecord(store, oldId);
+    } catch (err) {
+        console.error(err);
+        result = false;
+    }
+
+    return result;
 }

@@ -26,9 +26,6 @@ imgRouter.post('/new', upload.single('image'), async (req, res) => {
     // file
     // name
 
-    console.log(`doc_id: ${req.body.doc_id}`);
-    console.log(`body: ${req.body.name}`);
-
     if (typeof req.body.doc_id !== 'string' || req.body.doc_id === '' ||
         typeof req.body.user_id !== 'string' || req.body.user_id === '' ||
         typeof req.body.name !== 'string' || req.body.name === '' ||
@@ -63,7 +60,7 @@ imgRouter.post('/new', upload.single('image'), async (req, res) => {
     } catch (err) {
         res.status(err.statusCode).json({
             error: err.name,
-            message: err.messsage,
+            message: err.message,
             success: false
         });
     }
