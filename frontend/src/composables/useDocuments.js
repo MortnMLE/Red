@@ -379,10 +379,15 @@ export function useDocuments(options = {}) {
     }
 
     function openDocument(id) {
+        // validate parameter
+        Validator.validateStringEmptyNotAllowed(id);
+
+        // check if the document is already open
         const exists = openDocumentIds.value.some(
             openDocId => openDocId === id
         );
         
+        // if the document is not open yet, add it to openDocumentIds
         if (!exists) {
             openDocumentIds.value.push(id);
         }
@@ -437,29 +442,29 @@ export function useDocuments(options = {}) {
     }
 
     function getNextActiveDocument(docToBeClosed, offset) {
+        // validate parameters
         Validator.validateObjectNotNull(docToBeClosed);
         Validator.validateNumber(offset);
 
+        // if the offset is zero we return the currently active document
         if (offset === 0) {
             return activeDocument.value;
         }
 
-        console.log(`docToBeClosed: ${docToBeClosed._id}`);
-        console.log(`activeDocument: ${activeDocumentId.value}`);
+        // if the document to be closed is not the activeDocument
+        // we do not need to change the active document, hence return active document 
         if (docToBeClosed._id !== activeDocumentId.value) {
-            console.log(`not activeDocument. exit;`);
             return activeDocument.value;
         }
 
-        // 
+        // fetch the index of the document to be closed in opendocuments
         const index = openDocumentIds.value.findIndex(
             id => id === docToBeClosed._id
         );
 
         let nextId = null;
-
-        console.log(`activeIndex: ${index}`);
-
+        
+        // if position of the document in opendocuments is greater than 0, we 
         if (index > 0) {
             nextId = openDocumentIds.value[index + Number(offset)];
         } else if  (index === 0 && openDocumentIds.value.length > 1) {
@@ -473,6 +478,7 @@ export function useDocuments(options = {}) {
         return getDocumentById(nextId);
     }
 
+    // debounces incoming changes to reduce unnecessary write to local storage
     const saveLocalDebounced = debouncer(
         async (ref) => {
             try {
@@ -489,6 +495,7 @@ export function useDocuments(options = {}) {
         200
     )
 
+    // debounces incoming changes to reduce unnecessary posts to the server
     const syncRemoteDebounced = debouncer(
         async (ref) => {
             try {
@@ -515,13 +522,21 @@ export function useDocuments(options = {}) {
     )
 
     function updateDocumentContent(content, title) {
+        // validate parameters
+        Validator.validateStringEmptyAllowed(content);
+        Validator.validateStringEmptyAllowed(title);
+
+        // if the activeDocument is the default-document we exit
         if (activeDocument.value._id === 'welcome') {
             return;
         }
-
+        
+        // update the content and title of the active document
         activeDocument.value.content = content;
         activeDocument.value.title = title !== '' ? title : 'Title';
 
+        // queue change to be stored on the server and local storage
+        // using a debouncer
         saveLocalDebounced(activeDocument);
         syncRemoteDebounced(activeDocument);
     }

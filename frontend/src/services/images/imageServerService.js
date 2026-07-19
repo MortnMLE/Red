@@ -2,8 +2,10 @@ import { Validator } from "../validator";
 import { 
     endpointGetImageidsForDocId,
     endpointImageGetById,
-    endpointImgNew 
+    endpointImgNew,
+    endpointImgDelete 
 } from "@/constants/endpoints";
+import { serverRequest } from "../apiService";
 
 export async function newServerImage(docId, name, file) {
     // validate Parameters

@@ -99,7 +99,7 @@ export function useImages(options = {}) {
         Validator.validateObjectNotNull(doc);
 
         // parse for image ids
-        const ids = Parser.parseImageIds(doc.value.content);
+        const ids = Parser.parseImageIds(doc.content);
 
         // delete all images from the server and local storage
         for (const id of ids) {
