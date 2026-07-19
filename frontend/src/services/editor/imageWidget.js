@@ -3,7 +3,7 @@ import {
     ViewPlugin,
     WidgetType
 } from '@codemirror/view';
-import { RangeSetBuilder, StateEffect } from '@codemirror/state';
+import { RangeSetBuilder } from '@codemirror/state';
 
 class ImageWidget extends WidgetType {
     constructor(src, alt = '') {
@@ -86,7 +86,7 @@ export function markdownImages(imageCache) {
                             start + match[0].length;
 
                         const alt = match[1];
-                        const src = imageCache.get(match[2]);
+                        const src = imageCache.getUrl(match[2]);
 
                         builder.add(
                             start,

@@ -7,20 +7,20 @@ export class ImageCache{
     }
 
     // delete imageCache entry and create new one for same url
-    replace(oldId, newId) {
+    replaceId(oldId, newId) {
         // validate parameters
         Validator.validateStringEmptyNotAllowed(oldId);
         Validator.validateStringEmptyNotAllowed(newId);
 
         if (oldId === newId) {
-            throw new Error(`oldId must not be equal to newId`);
+            return;
         }
 
         // fetch existing url
-        const oldUrl = this.get(oldId);
+        const oldUrl = this.getUrl(oldId);
        
         // in the case that the newId already exists, revoke the URL
-        if (this.has(newId)) {
+        if (this.hasUrl(newId)) {
             this.revokeUrl(newId);
         }
 
@@ -40,7 +40,7 @@ export class ImageCache{
         // set entries
         for (const e of arr) {
             // add the url to the cache if the entry for id does not exist yet
-            if (!this.urlMap.has(e.id)) { 
+            if (!this.hasUrl(e.id)) { 
                 this.setUrl(e.id, e.file);
             }
         }
@@ -56,20 +56,19 @@ export class ImageCache{
         const url = URL.createObjectURL(file);
        
         // check for an already existing cache entry
-        const oldUrl = this.get(id);
+        const oldUrl = this.getUrl(id);
 
         // set new entry 
-        console.log(`setting url for: ${id}, ${url}`);
         this.urlMap.set(id, url);
         
         // revoke existing url if it exists
         if (oldUrl) {
-            URL.revokeObjectURL(oldUrl);
+            this.revokeUrl(oldUrl);
         }
     }
 
     // returns true if the a Url exists for id
-    has(id) {
+    hasUrl(id) {
         // validate parameter, string expected
         Validator.validateStringEmptyNotAllowed(id);
 
@@ -78,7 +77,7 @@ export class ImageCache{
     }
 
     // returns the Url for id
-    get(id) {
+    getUrl(id) {
         // validate parameter, string expected
         Validator.validateStringEmptyNotAllowed(id);
 
@@ -102,7 +101,7 @@ export class ImageCache{
         Validator.validateStringEmptyNotAllowed(id);
 
         // fetch url from this.map
-        const url = this.urlMap.get(id);
+        const url = this.getUrl(id);
         
         // revoke and delete url, if it exists
         if (url) {

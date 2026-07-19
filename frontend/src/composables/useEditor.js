@@ -239,7 +239,7 @@ export function useEditor(options = {}) {
         // which prompts the subsequent storing process for local storage and server
         if (activeDocument.value?._id === doc._id) {
             // replace the imageCache entry
-            imageCache.replace(tempId, insertedId);
+            imageCache.replaceId(tempId, insertedId);
 
             replaceImageReferenceInLiveEditor(tempId, insertedId);
 

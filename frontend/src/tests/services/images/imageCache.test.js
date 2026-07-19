@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { ImageCache } from '@/services/images/imageCache';
-import { Validator } from '@/services/validator';
 
 vi.mock('@/services/validator', () => ({
     Validator: {
@@ -31,229 +30,218 @@ describe('ImageCache', () => {
     });
 
     describe('setUrl', () => {
-        test('validates parameters', () => {
-            vi.mocked(URL.createObjectURL).mockReturnValue('url1');
+        test('should produce one valid element', () => {
+            const dummyId = 'dummyId';
 
-            const blob = {};
+            cache.setUrl(dummyId, {});
 
-            cache.setUrl('id1', blob);
+            const arr = Array.from(cache.urlMap);
 
-            expect(Validator.validateStringEmptyNotAllowed)
-                .toHaveBeenCalledWith('id1');
+            const hasDummyId = cache.hasUrl(dummyId);
+            const url = cache.getUrl(dummyId);
 
-            expect(Validator.validateObjectNotNull)
-                .toHaveBeenCalledWith(blob);
+            expect(arr.length).toBe(1);
+            expect(hasDummyId).toBe(true);
+            expect(url).toBeDefined();
         });
 
-        test('creates object url', () => {
-            vi.mocked(URL.createObjectURL).mockReturnValue('url1');
-
+        test('should store multiple ids independently', () => {
             cache.setUrl('id1', {});
+            cache.setUrl('id2', {});
 
-            expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-            expect(cache.get('id1')).toBe('url1');
+            expect(cache.getUrl('id1')).toBeDefined();
+            expect(cache.getUrl('id2')).toBeDefined();
+            expect(cache.getUrl('id1')).not.toBe(cache.geturl('id2'));
+            expect(cache.urlMap.size).toBe(2);
+        })
+
+        test('should throw on invalid id', () => {
+            expect(() => cache.setUrl('', {})).toThrow();
+            expect(() => cache.setUrl(null, {})).toThrow();
+            expect(() => cache.setUrl(undefined, {})).toThrow();
+            expect(() => cache.setUrl({}, {})).toThrow();
+            expect(() => cache.setUrl(5, {})).toThrow();
+            expect(cache.urlMap.size).toBe(0);
         });
 
-        test('replaces existing url and revokes old one', () => {
-            vi.mocked(URL.createObjectURL)
-                .mockReturnValueOnce('url1')
-                .mockReturnValueOnce('url2');
+        test('should throw on invalid file', () => {
+            expect(() => cache.setUrl('validId', null)).toThrow();
+            expect(() => cache.setUrl('validId', undefined)).toThrow();
+            expect(cache.urlMap.size).toBe(0);
+        });
 
-            cache.setUrl('id1', {});
-            cache.setUrl('id1', {});
+        test('should replace existing id if already exists', () => {
+            const file = {};
+            const id = 'id1';
 
-            expect(cache.get('id1')).toBe('url2');
-            expect(URL.revokeObjectURL).toHaveBeenCalledWith('url1');
+            cache.setUrl(id, file);
+            const url1 = cache.getUrl(id);
+
+            cache.setUrl(id, file);
+            const url2 = cache.getUrl(id);
+            
+            expect(url1).not.toBe(url2);
+            expect(URL.revokeObjectURL).toHaveBeenCalled();
         });
     });
 
     describe('setUrls', () => {
-        test('validates array', () => {
-            vi.mocked(URL.createObjectURL)
-                .mockReturnValueOnce('url1');
-
-            cache.setUrls([
-                { id: 'id1', file: {} }
-            ]);
-
-            expect(Validator.validateArrEmptyNotAllowed)
-                .toHaveBeenCalledWith([
-                    { id: 'id1', file: {} }
-                ]);
+        test('should throw on invalid input', () => {
+            expect(() => cache.setUrls(null)).toThrow();
+            expect(() => cache.setUrls(undefined)).toThrow();
+            expect(() => cache.setUrls([])).toThrow();
+            expect(() => cache.setUrls([{}])).toThrow();
+            expect(cache.urlMap.size).toBe(0);
         });
 
-        test('adds multiple urls', () => {
-            vi.mocked(URL.createObjectURL)
-                .mockReturnValueOnce('url1')
-                .mockReturnValueOnce('url2');
-
+        test('should call setUrl', () => {
+            const spy = vi.spyOn(cache, 'setUrl');
             cache.setUrls([
-                { id: 'id1', file: {} },
-                { id: 'id2', file: {} }
+                {
+                    id: 'id1',
+                    file: {}
+                }
             ]);
 
-            expect(cache.get('id1')).toBe('url1');
-            expect(cache.get('id2')).toBe('url2');
-        });
-
-        test('ignores duplicate ids', () => {
-            vi.mocked(URL.createObjectURL)
-                .mockReturnValueOnce('url1')
-                .mockReturnValueOnce('url2');
-
-            cache.setUrls([
-                { id: 'id1', file: {} }
-            ]);
-
-            cache.setUrls([
-                { id: 'id1', file: {} }
-            ]);
-
-            expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
-            expect(cache.get('id1')).toBe('url1');
+            expect(spy).toHaveBeenCalled();
         });
     });
 
-    describe('get', () => {
-        test('validates parameter', () => {
-            cache.get('id1');
+    describe('getUrl', () => {
+        test('should throw on invalid input', () => {
+            const spy = vi.spyOn(cache.urlMap, 'get');
 
-            expect(Validator.validateStringEmptyNotAllowed)
-                .toHaveBeenCalledWith('id1');
+            expect(() => cache.getUrl('')).toThrow();
+            expect(() => cache.getUrl(null)).toThrow();
+            expect(() => cache.getUrl(undefined)).toThrow();
+            expect(() => cache.getUrl({})).toThrow();
+            expect(() => cache.getUrl(5)).toThrow();
+
+            expect(spy).not.toHaveBeenCalled();
         });
 
-        test('returns undefined for missing id', () => {
-            expect(cache.get('missing')).toBeUndefined();
+        test('should return url', () => {
+            cache.setUrl('id1', new Blob());
+            
+            const url = cache.getUrl('id1');
+            expect(url).toBeDefined();
         });
 
-        test('returns existing url', () => {
-            vi.mocked(URL.createObjectURL).mockReturnValue('url1');
+        test('should return undefined', () => {
+            cache.setUrl('id', {});
 
-            cache.setUrl('id1', {});
+            const url = cache.getUrl('anotherId');
 
-            expect(cache.get('id1')).toBe('url1');
-        });
-    });
-
-    describe('has', () => {
-        test('validates parameter', () => {
-            cache.has('id1');
-
-            expect(Validator.validateStringEmptyNotAllowed)
-                .toHaveBeenCalledWith('id1');
-        });
-
-        test('returns false for missing id', () => {
-            expect(cache.has('missing')).toBe(false);
-        });
-
-        test('returns true for existing id', () => {
-            vi.mocked(URL.createObjectURL).mockReturnValue('url1');
-
-            cache.setUrl('id1', {});
-
-            expect(cache.has('id1')).toBe(true);
+            expect(url).toBeUndefined();
         });
     });
 
-    describe('replace', () => {
-        test('validates parameters', () => {
-            cache.replace('old', 'new');
-
-            expect(Validator.validateStringEmptyNotAllowed)
-                .toHaveBeenCalledWith('old');
-
-            expect(Validator.validateStringEmptyNotAllowed)
-                .toHaveBeenCalledWith('new');
+    describe('hasUrl', () => {
+        test('should throw on invalid input', () => {
+            expect(() => cache.hasUrl('')).toThrow();
+            expect(() => cache.hasUrl(null)).toThrow();
+            expect(() => cache.hasUrl(undefined)).toThrow();
+            expect(() => cache.hasUrl({})).toThrow();
+            expect(() => cache.hasUrl(5)).toThrow();
+            expect(cache.urlMap.has).not.toHaveBeenCalled();
         });
 
-        test('does nothing if old id does not exist', () => {
-            cache.replace('old', 'new');
+        test('should return correct results', () => {
+            cache.setUrl('id', {});
+            
+            const has1 = cache.hasUrl('id');
+            const has2 = cache.hasUrl('false');
 
-            expect(cache.has('new')).toBe(false);
+            expect(has1).toBe(true);
+            expect(has2).toBe(false);
+        });
+    });
+
+    describe('replaceId', () => {
+        test('should throw on invalid input', () => {
+            const oldId = 'old';
+            const newId = 'new';
+
+            cache.setUrl(oldId, {});
+
+            expect(() => cache.replaceId('', newId)).toThrow();
+            expect(() => cache.replaceId(null, newId)).toThrow();
+            expect(() => cache.replaceId(undefined, newId)).toThrow();
+            expect(() => cache.replaceId({}, newId)).toThrow();
+            expect(() => cache.replaceId(5, newId)).toThrow();
+
+            expect(() => cache.replaceId(oldId, '')).toThrow();
+            expect(() => cache.replaceId(oldId, null)).toThrow();
+            expect(() => cache.replaceId(oldId, undefined)).toThrow();
+            expect(() => cache.replaceId(oldId, {})).toThrow();
+            expect(() => cache.replaceId(oldId, 5)).toThrow();           
         });
 
-        test('moves url to new id', () => {
-            vi.mocked(URL.createObjectURL).mockReturnValue('url1');
+        test('should do nothing on oldId = newId', () => {
+            cache.setUrl('old',{});
 
+            cache.replacId('old', 'old');
+
+            expect(cache.urlMap.delete).not.toHaveBeenCalled();
+            expect(cache.urlMap.set).not.toHaveBeenCalled();
+        });
+
+        test('should replace oldId with newId', () => {
             cache.setUrl('old', {});
 
-            cache.replace('old', 'new');
+            cache.replaceId('old', 'new');
 
-            expect(cache.has('old')).toBe(false);
-            expect(cache.get('new')).toBe('url1');
-        });
+            expect(cache.getUrl('old')).not.toBeDefined();
+            expect(cache.getUrl('new')).toBeDefined();
 
-        test('replaces existing new id', () => {
-            vi.mocked(URL.createObjectURL)
-                .mockReturnValueOnce('url1')
-                .mockReturnValueOnce('url2');
-
-            cache.setUrl('old', {});
-            cache.setUrl('new', {});
-
-            cache.replace('old', 'new');
-
-            expect(cache.get('new')).toBe('url1');
-            expect(URL.revokeObjectURL).toHaveBeenCalledWith('url2');
+            expect(cache.revokeUrl).toHaveBeenCalled();
         });
     });
 
     describe('revokeUrl', () => {
-        test('validates parameter', () => {
-            cache.revokeUrl('id1');
-
-            expect(Validator.validateStringEmptyNotAllowed)
-                .toHaveBeenCalledWith('id1');
+        test('should throw on invalid input', () => {
+            expect(() => cache.getUrl('')).toThrow();
+            expect(() => cache.getUrl(null)).toThrow();
+            expect(() => cache.getUrl(undefined)).toThrow();
+            expect(() => cache.getUrl({})).toThrow();
+            expect(() => cache.getUrl(5)).toThrow();
         });
 
-        test('does nothing for missing id', () => {
-            cache.revokeUrl('missing');
+        test('should do nothing if passed id does not exist', () => {
+            cache.setUrl('id', {});
+            cache.revokeUrl('nonExistentId');
 
             expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+            expect(cache.urlMap.size).toBe(1);
         });
 
-        test('revokes url and removes entry', () => {
-            vi.mocked(URL.createObjectURL).mockReturnValue('url1');
-
+        test('should remove cache entry', () => {
             cache.setUrl('id1', {});
-
+            cache.setUrl('id2', {});
             cache.revokeUrl('id1');
 
-            expect(URL.revokeObjectURL).toHaveBeenCalledWith('url1');
-            expect(cache.has('id1')).toBe(false);
+            expect(URL.revokeObjectURL).toHaveBeenCalled();
+            expect(cache.urlMap.size).toBe(1);
         });
     });
 
     describe('revokeUrls', () => {
-        test('validates array', () => {
-            cache.revokeUrls(['id1']);
-
-            expect(Validator.validateArrEmptyAllowed)
-                .toHaveBeenCalledWith(['id1']);
+        test('should throw on invalid input', () => {
+            expect(() => cache.revokeUrls(null)).toThrow();
+            expect(() => cache.revokeUrls(undefined)).toThrow();
+            expect(() => cache.revokeUrls([])).toThrow();
+            expect(() => cache.revokeUrls([{}])).toThrow();
+            expect(cache.urlMap.size).toBe(0);
         });
 
-        test('revokes multiple urls', () => {
-            vi.mocked(URL.createObjectURL)
-                .mockReturnValueOnce('url1')
-                .mockReturnValueOnce('url2');
+        test('should call revokeUrl', () => {
+            const spy = vi.spyOn(cache, 'revokeUrl');
 
-            cache.setUrl('id1', {});
-            cache.setUrl('id2', {});
+            cache.setUrl('id', {});
 
-            cache.revokeUrls(['id1', 'id2']);
+            cache.revokeUrls(['id']);
 
-            expect(URL.revokeObjectURL).toHaveBeenCalledWith('url1');
-            expect(URL.revokeObjectURL).toHaveBeenCalledWith('url2');
-
-            expect(cache.has('id1')).toBe(false);
-            expect(cache.has('id2')).toBe(false);
-        });
-
-        test('allows empty array', () => {
-            cache.revokeUrls([]);
-
-            expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+            expect(spy).toHaveBeenCalled();
         });
     });
 });

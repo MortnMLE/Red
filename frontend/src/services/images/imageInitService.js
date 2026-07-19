@@ -270,7 +270,7 @@ export async function syncFromLocalToServer(embeddedImageIds, serverImages,
             udpateEditorContent(newContent);
 
             // replace existing URL
-            imageCache.replace(requestedImages[i]._id, newIds[i]);
+            imageCache.replaceId(requestedImages[i]._id, newIds[i]);
         // for other documents replace the id in the stored document entry
         } else {
             // fetch local document from storage
