@@ -12,6 +12,7 @@ import { endpointDocByUser, endpointDocDelete, endpointDocNew, endpointPatch } f
 import { DEFAULT_DOCUMENT } from '@/constants/defaultDocument';
 import { debouncer } from '@/services/debouncer';
 import { DB_DOCUMENTS } from '@/constants/stores';
+import { Validator } from '@/services/validator';
 
 //state
 const documents = ref([]);
@@ -33,6 +34,15 @@ const openDocuments = computed (() =>
         doc => openDocumentIds.value.includes(doc._id)
     )
 );
+
+export function getDocumentById(id) {
+    Validator.validateArrEmptyAllowed(documents.value);
+    Validator.validateStringEmptyNotAllowed(id);
+
+    return documents.value.find(
+        (doc) => doc._id === id
+    );
+}
 
 export function useDocuments(options = {}) {
     // document: 
@@ -379,41 +389,36 @@ export function useDocuments(options = {}) {
     }
 
     function closeDocument(id) {
-        if (!id || id === '') {
-            throw new Error(`useDocument.closeDocument: ${id}`);
-        }
+        // validate parameter
+        Validator.validateStringEmptyNotAllowed(id);
 
+        // remove id from openDocuments
         openDocumentIds.value = openDocumentIds.value.filter(
                 openDocId => openDocId !== id,
-            );
-
-        if (activeDocumentId.value === id) {
-            activeDocumentId.value = '';
-        }
+        );
     }
 
     function setActiveDocument(id) {
-        console.log(`entered setActiveDocument: ${id}`);
-        if (!id || id === '') {
-            throw new Error(`useDocument.setActiveDocument: ${id}`);
-        } 
-        const doc  = documents.value.find(
+        // validate paramter
+        Validator.validateStringEmptyNotAllowed(id);
+
+        const doc = documents.value?.find(
             doc => doc._id === id
         );
 
-        activeDocumentId.value = doc._id;
+        activeDocumentId.value = doc?._id;
     }
 
     function shiftActiveDocument(docToBeClosed, offset) {
-        if (docToBeClosed === null || 
-            offset === null || offset === 0
-        ){
-            throw new Error(`useDocument.setActiveDocument:` + 
-                `docToBeClosed: ${docToBeClosed}` +
-                `offset: ${offset}`
-            );
+        // validate parameters
+        Validator.validateObjectNotNull(docToBeClosed);
+        Validator.validateNumber(offset);
+        
+        if (offset === 0) {
+            throw new Error('must not be 0');
         }
 
+        // 
         const index = openDocumentIds.value.findIndex(
             openDocId => openDocId === docToBeClosed._id
         );
@@ -429,6 +434,43 @@ export function useDocuments(options = {}) {
         } else if (index !== -1) {
             activeDocumentId.value = null;
         }
+    }
+
+    function getNextActiveDocument(docToBeClosed, offset) {
+        Validator.validateObjectNotNull(docToBeClosed);
+        Validator.validateNumber(offset);
+
+        if (offset === 0) {
+            return activeDocument.value;
+        }
+
+        console.log(`docToBeClosed: ${docToBeClosed._id}`);
+        console.log(`activeDocument: ${activeDocumentId.value}`);
+        if (docToBeClosed._id !== activeDocumentId.value) {
+            console.log(`not activeDocument. exit;`);
+            return activeDocument.value;
+        }
+
+        // 
+        const index = openDocumentIds.value.findIndex(
+            id => id === docToBeClosed._id
+        );
+
+        let nextId = null;
+
+        console.log(`activeIndex: ${index}`);
+
+        if (index > 0) {
+            nextId = openDocumentIds.value[index + Number(offset)];
+        } else if  (index === 0 && openDocumentIds.value.length > 1) {
+            nextId = openDocumentIds.value[index + 1];
+        }
+
+        if (!nextId) {
+            return undefined;
+        }
+
+        return getDocumentById(nextId);
     }
 
     const saveLocalDebounced = debouncer(
@@ -503,6 +545,7 @@ export function useDocuments(options = {}) {
         updateDocumentContent,
         shiftActiveDocument,
         closeDocument,
-        docsInitialized
+        docsInitialized,
+        getNextActiveDocument
     };
 }

@@ -100,7 +100,8 @@ const {
   updateDocumentContent,
   shiftActiveDocument,
   closeDocument,
-  docsInitialized
+  docsInitialized,
+  getNextActiveDocument
 } = useDocuments({
   countTempIds,
   updateCountTempIds
@@ -139,7 +140,7 @@ setUpdateEditorContent(updateEditorContent);
 
 async function handleChangeActiveDocument(nextDocumentId) {
   // hold the id of the currently active id
-  const previousDocumentId = activeDocument.value?._id;
+  const previousDocumentId = activeDocument.value._id;
 
   // if the function was triggered by a click on the activeDocument then exit
   if (nextDocumentId === previousDocumentId) {
@@ -148,6 +149,7 @@ async function handleChangeActiveDocument(nextDocumentId) {
   
   // initialize imageCache for the new document
   await initializeImageCacheForDocument(nextDocumentId);
+
   // revoke imageCache entries for the previous document
   await revokeImageUrlsForDocId(previousDocumentId);
 
@@ -155,10 +157,17 @@ async function handleChangeActiveDocument(nextDocumentId) {
   setActiveDocument(nextDocumentId);
 }
 
-async function handleCloseDocument(document) {
-  shiftActiveDocument(document, -1);
-  await revokeImageUrlsForDocId(document._id);
-  closeDocument(document._id);
+async function handleCloseDocument(docToBeClosed) {
+  console.log(`handleCloseDocument, activeDocument: ${activeDocument.value._id}`);
+  const nextDocument = getNextActiveDocument(docToBeClosed, -1);
+
+  if (!nextDocument) {
+    setActiveDocument('welcome');
+  } else if (nextDocument._id !== activeDocument.value._id) {
+    await handleChangeActiveDocument(nextDocument._id);
+  }
+
+  closeDocument(docToBeClosed._id);
 }
 
 async function handleDeleteActiveDocument() {
