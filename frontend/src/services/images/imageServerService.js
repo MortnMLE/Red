@@ -39,8 +39,6 @@ export async function newServerImage(docId, name, file) {
         // get json content of response
         const json = await response.json();
 
-        console.log(`new image returned: ${json.id}`);
-
         // if image has been successfully created return id
         if (json.success) {
             result = json.id;
@@ -56,18 +54,25 @@ export async function deleteImageFromServer(id) {
     // valiate parameter
     Validator.validateStringEmptyNotAllowed(id);
 
+    try {
     // delete the id from the server
-    const response = serverRequest(
-        'DELETE',
-        { id: id },
-        endpointImgDelete
-    );
+        const json = await serverRequest(
+            'DELETE',
+            { id },
+            endpointImgDelete
+        );
 
-    return response.success;
+        return json.success;
+    } catch (err) {
+        return false;
+    }
 }
 
 // fetches all imageIds that belong to passed documents
 export async function serverFetchImageIdsForDocuments(documents) {
+    // validate parameter
+    Validator.validateArrEmptyAllowed(documents);
+    
     // initialize tasks and result
     const tasks = [];
     const result = {
@@ -102,9 +107,15 @@ export async function serverFetchImageIdsForDocuments(documents) {
             continue;
         }
 
-        // get json content
-        const json = await response.json();
-        
+        // try getting json content
+        let json;
+        try {
+            json = await response.json();
+        } catch {
+            result.serverWasReached = false;
+            return result;
+        }
+
         // push individual imageIds to result
         for (const imageId of json.images) {
             result.arr.push(imageId);
@@ -116,37 +127,22 @@ export async function serverFetchImageIdsForDocuments(documents) {
 
 // fetches all image objects for passed image ids
 export async function serverFetchImagesForIds(ids) {
-    // initialize result object
-    const result = [];
+    // validate parameter
+    Validator.validateArrEmptyAllowed(ids);
 
     // asynchronous fetch of all required images
     const tasks = [];
+
     for (const id of ids) {
         tasks.push(fetch(
             endpointImageGetById + id
         ));
     }
 
-    let responses = [];
     // await for all fetches to finish
     try {
-        responses = await Promise.all(tasks);
+        return await Promise.all(tasks);
     } catch {
-
-        return result;
+        return [];
     }
-
-    return responses;
-    // consolidate valid responses
-    // for (const response of responses) {
-    //     if (!response) {
-    //         continue;
-    //     }
-
-    //     const json = await response.json();
-    //     result.push(json);        
-    // }
-
-    // return valid image objects
-    // return result;
 }
