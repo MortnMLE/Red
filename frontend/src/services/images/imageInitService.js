@@ -77,7 +77,6 @@ export async function fetchMissingImages(embeddedImageIds, serverImageIds, image
 
     // if requiredImages is empty no further work is needed
     if (embeddedImageIds.length === 0) {
-        console.log(`embeddedImages.length = 0`);
         return;
     }
 
@@ -89,7 +88,6 @@ export async function fetchMissingImages(embeddedImageIds, serverImageIds, image
 
         // add the id to requests, if the local entry does not exist
         if (await requiresFetch(id, serverImageIds)) {
-            console.log(`pushing fetch for ${id}`);
             requestedImageIds.push(id)
             requests.push(id);
         } 
@@ -97,18 +95,15 @@ export async function fetchMissingImages(embeddedImageIds, serverImageIds, image
 
     // if there is nothing to request exit the function
     if (requests.length === 0) {
-        console.log(`zero requests`);
         return;
     }
 
     // fetch the image objects from the server
     const serverImages = await serverFetchImagesForIds(requests);
-    console.log(`serverImages fetched: ${serverImages.length}`);
 
     Validator.validateArrEmptyAllowed(serverImages);
 
     for (let i = 0; i < serverImages.length; i++) {
-        console.log(`adding image to local: ${requestedImageIds[i]}`);
         await addServerImageToLocalStorage(
             serverImages[i], 
             requestedImageIds[i], 
@@ -121,7 +116,6 @@ async function addServerImageToLocalStorage(image, id, docId) {
     Validator.validateObjectNotNull(image);
     Validator.validateStringEmptyNotAllowed(id);
 
-    console.log(`addServerImageToLocalStorage has been called`);
     // skip if server responded is not ok
     if (!image.ok) {
         return;
@@ -130,21 +124,7 @@ async function addServerImageToLocalStorage(image, id, docId) {
     // get the blob
     const blob = await image.blob();
 
-    console.log(`blob: ${blob}`);
-
     // add blob to local indexedDB storage
-
-    console.log(`addServerImageToLocalStorage: ${id}`);
-    console.log(`file: ${typeof blob}`);
-    console.log(`headers: ${image.headers}`);
-    console.log(`doc_id: ${docId}`);
-
-    for (const [key, value] of image.headers.entries()) {
-        console.log(key, value);
-    }
-
-    console.log(`${image.headers.get('Content-Disposition')}`);
-
     await addOrSetLocalRecord(
         DB_IMAGES,
         {
@@ -181,10 +161,6 @@ async function requiresFetch(id, serverImageIds) {
 export async function syncFromLocalToServer(embeddedImageIds, serverImages, 
     activeDocument, udpateEditorContent, imageCache
 ) {
-    console.log(`syncFromLocalToServer: ${embeddedImageIds}`); // delete later
-    console.log(`serverImages: ${serverImages}`); // delete later
-    console.log(`activeDocument: ${activeDocument.id}`); // delete later
-
     // validate parameters
     Validator.validateArrEmptyAllowed(embeddedImageIds);
     Validator.validateArrEmptyAllowed(serverImages);
