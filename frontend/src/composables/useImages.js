@@ -99,7 +99,8 @@ export function useImages(options = {}) {
         Validator.validateObjectNotNull(doc);
 
         // parse for image ids
-        const ids = Parser.parseImageIds(doc.content);
+        const parser = new Parser();
+        const ids = parser.parseImageIds(doc.content);
 
         // delete all images from the server and local storage
         for (const id of ids) {
@@ -169,7 +170,7 @@ export function useImages(options = {}) {
         }
 
         // fetch images that do not exist locally
-        await fetchMissingImages(embeddedImageIds, serverImages.arr, imageCache, imageIdToDocId);
+        await fetchMissingImages(embeddedImageIds, serverImages.arr, imageIdToDocId);
         // post images to server if they do not exist yet
         await syncFromLocalToServer(
             embeddedImageIds,

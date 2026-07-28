@@ -14,7 +14,7 @@ describe('imageServerService', () => {
     const validFile = new File(['Hallo'], 'hallo.txt');    
 
     afterEach(() => {
-        vi.restoreAllMocks();
+        vi.clearAllMocks()
     });
 
     describe('newServerImage', () => {

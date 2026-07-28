@@ -1,42 +1,51 @@
 import { Validator } from "@/services/validator"
+
 import { 
     addOrSetLocalRecord, 
     deleteLocalRecord, 
     getLocalRecord,
     localEntryExists
 } from "@/services/indexedDB/indexedDbService";
-import { serverFetchImageIdsForDocuments, serverFetchImagesForIds, newServerImage } from "@/services/images/imageServerService";
+
+import { 
+    serverFetchImageIdsForDocuments, 
+    serverFetchImagesForIds, 
+    newServerImage 
+} from "@/services/images/imageServerService";
+
 import { Parser } from '@/services/parser';
+
 import { 
     DB_DOCUMENTS,
     DB_IMAGES
 } from "@/constants/stores";
+
 import { ImageCache } from "./imageCache";
 
 // collects all embedded images from local documents
 // returns {id: string, doc_id: string}
-export function getEmbeddedImageIds(documents, imageIdToDocId) {
+export function getEmbeddedImageIds(documents, mapImageIdToDocId) {
     // validate parameter
     Validator.validateArrEmptyAllowed(documents);
-    Validator.validateObjectType(imageIdToDocId, Map);
+    Validator.validateObjectType(mapImageIdToDocId, Map);
 
     // initialize result
-    const result = [];
-
-    // if no documents exist return empty array
-    if (documents.length === 0) {
-        return result;
-    }
+    let result = [];
 
     // search documents and match against regex
     for (const doc of documents) {
         // parse
-        const ids = Parser.parseImageIds(doc.content);
+        try {  
+            // add the returned ids to result and set map entries
+            const parser = new Parser();
+            const ids = parser.parseImageIds(doc.content);
 
-        // add the returned ids to result and set map entries
-        for (const id of ids) {
-            result.push(id);
-            imageIdToDocId.set(id, doc._id)
+            for (const id of ids) {
+                result.push(id);
+                mapImageIdToDocId.set(id, doc._id)
+            };
+        } catch {
+            return result;
         }
     }
 
@@ -60,25 +69,18 @@ export async function getServerImageIds(documents) {
     Validator.validateObjectNotNull(result);
 
     if (!result.serverWasReached) {
-        return {arr: [], serverWasReached: true};
+        result.arr = [];
     } 
 
     return result;
 }
 
 // fetches images that do not exist locally from server
-export async function fetchMissingImages(embeddedImageIds, serverImageIds, imageCache, imageIdToDocId) {
+export async function fetchMissingImages(embeddedImageIds, serverImageIds, imageIdToDocId) {
     // validate parameters
     Validator.validateArrEmptyAllowed(embeddedImageIds);
     Validator.validateArrEmptyAllowed(serverImageIds);
-    Validator.validateObjectNotNull(imageCache);
-    Validator.validateObjectType(imageCache, ImageCache);
     Validator.validateObjectType(imageIdToDocId, Map);
-
-    // if requiredImages is empty no further work is needed
-    if (embeddedImageIds.length === 0) {
-        return;
-    }
 
     const requests = [];
     const requestedImageIds = [];
@@ -95,14 +97,19 @@ export async function fetchMissingImages(embeddedImageIds, serverImageIds, image
 
     // if there is nothing to request exit the function
     if (requests.length === 0) {
-        return;
+        return 0;
     }
 
     // fetch the image objects from the server
     const serverImages = await serverFetchImagesForIds(requests);
-
     Validator.validateArrEmptyAllowed(serverImages);
 
+    if (serverImages.length === 0) {
+        return 0;
+    }
+
+    
+    // add the image objects from the server to local storage
     for (let i = 0; i < serverImages.length; i++) {
         await addServerImageToLocalStorage(
             serverImages[i], 
@@ -110,33 +117,40 @@ export async function fetchMissingImages(embeddedImageIds, serverImageIds, image
             imageIdToDocId.get(serverImages[i])
         );
     }
+    
+    return 1;
 }
 
 async function addServerImageToLocalStorage(image, id, docId) {
     Validator.validateObjectNotNull(image);
     Validator.validateStringEmptyNotAllowed(id);
 
-    // skip if server responded is not ok
+    // skip if server response is not ok
     if (!image.ok) {
-        return;
+        return 0;
     }
 
-    // get the blob
-    const blob = await image.blob();
+    try {
+        // get the blob
+        const blob = await image.blob();
 
-    // add blob to local indexedDB storage
-    await addOrSetLocalRecord(
-        DB_IMAGES,
-        {
-            _id: id,
-            file: blob,
-            name: image.headers
-                .get('Content-Disposition')
-                ?.match(/filename="(.+)"/)?.[1] ?? '',
-            user_id: localStorage.userId,
-            doc_id: docId
-        }
-    );
+        // add blob to local indexedDB storage
+        await addOrSetLocalRecord(
+            DB_IMAGES,
+            {
+                _id: id,
+                file: blob,
+                name: image.headers
+                    .get('Content-Disposition')
+                    ?.match(/filename="(.+)"/)?.[1] ?? '',
+                user_id: localStorage.userId,
+                doc_id: docId
+            }
+        );
+    } catch {
+        return 0;
+    }
+    return 1;
 }
 
 async function requiresFetch(id, serverImageIds) {

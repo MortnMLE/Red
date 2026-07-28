@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-
 import { ImageCache } from '@/services/images/imageCache';
 
 describe('ImageCache', () => {
