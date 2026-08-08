@@ -71,7 +71,7 @@ export class Validator{
             throw new Error('object must not be null or undefined');
         }
 
-        if (typeof obj !== 'object') {
+        if (typeof obj !== 'object' || Array.isArray(obj)) {
             throw new Error('Input must be an object');
         }
     }

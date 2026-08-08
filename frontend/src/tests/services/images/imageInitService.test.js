@@ -1,12 +1,15 @@
-import { describe, expect, vi, spyOn } from 'vitest';
+import { describe, expect, vi } from 'vitest';
 
 vi.mock('@/services/images/imageServerService', () => ({
     serverFetchImageIdsForDocuments: vi.fn(),
     serverFetchImagesForIds: vi.fn(),
+    newServerImage: vi.fn()
 }));
 
 vi.mock('@/services/indexedDB/indexedDbService', () => ({
     localEntryExists: vi.fn(),
+    addOrSetLocalRecord: vi.fn(),
+    getLocalRecord: vi.fn(),
 }));
 
 import { 
@@ -14,24 +17,29 @@ import {
     getEmbeddedImageIds, 
     getServerImageIds,
     addServerImageToLocalStorage,
-    requiresFetch
+    requiresFetch,
+    postMissingImages
 } from '@/services/images/imageInitService';
 
 import { Parser } from '@/services/parser';
 
 import { 
+    newServerImage,
     serverFetchImageIdsForDocuments,
     serverFetchImagesForIds
 } from '@/services/images/imageServerService';
-import { localEntryExists } from '@/services/indexedDB/indexedDbService';
+import { 
+    getLocalRecord, 
+    localEntryExists, 
+    getLocalRecord 
+} from '@/services/indexedDB/indexedDbService';
 
 describe('imageInitService', () => {
     let parser;
 
     beforeEach(() => {
-        vi.restoreAllMocks;
         parser = new Parser();
-    })
+    });
 
     afterEach(() => {
         vi.restoreAllMocks()
@@ -155,51 +163,38 @@ describe('imageInitService', () => {
 
     describe('fetchMissingImages', async () => {
         test('should throw on invalid inputs', async () => {
-            const map = new Map();
-
-            await expect(fetchMissingImages(123, [], map)).rejects.toThrow();
-            await expect(fetchMissingImages('', [], map)).rejects.toThrow();
-            await expect(fetchMissingImages({}, [], map)).rejects.toThrow();
-            await expect(fetchMissingImages(true, [], map)).rejects.toThrow();
-            await expect(fetchMissingImages(null, [], map)).rejects.toThrow();
-            await expect(fetchMissingImages(undefined, [], map)).rejects.toThrow();
+            await expect(fetchMissingImages(123, [])).rejects.toThrow();
+            await expect(fetchMissingImages('', [])).rejects.toThrow();
+            await expect(fetchMissingImages({}, [])).rejects.toThrow();
+            await expect(fetchMissingImages(true, [])).rejects.toThrow();
+            await expect(fetchMissingImages(null, [])).rejects.toThrow();
+            await expect(fetchMissingImages(undefined, [])).rejects.toThrow();
             
-            await expect(fetchMissingImages([], 123, map)).rejects.toThrow();
-            await expect(fetchMissingImages([], '', map)).rejects.toThrow();
-            await expect(fetchMissingImages([], {}, map)).rejects.toThrow();
-            await expect(fetchMissingImages([], true, map)).rejects.toThrow();
-            await expect(fetchMissingImages([], null, map)).rejects.toThrow();
-            await expect(fetchMissingImages([], undefined, map)).rejects.toThrow();
-
-            await expect(fetchMissingImages([], [], 123)).rejects.toThrow();
-            await expect(fetchMissingImages([], [], '')).rejects.toThrow();
-            await expect(fetchMissingImages([], [], {})).rejects.toThrow();
-            await expect(fetchMissingImages([], [], null)).rejects.toThrow();
-            await expect(fetchMissingImages([], [], undefined)).rejects.toThrow();
-            await expect(fetchMissingImages([], [], [])).rejects.toThrow();
+            await expect(fetchMissingImages([], 123)).rejects.toThrow();
+            await expect(fetchMissingImages([], '')).rejects.toThrow();
+            await expect(fetchMissingImages([], {})).rejects.toThrow();
+            await expect(fetchMissingImages([], true)).rejects.toThrow();
+            await expect(fetchMissingImages([], null)).rejects.toThrow();
+            await expect(fetchMissingImages([], undefined)).rejects.toThrow();
         });
 
         test('should throw on invalid types of embeddedImageIds elements', async () => {
-            const map = new Map();
-            await expect(fetchMissingImages([1], [], map)).rejects.toThrow();
-            await expect(fetchMissingImages([true], [], map)).rejects.toThrow();
-            await expect(fetchMissingImages([{}], [], map)).rejects.toThrow();
-            await expect(fetchMissingImages([null], [], map)).rejects.toThrow();
-            await expect(fetchMissingImages([undefined], [], map)).rejects.toThrow();
+            await expect(fetchMissingImages([1], [])).rejects.toThrow();
+            await expect(fetchMissingImages([true], [])).rejects.toThrow();
+            await expect(fetchMissingImages([{}], [])).rejects.toThrow();
+            await expect(fetchMissingImages([null], [])).rejects.toThrow();
+            await expect(fetchMissingImages([undefined], [])).rejects.toThrow();
         });
 
-        test('should not call serverFetchImagesForIds, if serverImageIds is empty', async () => {
+        test('should return empty array, if serverImageIds is empty', async () => {
            vi.mocked(localEntryExists).mockResolvedValue(false);
 
-            const result = await fetchMissingImages(
-                ['id1'], [], new Map()
-            );
+            const result = await fetchMissingImages(['id1'], []);
 
-            expect(serverFetchImagesForIds).not.toHaveBeenCalled();
-            expect(result).toBe(0);
+            expect(result).toEqual([]);
         });
 
-        test('should not call addServerImageToLocalStorage, if fetch from server is empty', async () => {
+        test('should return empty array, if fetch from server is empty', async () => {
             vi.mocked(localEntryExists).mockResolvedValue(false);
             vi.mocked(serverFetchImagesForIds).mockResolvedValue([]);
             
@@ -207,27 +202,152 @@ describe('imageInitService', () => {
                 ['id1'], ['id1'], new Map()
             );
             
-            expect(result).toBe(0);
-            expect(addServerImageToLocalStorage).not.toHaveBeenCalled();
+            expect(result).toEqual([]);
         });
 
-        test('should return 1 and call addServerImageToLocalStorage', async () => {
-            vi.mocked(serverFetchImagesForIds).mockResolvedValue([{}]);
+        test('should return array with object', async () => {
+            const obj = new Object();
+            
+            vi.mocked(serverFetchImagesForIds).mockResolvedValue([
+                {image: obj, id: 'serverImageId'}
+            ]);
 
             const result = await fetchMissingImages(
-                ['embeddedId1'], ['serverImageId1'], new Map()
+                ['serverImageId'], ['serverImageId']
             );
 
-            expect(result).toBe(1);
-            expect(addServerImageToLocalStorage).toHaveBeenCalled();
+            expect(result).toEqual([{image: obj, id: 'serverImageId'}])
         });
     });
 
     describe('addServerImageToLocalStorage', async () => {
-        
+        test('should throw on invalid inputs', async () => {
+            await expect(addServerImageToLocalStorage(1, 'id', 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage(true, 'id', 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage([], 'id', 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage('string', 'id', 'id')).rejects.toThrow();
+
+            await expect(addServerImageToLocalStorage({}, 1, 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, true, 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, [], 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, {}, 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, '', 'id')).rejects.toThrow();
+
+            await expect(addServerImageToLocalStorage({}, 'id', 1)).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, 'id', true)).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, 'id', [])).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, 'id', {})).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, 'id', '')).rejects.toThrow();
+        });
+
+        test('should return 0, if image.ok is false', async () => {
+            const image = {ok: false};
+
+            const result = await addServerImageToLocalStorage(image, 'id', 'id');
+
+            expect(result).toBe(0);
+        });
+
+        test('should return 0 on error', async () => {
+            const image = {
+                ok: true,
+                blob: vi.fn().mockResolvedValue(new Error('blob failed'))
+            };
+
+            const result = await addServerImageToLocalStorage(image, 'id', 'id');
+
+            expect(result).toBe(0);
+        });
+
+        test('should return 1', async () => {
+            const image = {
+                ok: true,
+                blob: vi.fn().mockResolvedValue(new Blob(['test'])),
+                headers: new Headers({
+                    'Content-Disposition': 'attachment; filename="image.png"',
+                })
+            };
+
+            const result = await addServerImageToLocalStorage(image, 'id', 'id');
+
+            expect(result).toBe(1);
+        });
     });
 
-    describe('syncFromLocalToServer', async () => {
+    describe('requiresFetch', async () => {
+        test('should throw on invalid input', async () => {
+            await expect(requiresFetch(1, [])).rejects.toThrow();
+            await expect(requiresFetch(true, [])).rejects.toThrow();
+            await expect(requiresFetch({}, [])).rejects.toThrow();
+            await expect(requiresFetch([], [])).rejects.toThrow();
+            await expect(requiresFetch('', [])).rejects.toThrow();
 
+            await expect(requiresFetch('id', 1)).rejects.toThrow();
+            await expect(requiresFetch('id', true)).rejects.toThrow();
+            await expect(requiresFetch('id', {})).rejects.toThrow();
+            await expect(requiresFetch('id', 'string')).rejects.toThrow();
+        });
+
+        test('should return false when localEntryExists throws', async () => {
+            vi.mocked(localEntryExists).mockThrow();
+
+            const result = await requiresFetch('id', ['id']);
+
+            expect(result).toBe(false);
+        });
+
+        test('should return true', async () => {
+            vi.mocked(localEntryExists).mockResolvedValue(false);
+
+            const result = await requiresFetch('id', ['id']);
+
+            expect(result).toBe(true);
+        });
+    });
+
+    describe('postMissingImages', async () => {
+        test('should throw on invalid input', async () => {
+            await expect(postMissingImages(1, [])).rejects.toThrow();
+            await expect(postMissingImages(true, [])).rejects.toThrow();
+            await expect(postMissingImages({}, [])).rejects.toThrow();
+            await expect(postMissingImages('', [])).rejects.toThrow();
+
+            await expect(postMissingImages([], 1)).rejects.toThrow();
+            await expect(postMissingImages([], true)).rejects.toThrow();
+            await expect(postMissingImages([], {})).rejects.toThrow();
+            await expect(postMissingImages([], '')).rejects.toThrow();
+        });
+
+        test('should return empty array', async () => {
+            const result = await postMissingImages([], []);
+
+            expect(result).toEqual([]);
+        });
+
+        test('should not throw on error and return empty array', async () => {
+            vi.mocked(getLocalRecord).mockThrow();
+            
+            const result = await postMissingImages(['id'], ['id1']);
+
+            expect(result).toEqual([]);
+            expect(getLocalRecord).toHaveBeenCalled();
+        });
+
+        test('should return two objects', async () => {
+            const dummyImage = {doc_id: 'docId', name: 'name', file: {}};
+            vi.mocked(getLocalRecord).mockResolvedValue(dummyImage);
+
+            vi.mocked(newServerImage)
+                .mockResolvedValueOnce('newid1')
+                .mockThrowOnce()
+                .mockResolvedValueOnce('newid3');
+
+            const result = await postMissingImages(['id1', 'id2', 'id3'], []);
+            
+            expect(result).toEqual([
+                { image: dummyImage, newId: 'newid1' },
+                { image: dummyImage, newId: 'newid3' }
+            ]);
+        });
     });
 });

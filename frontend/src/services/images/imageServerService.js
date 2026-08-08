@@ -126,22 +126,24 @@ export async function serverFetchImageIdsForDocuments(documents) {
 }
 
 // fetches all image objects for passed image ids
+// returns [{id, image}]
 export async function serverFetchImagesForIds(ids) {
     // validate parameter
     Validator.validateArrEmptyAllowed(ids);
 
     // asynchronous fetch of all required images
-    const tasks = [];
-
-    for (const id of ids) {
-        tasks.push(fetch(
-            endpointImageGetById + id
-        ));
-    }
-
-    // await for all fetches to finish
     try {
-        return await Promise.all(tasks);
+        const result = await Promise.all(ids.map(async (id) => {
+            //const response = await fetch(endpointImageGetById +id);
+            const response = await fetch(endpointImageGetById + id);
+            
+            return {
+                id,
+                image: response
+            };
+        }));
+
+        return result;
     } catch {
         return [];
     }

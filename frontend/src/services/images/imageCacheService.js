@@ -5,14 +5,23 @@ import { DB_IMAGES } from '@/constants/stores';
 
 let imageCache = null;
 
-// sets the imageCache reference
+// sets the imageCache module-level variable
 export function setImageCache(obj) {
     // validate parameter
     Validator.validateObjectNotNull(obj);
     Validator.validateObjectType(obj, ImageCache);
-    
-    // assign reference to local imageCache
+   
     imageCache = obj;
+}
+
+// returns the reference of the the module-level variable
+export function getImageCache() {
+    return imageCache;
+}
+
+// frees the module-level variable
+export function freeImageCache() {
+    imageCache = undefined;
 }
 
 // creates cache entries for all passed images
@@ -21,60 +30,41 @@ export function createCacheEntriesForImages(images) {
     // validate parameter
     Validator.validateObjectNotNull(imageCache);
     Validator.validateArrEmptyAllowed(images);
-
-    // exit if localImages is empty
-    if (images.length === 0) {
-        return;
-    }
     
-    // arr[{id: string, file: File}] for later setUrls call
-    const urlCreations = [];
-
     // populate urlCreations
     for (const image of images) {
         Validator.validateObjectNotNull(image);
         Validator.validateStringEmptyNotAllowed(image.id);
         Validator.validateObjectNotNull(image.file);
 
-        urlCreations.push({
-            id: image.id,
-            file: image.file
-        });
-    }
-
-    // call setUrls
-    if (urlCreations.length > 0) {
-        imageCache.setUrls(urlCreations);
+        imageCache.setUrl(image.id, image.file);
     }
 }
 
-// revokes all currently active 
+// revokes all currently active entries in imageCache for docId
 export async function revokeAllForDocId(docId) {
     // validate parameters
     Validator.validateStringEmptyNotAllowed(docId);
     Validator.validateObjectNotNull(imageCache);
 
-    // fetch all images for given docId
-    const images = await getLocalRecordsByIndex(
-        DB_IMAGES,
-        'doc_id',
-        docId
-    );
+    try {
+        // fetch all images for given docId
+        const images = await getLocalRecordsByIndex(
+            DB_IMAGES,
+            'doc_id',
+            docId
+        );
 
-    // validate that images is an array, may be empty
-    Validator.validateArrEmptyAllowed(images);
-
-    const revokeUrls = [];
-
-    // push individual ids to revokeUrls
-    for (const image of images) {
-        revokeUrls.push(image._id);
+        // push individual ids to revokeUrls
+        for (const image of images) {
+            imageCache.revokeUrl(image._id);
+        }    
+    } catch (err) {
+        console.warn('could not get local records for document id', err);
+        return 0;
     }
 
-    // free all in revokeUrls
-    if (revokeUrls.length > 0) {
-        imageCache.revokeUrls(revokeUrls);
-    }
+    return 1;
 }
 
 // fetches all images for docId and creates new cache entries
@@ -82,28 +72,34 @@ export async function createCacheEntriesForDocument(docId) {
     // validate parameter
     Validator.validateStringEmptyNotAllowed(docId);
     Validator.validateObjectNotNull(imageCache);
-    
-    // fetch IndexedDB-images for document id
-    const localImages = await getLocalRecordsByIndex(
-        DB_IMAGES,
-        'doc_id',
-        docId
-    );
-    
-    // validate that localImages is an array, may be empty
-    Validator.validateArrEmptyAllowed(localImages);
+   
+    try {
+        // fetch IndexedDB-images for document id
+        const localImages = await getLocalRecordsByIndex(
+            DB_IMAGES,
+            'doc_id',
+            docId
+        );
+        
+        // validate that localImages is an array, may be empty
+        Validator.validateArrEmptyAllowed(localImages);
 
-    const urlCreationImages = [];
+        const urlCreationImages = [];
 
-    // push individual objects to urlCreationImages
-    for (const image of localImages) {
-        urlCreationImages.push({
-            id: image._id,
-            file: image.file
-        });
-        console.log(`pushed to urlCreationImages: ${image._id}`);
+        // push individual objects to urlCreationImages
+        for (const image of localImages) {
+            urlCreationImages.push({
+                id: image._id,
+                file: image.file
+            });
+        }
+
+        // create all Url objects and set them to imageCache
+        await createCacheEntriesForImages(urlCreationImages);
+    } catch (err) {
+        console.warn('could not create cache entries', err);
+        return 0;
     }
 
-    // create all Url objects and set them to imageCache
-    await createCacheEntriesForImages(urlCreationImages);
+    return 1;
 }

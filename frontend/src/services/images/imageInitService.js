@@ -76,54 +76,36 @@ export async function getServerImageIds(documents) {
 }
 
 // fetches images that do not exist locally from server
-export async function fetchMissingImages(embeddedImageIds, serverImageIds, imageIdToDocId) {
+// returns [{image: response, id: string}]
+export async function fetchMissingImages(embeddedImageIds, serverImageIds) {
     // validate parameters
     Validator.validateArrEmptyAllowed(embeddedImageIds);
     Validator.validateArrEmptyAllowed(serverImageIds);
-    Validator.validateObjectType(imageIdToDocId, Map);
 
     const requests = [];
-    const requestedImageIds = [];
 
     for (const id of embeddedImageIds) {
         Validator.validateStringEmptyNotAllowed(id);
 
         // add the id to requests, if the local entry does not exist
         if (await requiresFetch(id, serverImageIds)) {
-            requestedImageIds.push(id)
             requests.push(id);
         } 
     }
 
     // if there is nothing to request exit the function
     if (requests.length === 0) {
-        return 0;
+        return [];
     }
 
     // fetch the image objects from the server
-    const serverImages = await serverFetchImagesForIds(requests);
-    Validator.validateArrEmptyAllowed(serverImages);
-
-    if (serverImages.length === 0) {
-        return 0;
-    }
-
-    
-    // add the image objects from the server to local storage
-    for (let i = 0; i < serverImages.length; i++) {
-        await addServerImageToLocalStorage(
-            serverImages[i], 
-            requestedImageIds[i], 
-            imageIdToDocId.get(serverImages[i])
-        );
-    }
-    
-    return 1;
+    return await serverFetchImagesForIds(requests);
 }
 
-async function addServerImageToLocalStorage(image, id, docId) {
+export async function addServerImageToLocalStorage(image, id, docId) {
     Validator.validateObjectNotNull(image);
     Validator.validateStringEmptyNotAllowed(id);
+    Validator.validateStringEmptyNotAllowed(docId);
 
     // skip if server response is not ok
     if (!image.ok) {
@@ -153,132 +135,64 @@ async function addServerImageToLocalStorage(image, id, docId) {
     return 1;
 }
 
-async function requiresFetch(id, serverImageIds) {
+export async function requiresFetch(id, serverImageIds) {
     Validator.validateStringEmptyNotAllowed(id);
     Validator.validateArrEmptyAllowed(serverImageIds);
-    let result = false;
 
-    if (
-        // if the image does not exist locally, but exists in the serverImages
-        // we need to fetch it
-        !(await localEntryExists(DB_IMAGES, id)) &&
-        serverImageIds.includes(id)
-    ){
-        result = true;
+    // if the image does not exist locally, but exists in the serverImages
+    // we need to fetch it
+    try {
+        if (
+            !(await localEntryExists(DB_IMAGES, id)) &&
+            serverImageIds.includes(id)
+        ){
+            return true;
+        }
+    } catch (err) {
+        console.warn('failed checking for local image:', err);
+        return false;
     }
-
-    return result;
 }
 
-// posts images to server if they are missing or the current image
-// is temporary and has no valid id
-export async function syncFromLocalToServer(embeddedImageIds, serverImages, 
-    activeDocument, udpateEditorContent, imageCache
-) {
-    // validate parameters
+export async function postMissingImages(embeddedImageIds, serverImages) {
     Validator.validateArrEmptyAllowed(embeddedImageIds);
     Validator.validateArrEmptyAllowed(serverImages);
-    Validator.validateObjectNotNull(imageCache);
 
-    // if embeddedImages is empty, no work is needed
     if (embeddedImageIds.length === 0) {
-        return;
+        return [];
     }
 
-    // create array of objects for later processing
-    // array of { image, newId }
-    const tasks = [];
-    const requestedImages = [];
-
-    for (const id of embeddedImageIds) {
-        // if serverImages includes the image id, image is already on the server
+    const result = await Promise.all(embeddedImageIds.map(async (id) => {
+        // if the image exists on the server, do not post
         if (serverImages.includes(id)) {
-            continue;
-        }
+            return;
+        };
 
-        // fetch image from local storage
-        const localImage = await getLocalRecord(DB_IMAGES, id);
+        try {
+            // get the local image object
+            const localImage = await getLocalRecord(DB_IMAGES, id);
 
-        // if no image object was returned, it is a faulty embedding
-        if (!localImage) {
-            continue;
-        }
-
-        requestedImages.push(localImage);
-        // create asynchronous posts to server
-        tasks.push(
-            newServerImage(
-                localImage.doc_id,
-                localImage.name,
-                localImage.file
-            )
-        );
-    }
-
-    // // wait for all requests to finish
-    const newIds = await Promise.all(tasks);
-
-    if (newIds.length != requestedImages.length) {
-        throw new Error(`should be the same length: ${newIds.length}, ${requestedImages.length}`);
-    }
-
-    // loop through all tasks
-    // key contains old imageId, value contains the new imageId
-    for (let i = 0; i < requestedImages.length; i++) {
-        // if newId is null or empty, the post to server was not successful, we continue
-        if (!newIds[i]) {
-            continue;
-        }
-
-        // validate
-        Validator.validateStringEmptyNotAllowed(requestedImages[i]._id)
-        Validator.validateStringEmptyNotAllowed(requestedImages[i].doc_id);
-        Validator.validateObjectNotNull(requestedImages[i].file);
-        Validator.validateStringEmptyAllowed(requestedImages[i].name);
-
-        // create new image entry in local storage
-        await addOrSetLocalRecord(
-            DB_IMAGES,
-            {
-                _id: newIds[i],
-                file: requestedImages[i].file,
-                name: requestedImages[i].name,
-                doc_id: requestedImages[i].doc_id,
-                user_id: localStorage.userId
-            }
-        );
-
-        // if the document in question is currently active, update editor content
-        if (activeDocument._id === requestedImages.doc_id) {
-            // replace the oldId with the newId
-            const newContent = activeDocument.content.replace(
-                requestedImages[i]._id,
-                newIds[i] 
-            );
-
-            // update editor content
-            udpateEditorContent(newContent);
-
-            // replace existing URL
-            imageCache.replaceId(requestedImages[i]._id, newIds[i]);
-        // for other documents replace the id in the stored document entry
-        } else {
-            // fetch local document from storage
-            const doc = await getLocalRecord(DB_DOCUMENTS, requestedImages[i].doc_id);
-            
-            // if doc is null continue, as it has been deleted during the server request
-            if (!doc) {
-                continue;
+            // if the image does not exist locally, it is a faulty embedding
+            if (!localImage) {
+                return;
             }
 
-            // replace oldId with newId for fetched local document
-            doc.content = doc.content.replace(requestedImages[i]._id, newIds[i]);
-
-            // save the new document state to local storage
-            await addOrSetLocalRecord(DB_DOCUMENTS, doc);
+            // post to server and return entry containing the new id
+            return {
+                image: localImage,
+                newId: await newServerImage(
+                    localImage.doc_id,
+                    localImage.name,
+                    localImage.file
+                )
+            };
+        } catch (err) {
+            // if there is an error, we add undefined to the result
+            console.warn('error while posting image to server', err);
+            return;
         }
+    }));
 
-        // delete old image entry from local storage
-        await deleteLocalRecord(DB_IMAGES, requestedImages[i]._id);
-    }
+    // filter out undefined objects and return result
+    return result.filter(item => item !== undefined && item.newId !== undefined);
 }

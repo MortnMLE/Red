@@ -17,7 +17,9 @@ import {
     getEmbeddedImageIds, 
     getServerImageIds,
     fetchMissingImages,
-    syncFromLocalToServer
+    syncFromLocalToServer,
+    addServerImageToLocalStorage,
+    postMissingImages
 } from "@/services/images/imageInitService";
 
 import { deleteImageFromServer, newServerImage } from "@/services/images/imageServerService";
@@ -26,6 +28,7 @@ import { Parser } from '@/services/parser';
 import {
     DB_IMAGES
 } from '@/constants/stores';
+import { replaceImageIdForStoredDocument } from "@/services/documents/documentService";
 
 export function useImages(options = {}) {
 
@@ -134,11 +137,8 @@ export function useImages(options = {}) {
         // wait for documents to finish intializing       
         while (!docsInitialized.value) {
             await new Promise(r => setTimeout(r, 100));
-            console.log(`sleeping`);
         }
 
-        console.log(`not sleeping anymore`);
- 
         // set imageCache reference in imageCacheService
         setImageCache(imageCache);
         
@@ -147,38 +147,73 @@ export function useImages(options = {}) {
         // fetch imageIds that are already embedded in documents
         const embeddedImageIds = getEmbeddedImageIds(documents.value, imageIdToDocId);
 
-        console.log(`embeddedImageIds: ${embeddedImageIds}`);
-
         // if there are no embedded images, we do nothing
         if (embeddedImageIds.length === 0) {
-            console.log(`useImages.onMounted: skipped because length of embeddedImages is 0`);
             return;
         }
 
         // for all currently existing documents, fetch the imageIds on the server
-        const serverImages = await getServerImageIds(documents.value);
+        const serverImageIds = await getServerImageIds(documents.value);
 
         // if a request was not successful, we continue with locally existing images and
         // do not synchronize images with server
 
-        if (
-            serverImages.arr.length === 0 ||
-            !serverImages.serverWasReached
+        if (serverImageIds.arr.length === 0 ||
+            !serverImageIds.serverWasReached
         ) {
-            console.log(`useImages.onMounted: skipped because server not reachable or 0 serverImages`);
             return;
         }
 
         // fetch images that do not exist locally
-        await fetchMissingImages(embeddedImageIds, serverImages.arr, imageIdToDocId);
+        const fetchedImages = await fetchMissingImages(embeddedImageIds, serverImageIds.arr);
+        
+        for (const image of fetchedImages) {
+            await addServerImageToLocalStorage(image.image, image.id, imageIdToDocId.get(image.id));
+        }
         // post images to server if they do not exist yet
-        await syncFromLocalToServer(
-            embeddedImageIds,
-            serverImages.arr,
-            activeDocument.value,
-            udpateEditorContent,
-            imageCache
-        );
+
+        // images that are not yet on the server are posted. Returns an array of newly
+        // inserted images and ids
+        const insertedImages = postMissingImages(embeddedImageIds, serverImageIds.arr);
+
+        for(const image of insertedImages) {
+            // create new image entry in local storage
+            await addOrSetLocalRecord(
+                DB_IMAGES,
+                {
+                    _id: image.newId,
+                    file: image.image.file,
+                    name: image.image.name,
+                    doc_id: image.image.doc_id,
+                    user_id: localStorage.userId
+                }
+            );
+
+            // if the document to be updated is active, replace the image id in the live editor
+            if (activeDocument.value._id === image.image.doc_id) {
+                const newContent = activeDocument.content.replace(
+                    image.image._id,
+                    image.newId
+                );
+
+                udpateEditorContent(newContent);
+
+                imageCache.replaceId(
+                    image.image._id,
+                    image.newId
+                );
+            // if the document is not active, update the document entry in local storage
+            } else {
+                await replaceImageIdForStoredDocument(
+                    image.image._id,
+                    image.newId, 
+                    image.image.doc_id
+                );
+            }
+
+            // delete the old record
+            await deleteLocalRecord(DB_IMAGES, image.image._id);
+        }
     });
 
     return {

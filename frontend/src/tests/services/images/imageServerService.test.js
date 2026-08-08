@@ -186,6 +186,8 @@ describe('imageServerService', () => {
             await expect(serverFetchImagesForIds(null)).rejects.toThrow();
             await expect(serverFetchImagesForIds(undefined)).rejects.toThrow();
             await expect(serverFetchImagesForIds(5)).rejects.toThrow();
+            await expect(serverFetchImagesForIds(true)).rejects.toThrow();
+            await expect(serverFetchImagesForIds({})).rejects.toThrow();
         });
 
         test('should return empty array on empty input', async () => {
@@ -195,24 +197,22 @@ describe('imageServerService', () => {
             expect(result.length).toBe(0);
         });
 
-        test('should not throw on fetch error', async () => {
+        test('should not throw and return empty array on fetch error', async () => {
             vi.spyOn(global, 'fetch').mockRejectedValue(new Error('error'));
 
             const result = await serverFetchImagesForIds(['id']);
 
-            expect(result).toBeDefined();
-            expect(result.length).toBe(0);
+            expect(result).toEqual([]);
         });
 
-        test('should return array of b', async () => {
+        test('should return array of objects', async () => {
             const response = new Response(new Uint8Array([1, 2, 3]));
 
             vi.spyOn(global, 'fetch').mockResolvedValue(response);
 
             const result = await serverFetchImagesForIds(['id1']);
-            console.log(`here: ${typeof result}`);
-            expect(result.length).toBe(1);
-            expect(result[0]).toBeDefined();
+            
+            expect(result).toEqual([{image: response, id: 'id1'}]);
         });
     });
 });

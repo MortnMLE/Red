@@ -148,9 +148,9 @@ describe('Validator', () => {
                 .not.toThrow();
         });
 
-        test('accepts array', () => {
+        test('throws for array', () => {
             expect(() => Validator.validateObjectNotNull([]))
-                .not.toThrow();
+                .toThrow();
         });
 
         test('throws for null', () => {
