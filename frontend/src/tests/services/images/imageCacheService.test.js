@@ -69,8 +69,7 @@ describe('imageCacheService', () => {
 
         test('should throw on undefined imageCache', () => {
             const result = getImageCache();
-            console.log(result);
-            
+            expect(result).not.toBeDefined;
             expect(() => createCacheEntriesForImages([])).toThrow();
         });
     });

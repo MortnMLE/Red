@@ -32,7 +32,6 @@ export function useEditor(options = {}) {
         enableVim,
         imageCache,
         createNewLocalImage,
-        // replaceImageReference,
         updateCountTempIds,
         createNewServerImage
     } = options;
@@ -133,8 +132,6 @@ export function useEditor(options = {}) {
                             file
                         );
 
-                        console.log(`OnDrop: new insertedId: ${insertedId}`);
-
                         updateCountTempIds();
 
                         const markdown =
@@ -231,7 +228,6 @@ export function useEditor(options = {}) {
         );
 
         if (!replacedImage) {
-            console.error(`could not replace image`);
             return;
         }
 
@@ -290,19 +286,18 @@ export function useEditor(options = {}) {
             );
         } catch (err) {
             // if an error occurs, the document will be updated with the next sync
-            console.error(`handleTempImageToServerImage throws: ${err}`);
             return;
         }
     }
 
-    function replaceImageReferenceInLiveEditor(tempId, uuid) { 
-        Validator.validateStringEmptyNotAllowed(tempId);
-        Validator.validateStringEmptyNotAllowed(uuid);
+    function replaceImageReferenceInLiveEditor(oldId, newId) { 
+        Validator.validateStringEmptyNotAllowed(oldId);
+        Validator.validateStringEmptyNotAllowed(newId);
         Validator.validateObjectNotNull(editorView.value);
 
         const text = editorView.value.state.doc.toString();
-        const oldRef = `![image](${tempId})`;
-        const newRef = `![image](${uuid})`;
+        const oldRef = `![image](${oldId})`;
+        const newRef = `![image](${newId})`;
 
         const from = text.indexOf(oldRef);
 

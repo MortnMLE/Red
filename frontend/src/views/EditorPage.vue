@@ -158,7 +158,6 @@ async function handleChangeActiveDocument(nextDocumentId) {
 }
 
 async function handleCloseDocument(docToBeClosed) {
-  console.log(`handleCloseDocument, activeDocument: ${activeDocument.value._id}`);
   const nextDocument = getNextActiveDocument(docToBeClosed, -1);
 
   if (!nextDocument) {

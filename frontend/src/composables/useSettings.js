@@ -35,9 +35,7 @@ export function useSettings() {
                     );
 
                     enableVim.value = vimSetting.value ?? false;
-                    
-                    console.log(`fetched enableVim: ${enableVim.value}`);
-                }
+                }        
             } else {
                 await createStore(
                     DB_SETTINGS,
@@ -60,8 +58,6 @@ export function useSettings() {
                     value: true, 
                     user_id: localStorage.userId
                 });
-
-                console.log('Local settings database does not exist, created new database');
             } 
         } catch (err) {
             console.error('Error initializing local settings database: ' + err.message);

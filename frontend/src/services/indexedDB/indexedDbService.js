@@ -1,7 +1,5 @@
 import { Validator } from "../validator";
 
-const DB_VERSION = 1;
-
 export function openLocalDatabase(database) {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(database);
@@ -189,7 +187,6 @@ export async function localEntryExists(storeObject, id) {
 
 export async function getLocalRecord(storeObject, key) {
     const db = await openLocalDatabase(storeObject.database);
-    console.log(key);
 
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(storeObject.name, 'readonly');
@@ -223,27 +220,6 @@ export async function deleteLocalRecord(storeObject, key) {
         request.onerror = () => {
             reject(request.error);
         };
-    });
-}
-
-export async function getAllForStore(storeObject) {
-    const db = await openLocalDatabase(storeObject.database);
-
-    return new Promise((resolve, reject) => {
-        const store = db
-            .transaction(storeObject.name, 'readonly')
-            .objectStore(storeObject.name)
-            .index('_id');
-        
-        const getAllRequest = store.getAll();
-        
-        getAllRequest.onsuccess = () => {
-            resolve(getAllRequest.result);
-        }
-
-        getAllRequest.onerror = () => {
-            reject(getAllRequest.error);
-        }
     });
 }
 

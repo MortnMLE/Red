@@ -63,7 +63,8 @@ export function markdownImages(imageCache) {
                     new RangeSetBuilder();
 
                 const regex =
-                    /^!\[(.*?)\]\((.*?)\)$/gm;
+                    // /^!\[(.*?)\]\((.*?)\)$/gm;
+                    /^!\[(image)\]\((.*?)\)$/gm;
 
                 for (const { from, to }
                     of view.visibleRanges) {

@@ -60,21 +60,17 @@ export function useDocuments(options = {}) {
     
     // synchronization with IndexedDB via indexedDBservice and backend server via apiService
     async function loadDocuments() {
-        let serverDocuments = [];
-        let localDocuments = [];
+        const serverDocuments = [];
+        const localDocuments = [];
 
         try {
         // Check if local database exists and load documents from local storage
             if (await storeExists(DB_DOCUMENTS)) {
-                console.log('Local database exists, loading documents from local storage');
                 localDocuments = await getLocalRecordsByIndex(
                     DB_DOCUMENTS,
                     'user_id',
                     localStorage.userId
                 );
-
-                console.log('Local database exists.');
-                console.log(`Local Documents: ${localDocuments.length}`);
             } else { 
                 await createStore(
                     DB_DOCUMENTS, 
@@ -85,11 +81,8 @@ export function useDocuments(options = {}) {
                         options: { unique: false }
                     }]
                 );
-                
-                console.log('Local database does not exist, created new database');
             }
         } catch (err) {
-            console.error('Error initializing local database: ' + err.message);
             await clearLocalDatabase(DB_DOCUMENTS);
             await loadDocuments(); // Retry loading documents after clearing local database
         }
@@ -104,12 +97,9 @@ export function useDocuments(options = {}) {
 
             if (fetchedDocs.success) {
                 serverDocuments = await JSON.parse(fetchedDocs.documents);
-                console.log(`Server Documents: ${serverDocuments.length}`);
-            } else {
-                console.log('Failed to fetch documents: ' + fetchedDocs.message);
             }
         } catch (err) {
-            console.error('Error loading documents: ' + err.message);
+            console.warn('Error loading documents: ', err);
         }
 
         return { serverDocuments, localDocuments };
@@ -145,7 +135,6 @@ export function useDocuments(options = {}) {
                         serverDoc
                     );
 
-                    console.log(`Document ${serverDoc._id} added to local`);
                     documents.value.push(serverDoc);
                     continue;
                 }
@@ -162,11 +151,8 @@ export function useDocuments(options = {}) {
                     }
                 }
 
-                if (localDoc.version === serverDoc.version) {
-                    console.log(`Document ${localDoc._id} is up to date with server version`);
-                } else if (localDoc.version > serverDoc.version) {
+                if (localDoc.version > serverDoc.version) {
                     docsToBePatched.push(localDoc);
-                    console.log(`Document ${localDoc._id} has a newer version in local storage, will attempt to push to server`);
                 } else {
                     serverDoc.pendingSync = false;
                     serverDoc.deleted = false;
@@ -186,7 +172,7 @@ export function useDocuments(options = {}) {
 
             docsToBeCreated.push(...localDocuments);
         } catch (err) {
-            console.error('Error synchronizing server-documents: ' + err.message);
+            console.warn('Error synchronizing server-documents: ', err);
         }
 
         // Handle documents that exist in local storage but not on server
@@ -208,8 +194,6 @@ export function useDocuments(options = {}) {
                     );
 
                     if (response.success) {
-                        console.log(`New _id for ${doc._id}: ${response._id}`);
-
                         newDoc = {
                             _id: response._id,
                             user_id: doc.user_id,
@@ -223,12 +207,10 @@ export function useDocuments(options = {}) {
                         await deleteLocalRecord(DB_DOCUMENTS, doc._id);
                         await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
                     } else {
-                        console.error(`Failed to push document ${doc._id} to server: ${response.message}`);
                         serverIsReachable = false;
                     }
                 }
             } catch (err) {
-                console.log('Could not synchronize with server: ' + err.message);
                 serverIsReachable = false;
                 newDoc = doc;
             } finally {
@@ -253,13 +235,11 @@ export function useDocuments(options = {}) {
                         endpointDocDelete
                     );
                     
-                    console.log(`${doc._id}: ${JSON.stringify(response)}`);
-
                     if (response.success) {
                         deleteLocalRecord(DB_DOCUMENTS, doc._id);
                     }
                 } catch (err) {
-                    console.log('Could not delete document from server. Skipping deletion process');
+                    console.warn('Could not delete document from server. Skipping deletion process', err);
                 }
             }
 
@@ -280,7 +260,7 @@ export function useDocuments(options = {}) {
                         console.error(`error during patch: ${response.message}; ${doc._id}`);
                     }
                 } catch (err) {
-                    console.log(`Could not patch document ${doc}`);
+
                 }
             }
         }
@@ -293,7 +273,6 @@ export function useDocuments(options = {}) {
             doc => doc._id !== id
         )
         
-        console.log()
         try {
             const response = await serverRequest(
                 'POST',
@@ -308,7 +287,6 @@ export function useDocuments(options = {}) {
                 addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
             }
         } catch (err) {
-            console.log(`Document ${id} could not be deleted. Set to deleted instead.${err.message}`);
             doc.deleted = true;
             addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
         } 
@@ -324,7 +302,7 @@ export function useDocuments(options = {}) {
         creationInProgress = true;
 
         const tempId = `temp-${Number(countTempIds.value) + 1}`;
-        console.log(countTempIds.value);
+
         
         let newDoc = {
             _id: tempId,
@@ -353,7 +331,7 @@ export function useDocuments(options = {}) {
             );
 
             if (response.success) {
-                console.log(`New _id for ${tempId}: ${response._id.toString()}`);
+
                 
                 newDoc._id = response._id;
                 newDoc.pendingSync = false;
@@ -365,7 +343,7 @@ export function useDocuments(options = {}) {
                     openDocuments.value[index] = newDoc._id;
                 }
             } else {
-                console.log(`Failed to create document on server, keeping temporary ID ${tempId}`);
+
             }
         } catch (err) {
             console.error('failed to add document to server');
@@ -373,7 +351,7 @@ export function useDocuments(options = {}) {
         finally {
             await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
             await updateCountTempIds();
-            console.log(activeDocument.value);
+
             creationInProgress = false;
         }
     }
@@ -509,11 +487,6 @@ export function useDocuments(options = {}) {
                     },
                     endpointPatch
                 );
-
-                if (!response.success) {
-                    console.log(`Failed to sync document ${ref.value._id} with server: ${response.message}`);
-                }
-
             } catch (err) {
                 console.error(err);
             }
@@ -545,7 +518,7 @@ export function useDocuments(options = {}) {
     onMounted(async () => {       
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
-        console.log(`Loaded ${[...documents.value].length} documents.`);
+
         docsInitialized.value = true;
     });
 

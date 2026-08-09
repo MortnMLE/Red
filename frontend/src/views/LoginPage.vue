@@ -146,7 +146,6 @@ export default {
         if (responseData.success) {
           localStorage.setItem('userId', responseData.id); 
           this.$router.push('/editor');
-          console.log('Successfully fetched User ID:', responseData.id);
         } else {
           alert(responseData.message);
           return;

@@ -15,7 +15,6 @@ export async function newServerImage(docId, name, file) {
 
     let result = '';
 
-    console.log(`doc_id: ${docId},\nimage size: ${file.size},\nuser_id: ${localStorage.userId}\nname ${name}`);
     // create the body for the POST
     const formData = new FormData();
     formData.append('image', file);

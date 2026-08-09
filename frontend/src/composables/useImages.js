@@ -3,7 +3,6 @@ import {
     addOrSetLocalRecord, 
     deleteLocalRecord
 } from "@/services/indexedDB/indexedDbService";
-import { getLocalRecordsByIndex } from "@/services/indexedDB/indexedDbService";
 import { onMounted } from "vue";
 import { Validator } from "@/services/validator";
 

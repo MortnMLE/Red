@@ -57,8 +57,6 @@ async function getImagesByDocId(docId) {
         throw new InvalidIdError('Invalid docId');
     }
 
-    console.log(docId);
-
     try {
         const con = await db.getConnection(dbName);
         return await con.find({ 

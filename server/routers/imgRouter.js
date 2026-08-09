@@ -104,7 +104,6 @@ imgRouter.get('/:id', async (req, res) => {
         
         return res.status(200).send(result.data.buffer);
     } catch (err) {
-        console.log(err);
         return res.status(err.statusCode).json({
             error: err.name,
             message: err.message,
@@ -148,7 +147,6 @@ imgRouter.get('/allForDocId/:doc_Id', async (req, res) => {
             success: true
         });
     } catch (err) {
-        console.log(err);
         return res.status(err.statusCode).json({
             error: err.name,
             message: err.message,
