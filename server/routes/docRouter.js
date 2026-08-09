@@ -1,5 +1,5 @@
 const express = require('express');
-const doc = require('../database/docService');
+const doc = require('../db/docService');
 const { 
     ValidationError, 
     DatabaseError, 

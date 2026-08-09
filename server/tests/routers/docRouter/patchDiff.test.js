@@ -1,7 +1,7 @@
 const request = require('supertest');
 const express = require('express');
 const diff = require('diff');
-const docRouter = require('../../../routers/docRouter');
+const docRouter = require('../../../routes/docRouter');
 const doc = require('../../../database/docService');
 
 // Mock dependencies

@@ -1,5 +1,5 @@
 const express = require('express');
-const img = require('../database/imgService');
+const img = require('../db/imgService');
 const {
     ValidationError,
     DatabaseError

@@ -1,5 +1,5 @@
 const express = require('express');
-const user = require('../database/userService');
+const user = require('../db/userService');
 const { DatabaseError } = require('../errors/errors');
 
 //Variables:

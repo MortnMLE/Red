@@ -4,24 +4,15 @@ const path = require('path');
 const { DatabaseError } = require('../errors/errors');
 
 //File containing the connection string
-const filePath = path.join(__dirname, 'connectionString.txt');
 const dbName = 'main';
 
 let client;
 let db;
 
-//Reads the connection string from a text file on the server
-async function getConnectionString() {
-    const data = await fs.readFile(filePath, 'utf8');
-    const result = data.split(/\r?\n/)[0];
-    return result;
-}
-
 //Creates MongoClient and connects to Atlas
 async function connectDB() {
     if (!client) {
-        const uri = await getConnectionString();
-        client = new MongoClient(uri);
+        client = new MongoClient(process.env.MONGODB);
         
         const a = await client.connect();
         
@@ -37,7 +28,7 @@ async function getConnection(name) {
     }
 
     const db = await connectDB();
-    return db.collection(name);    
+    return db.collection(name);
 }
 
 //Closes the connection to Atlas

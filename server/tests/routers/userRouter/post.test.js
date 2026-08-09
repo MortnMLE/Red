@@ -1,6 +1,6 @@
 const request = require('supertest');
 const express = require('express');
-const userRouter = require('../../../routers/userRouter');
+const userRouter = require('../../../routes/userRouter');
 const user = require('../../../database/userService');
 
 jest.mock('../../../database/userService');

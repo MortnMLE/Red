@@ -1,16 +1,18 @@
 //Imports:
 const express = require('express');
-const {connectDB, closeDB} = require('./database/connection');
+const {connectDB, closeDB} = require('./db/connection');
 const MongoClient = require('mongodb');
 const cors = require('cors');
 //Local Variables:
 const app = express();
 const port = 5000;
 
-//Import routers:
-const userRouter = require('./routers/userRouter');
-const docRouter = require('./routers/docRouter');
-const imgRouter = require('./routers/imgRouter');
+//Import routes:
+const userRouter = require('./routes/userRouter');
+const docRouter = require('./routes/docRouter');
+const imgRouter = require('./routes/imgRouter');
+
+process.loadEnvFile('.env');
 
 app.set('view engine');
 app.use(express.json());
@@ -36,14 +38,15 @@ async function start() {
     }
 };
 
-// Shutdown on Ctrl + C. Close connection to Atlas.
+// Shutdown on Ctrl + C. Close connection to Atlas
 process.on('SIGINT', async () => {
     console.log('Shutting down.');
+
     await closeDB();
     process.exit(0);
 });
 
-// Start the server.
+// Start the server
 start();
 
 module.exports = {
