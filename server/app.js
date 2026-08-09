@@ -5,7 +5,7 @@ const MongoClient = require('mongodb');
 const cors = require('cors');
 //Local Variables:
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
 //Import routes:
 const userRouter = require('./routes/userRouter');
