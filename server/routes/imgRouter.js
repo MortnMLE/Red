@@ -1,14 +1,13 @@
 const express = require('express');
 const img = require('../db/imageDbService');
-const {
-    ValidationError,
-    DatabaseError
-} = require('../errors/errors');
 const fs = require('fs');
 const { Binary } = require('mongodb');
 
+// import routers
 const imgRouter = express.Router();
+const imageController = require('../controllers/imageController');
 
+// multer setup
 const multer = require('multer');
 const upload = multer({
     storage: multer.memoryStorage(),
@@ -20,140 +19,146 @@ const upload = multer({
     }
 });
 
-imgRouter.post('/new', upload.single('image'), async (req, res) => {
-    // req body:
-    // doc_id
-    // file
-    // name
+imgRouter.post('/new', upload.single('image'), imageController.create);
 
-    if (typeof req.body.doc_id !== 'string' || req.body.doc_id === '' ||
-        typeof req.body.user_id !== 'string' || req.body.user_id === '' ||
-        typeof req.body.name !== 'string' || req.body.name === '' ||
-        !req.file
-    ) {
-        return res.status(400).json({
-            error: 'INVALID_INPUT',
-            message: 'Invalid credentials provided by client',
-            success: false
-        });
-    }
+imgRouter.get('/:id', imageController.getById);
 
-    try {
-        const response = await img.createImage(
-            req.body.doc_id,
-            req.body.name,
-            req.file
-        );
+imgRouter.get('/allForDocId/:doc_id', imageController.getAllIdsByDocId);
 
-        if (!response.acknowledged) {
-            return res.status(500).json({
-                error: 'DATABASE_ERROR',
-                message: 'Failed to create image in database',
-                success: false
-            });
-        }
+// imgRouter.post('/new', upload.single('image'), async (req, res) => {
+//     // req body:
+//     // doc_id
+//     // file
+//     // name
 
-        return res.status(201).json({
-            id: response.insertedId,
-            success: true
-        });
-    } catch (err) {
-        res.status(err.statusCode).json({
-            error: err.name,
-            message: err.message,
-            success: false
-        });
-    }
-});
+//     if (typeof req.body.doc_id !== 'string' || req.body.doc_id === '' ||
+//         typeof req.body.user_id !== 'string' || req.body.user_id === '' ||
+//         typeof req.body.name !== 'string' || req.body.name === '' ||
+//         !req.file
+//     ) {
+//         return res.status(400).json({
+//             error: 'INVALID_INPUT',
+//             message: 'Invalid credentials provided by client',
+//             success: false
+//         });
+//     }
 
-imgRouter.get('/:id', async (req, res) => {
+//     try {
+//         const response = await img.createImage(
+//             req.body.doc_id,
+//             req.body.name,
+//             req.file
+//         );
 
-    const { id } = req.params;
+//         if (!response.acknowledged) {
+//             return res.status(500).json({
+//                 error: 'DATABASE_ERROR',
+//                 message: 'Failed to create image in database',
+//                 success: false
+//             });
+//         }
 
-    //validation
-    if (typeof id !== 'string' ||
-        id === ''
-    ) {
-        res.status(400).json({
-            error: 'INVALID_INPUT',
-            message: 'invalid id provided by client',
-            success: false
-        });
-    }
+//         return res.status(201).json({
+//             id: response.insertedId,
+//             success: true
+//         });
+//     } catch (err) {
+//         res.status(err.statusCode).json({
+//             error: err.name,
+//             message: err.message,
+//             success: false
+//         });
+//     }
+// });
 
-    try {
-        const result = await img.getImage(id);
+// imgRouter.get('/:id', async (req, res) => {
 
-        if (!result) {
-            return res.status(404).json({
-                    error: 'NOT_FOUND',
-                    message: 'image not found',
-                    success: false            
-            });
-        }
+//     const { id } = req.params;
 
-        res.setHeader('Content-Type', result.mimeType);
-        res.setHeader(
-            'Content-Disposition',
-            `inline; filename="${result.name}"`
-        );
-        res.setHeader(
-            'Access-Control-Expose-Headers',
-            `Content-Disposition`
-        );
+//     //validation
+//     if (typeof id !== 'string' ||
+//         id === ''
+//     ) {
+//         res.status(400).json({
+//             error: 'INVALID_INPUT',
+//             message: 'invalid id provided by client',
+//             success: false
+//         });
+//     }
+
+//     try {
+//         const result = await img.getImage(id);
+
+//         if (!result) {
+//             return res.status(404).json({
+//                     error: 'NOT_FOUND',
+//                     message: 'image not found',
+//                     success: false            
+//             });
+//         }
+
+//         res.setHeader('Content-Type', result.mimeType);
+//         res.setHeader(
+//             'Content-Disposition',
+//             `inline; filename="${result.name}"`
+//         );
+//         res.setHeader(
+//             'Access-Control-Expose-Headers',
+//             `Content-Disposition`
+//         );
         
-        return res.status(200).send(result.data.buffer);
-    } catch (err) {
-        return res.status(err.statusCode).json({
-            error: err.name,
-            message: err.message,
-            success: false
-        });
-    }
-});
+//         return res.status(200).send(result.data.buffer);
+//     } catch (err) {
+//         return res.status(err.statusCode).json({
+//             error: err.name,
+//             message: err.message,
+//             success: false
+//         });
+//     }
+// });
 
-imgRouter.get('/allForDocId/:doc_Id', async (req, res) => {
+// imgRouter.get('/allForDocId/:doc_Id', async (req, res) => {
 
-    const { doc_Id } = req.params;
+//     const { doc_Id } = req.params;
 
-    if (typeof doc_Id !== 'string' ||
-        doc_Id === ''
-    ) {
-        return res.status(400).json({
-            error: 'INVALID_INPUT',
-            message: 'invalid id provided by client',
-            success: false
-        });
-    }
+//     if (typeof doc_Id !== 'string' ||
+//         doc_Id === ''
+//     ) {
+//         return res.status(400).json({
+//             error: 'INVALID_INPUT',
+//             message: 'invalid id provided by client',
+//             success: false
+//         });
+//     }
 
-    try {
-        const images = await img.getImagesByDocId(doc_Id); 
+//     try {
+//         const images = await img.getImagesByDocId(doc_Id); 
 
-        if (!images) {
-            return res.status(404).json({
-                error: 'NOT_FOUND',
-                message: 'images not found',
-                success: false
-            });
-        }
+//         if (!images) {
+//             return res.status(404).json({
+//                 error: 'NOT_FOUND',
+//                 message: 'images not found',
+//                 success: false
+//             });
+//         }
 
-        let result = [];
-        for (const image of images) {
-            result.push(image._id);
-        }
+//         let result = [];
+//         for (const image of images) {
+//             result.push(image._id);
+//         }
 
-        return res.status(200).json({
-            images: result,
-            success: true
-        });
-    } catch (err) {
-        return res.status(err.statusCode).json({
-            error: err.name,
-            message: err.message,
-            success: false
-        });
-    }
-})
+//         return res.status(200).json({
+//             images: result,
+//             success: true
+//         });
+//     } catch (err) {
+//         return res.status(err.statusCode).json({
+//             error: err.name,
+//             message: err.message,
+//             success: false
+//         });
+//     }
+// })
 
 imgRouter.delete('/delete', async (req,res) => {
     if (typeof req.body.id !== 'string' || req.body.id === '') {

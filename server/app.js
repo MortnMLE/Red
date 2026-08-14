@@ -6,9 +6,10 @@ const cors = require('cors');
 //Local Variables:
 const app = express();
 const port = process.env.PORT || 5000;
+const cookieparser = require('cookie-parser');
 
 //Import routes:
-const userRouter = require('./routes/userRouter');
+const authRoute = require('./routes/authRoute');
 const docRouter = require('./routes/docRouter');
 const imgRouter = require('./routes/imgRouter');
 
@@ -20,7 +21,8 @@ app.use(cors({
     origin: 'http://localhost:3000',
     exposedHeaders: ['Content-Disposition']
 }));
-app.use('/user', userRouter);
+app.use(cookieparser());
+app.use('/user', authRoute);
 app.use('/doc', docRouter);
 app.use('/img', imgRouter);
 

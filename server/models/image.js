@@ -1,0 +1,15 @@
+const { ObjectId, Binary } = require('mongodb');
+
+function create(docId, name, file) {
+    return {
+        doc_id: new ObjectId(docId),
+        name,
+        mimeType: file.mimeType,
+        size: file.size,
+        data: new Binary(file.buffer)
+    };
+}
+
+module.exports = {
+    create
+};
