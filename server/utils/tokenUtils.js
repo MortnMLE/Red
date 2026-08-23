@@ -11,7 +11,6 @@ exports.createToken = (sub, expiresIn) => {
 exports.createRefreshTokenSettings = () => {
     return {
         httpOnly: true,
-        // use with HTTPS
         secure: true,
         sameSite: 'strict',
         // 7 days * 24 hours * 60 minutes * 60 seconds * 1000 milliseconds

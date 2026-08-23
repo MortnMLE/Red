@@ -1,12 +1,19 @@
 const image = require('../models/image');
 const db = require('../db/databaseService');
 const { imageDbName } = require('../constants');
-const { response } = require('express');
+const { validate } = require('../utils/validate');
 
 exports.create = async (req, res) => {
-    const { doc_id, user_id, name, file } = req.body;
-
     try {
+        const { doc_id, name, file } = req.body;
+
+        if (!validate([doc_id, name, file])) {
+            return res.status(400).json({
+                error: 'BAD_REQUEST',
+                success: false
+            });
+        }
+
         const newImage = image.create(doc_id, name, file);
 
         const response = await db.insertOne(imageDbName, newImage);
@@ -24,22 +31,25 @@ exports.create = async (req, res) => {
 }
 
 exports.getById = async (req, res) => {
-    const { id } = req.params;
-
     try {
-        // get the image
-        const image = await db.getOne(imageDbName, id);
+        const { id } = req.params;
 
-        // return 404 if result is undefined
-        if (!result) {
-            return res.status(404).json({
-                error: 'NOT_FOUND',
-                mesasge: 'image not found',
+        if (!validate([id])) {
+            return res.status(400).json({
+                error: 'BAD_REQUEST',
                 success: false
             });
         }
 
-        // set the headers
+        const image = await db.getOne(imageDbName, id);
+
+        if (!image) {
+            return res.status(404).json({
+                error: 'NOT_FOUND',
+                success: false
+            });
+        }
+
         res.setHeader('Content-Type', image.mimeType);
         res.setHeader(
             'Content-Disposition',
@@ -60,9 +70,16 @@ exports.getById = async (req, res) => {
 }
 
 exports.getAllIdsByDocId = async (req, res) => {
-    const { doc_id } = req.params;
-
     try {
+        const { doc_id } = req.params;
+
+        if (!validate([doc_id])) {
+            return res.status(400).json({
+                error: 'BAD_REQUEST',
+                success: false
+            });
+        }
+
         const images = await db.getAll(imageDbName, doc_id);
 
         if (!images) {
@@ -79,9 +96,40 @@ exports.getAllIdsByDocId = async (req, res) => {
         }
 
         return res.status(200).json({
-            images = result,
+            images: result,
             success: true
         });
+    } catch (error) {
+        return res.status(500).json({
+            error,
+            success: false
+        });
+    }
+}
+
+exports.delete = async (req, res) => {
+    try {
+        const { id } = req.body;
+
+        if (!validate([id])) {
+            return res.status(400).json({
+                error: 'BAD_REQUEST',
+                success: false
+            });
+        }
+
+        const response = await db.deleteOne(imageDbName, id);
+
+        if (response.deletedCount === 1) {
+            return res.status(200).json({
+                success: true
+            });
+        } else {
+            return res.status(404).json({
+                error: 'NOT_FOUND',
+                success: false
+            });
+        }
     } catch (error) {
         return res.status(500).json({
             error,

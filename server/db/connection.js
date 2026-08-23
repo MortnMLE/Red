@@ -32,7 +32,7 @@ async function getConnection(name) {
 }
 
 //Closes the connection to Atlas
-async function closeDB(con) {
+async function closeDB() {
     if (client) {
         await client.close();
         client = null;

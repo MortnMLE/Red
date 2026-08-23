@@ -9,9 +9,9 @@ const port = process.env.PORT || 5000;
 const cookieparser = require('cookie-parser');
 
 //Import routes:
-const authRoute = require('./routes/authRoute');
-const docRouter = require('./routes/docRouter');
-const imgRouter = require('./routes/imgRouter');
+const authenticationRoute = require('./routes/authenticationRoute');
+const documentRoute = require('./routes/documentRoute');
+const imageRoute = require('./routes/imageRoute');
 
 process.loadEnvFile('.env');
 
@@ -22,9 +22,9 @@ app.use(cors({
     exposedHeaders: ['Content-Disposition']
 }));
 app.use(cookieparser());
-app.use('/user', authRoute);
-app.use('/doc', docRouter);
-app.use('/img', imgRouter);
+app.use('/user', authenticationRoute);
+app.use('/doc', documentRoute);
+app.use('/img', imageRoute);
 
 //Start server and initialize connection to Atlas
 async function start() {

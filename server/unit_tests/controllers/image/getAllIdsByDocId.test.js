@@ -1,0 +1,78 @@
+jest.mock('../../../db/databaseService', () => ({
+    getAll: jest.fn(),
+}));
+
+const { getAll } = require('../../../db/databaseService');
+const controller = require('../../../controllers/imageController');
+const expectCookies = require('supertest/lib/cookies');
+
+describe('imageController.getAllIdsByDocId', () => {
+    let mReq;
+    let mRes;
+
+    beforeEach(() => {
+        mReq = {
+            params: {
+                doc_id: '123'
+            }
+        };
+
+        mRes = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
+        };
+
+        jest.clearAllMocks();
+    });
+
+    test('should return 400 on empty param', async () => {
+        mReq.params.doc_id = '';
+
+        await controller.getAllIdsByDocId(mReq, mRes);
+
+        expect(mRes.status).toHaveBeenCalledWith(400);
+        expect(mRes.json).toHaveBeenCalledWith({
+            error: 'BAD_REQUEST',
+            success: false
+        });
+    });
+
+    test('should return 500 if getAll throws', async () => {
+        const error = new Error('server error');
+        getAll.mockRejectedValue(error);
+
+        await controller.getAllIdsByDocId(mReq, mRes);
+
+        expect(mRes.status).toHaveBeenCalledWith(500);
+        expect(mRes.json).toHaveBeenCalledWith({
+            error,
+            success: false
+        });
+    });
+
+    test('should return success true and empty array if no images were found', async () => {
+        const arr = [];
+        getAll.mockResolvedValue(arr);
+
+        await controller.getAllIdsByDocId(mReq, mRes);
+
+        expect(mRes.status).toHaveBeenCalledWith(200);
+        expect(mRes.json).toHaveBeenCalledWith({
+            images: arr,
+            success: true
+        });
+    });
+
+    test('should return imageIds and success true', async () => {
+        const arr = [{_id: '123'}, {_id: '456'}];
+        getAll.mockResolvedValue(arr);
+
+        await controller.getAllIdsByDocId(mReq, mRes);
+
+        expect(mRes.status).toHaveBeenCalledWith(200);
+        expect(mRes.json).toHaveBeenCalledWith({
+            images: ['123', '456'],
+            success: true
+        });
+    });
+});
