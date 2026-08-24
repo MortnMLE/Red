@@ -14,6 +14,6 @@ exports.createRefreshTokenSettings = () => {
         secure: true,
         sameSite: 'strict',
         // 7 days * 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        maxAge: process.env.JWT_REFRESH_EXPIRES * 24 * 60 * 60 * 1000
     };
 }

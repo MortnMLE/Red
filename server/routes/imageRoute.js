@@ -1,3 +1,4 @@
+const express = require('express');
 const imageRoute = express.Router();
 const imageController = require('../controllers/imageController');
 const { authenticateToken } = require('../middlewares/authenticate');
