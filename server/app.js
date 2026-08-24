@@ -1,7 +1,6 @@
 //Imports:
 const express = require('express');
 const {connectDB, closeDB} = require('./db/connection');
-const MongoClient = require('mongodb');
 const cors = require('cors');
 //Local Variables:
 const app = express();
