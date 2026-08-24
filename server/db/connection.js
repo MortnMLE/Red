@@ -1,7 +1,4 @@
 const { MongoClient } = require('mongodb');
-const fs = require('fs/promises');
-const path = require('path');
-const { DatabaseError } = require('../errors/errors');
 
 //File containing the connection string
 const dbName = 'main';
@@ -14,7 +11,7 @@ async function connectDB() {
     if (!client) {
         client = new MongoClient(process.env.MONGODB);
         
-        const a = await client.connect();
+        await client.connect();
         
         db = client.db(dbName);
     }
@@ -23,8 +20,8 @@ async function connectDB() {
 
 //Returns a connection to the individual collection in Atlas
 async function getConnection(name) {
-    if (typeof name !== 'string' || name === null) {
-        throw new ValidationError('Validation Error: Get Connection');
+    if (typeof name !== 'string' && name !== '') {
+        throw new Error('EMPTY_DBNAME');
     }
 
     const db = await connectDB();
