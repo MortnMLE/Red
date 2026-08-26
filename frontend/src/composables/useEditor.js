@@ -20,8 +20,8 @@ import { DB_SETTINGS, DB_DOCUMENTS, DB_IMAGES} from '@/constants/stores';
 import { toRaw, unref } from 'vue';
 import { Validator } from '@/services/validator';
 import { newServerImage } from '@/services/images/imageServerService';
-import { serverRequest } from '@/services/apiService';
-import { endpointPatch } from '@/constants/endpoints';
+import { PATCHdocument } from '@/constants/endpoints';
+import { authenticatedFetch } from '@/services/accessToken';
 
 const vimCompartment = new Compartment();
 
@@ -274,15 +274,19 @@ export function useEditor(options = {}) {
 
         try {
             // update the document on the server
-            await serverRequest(
-                'PATCH',
-                { 
-                    _id: storedDocument._id,
-                    content: storedDocument.content,
-                    title: storedDocument.title,
-                    localVersion: storedDocument.version
-                },
-                endpointPatch
+            await authenticatedFetch(
+                PATCHdocument, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: {
+                        _id: storedDocument._id,
+                        content: storedDocument.content,
+                        title: storedDocument.title,
+                        localVersion: storedDocument.version
+                    }
+                }
             );
         } catch (err) {
             // if an error occurs, the document will be updated with the next sync

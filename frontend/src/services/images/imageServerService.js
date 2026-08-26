@@ -1,11 +1,11 @@
 import { Validator } from "../validator";
 import { 
-    endpointGetImageidsForDocId,
-    endpointImageGetById,
-    endpointImgNew,
-    endpointImgDelete 
+    GETimageIdsForDocumentId,
+    GETimageById,
+    POSTnewImage,
+    DELETEimage 
 } from "@/constants/endpoints";
-import { serverRequest } from "../apiService";
+import { authenticatedFetch } from "../accessToken";
 
 export async function newServerImage(docId, name, file) {
     // validate Parameters
@@ -24,8 +24,8 @@ export async function newServerImage(docId, name, file) {
 
     try {
         // POST image to server
-        const response = await fetch(
-            endpointImgNew, 
+        const response = await authenticatedFetch(
+            POSTnewImage, 
             {
                 method: 'POST',
                 body: formData
@@ -55,13 +55,16 @@ export async function deleteImageFromServer(id) {
 
     try {
     // delete the id from the server
-        const json = await serverRequest(
-            'DELETE',
-            { id },
-            endpointImgDelete
-        );
+        const response = await authenticatedFetch(DELETEimage, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: { id }
+        });
 
-        return json.success;
+        
+        return await response.json().success;
     } catch (err) {
         return false;
     }
@@ -81,8 +84,8 @@ export async function serverFetchImageIdsForDocuments(documents) {
     
     // start individual fetch requests
     for (const doc of documents) {
-        tasks.push(fetch(
-            endpointGetImageidsForDocId + doc._id
+        tasks.push(authenticatedFetch(
+            GETimageIdsForDocumentId + doc._id
         ));
     }
 
@@ -133,15 +136,14 @@ export async function serverFetchImagesForIds(ids) {
     // asynchronous fetch of all required images
     try {
         const result = await Promise.all(ids.map(async (id) => {
-            //const response = await fetch(endpointImageGetById +id);
-            const response = await fetch(endpointImageGetById + id);
+            const response = await authenticatedFetch(GETimageById + id);
             
             return {
                 id,
-                image: response
+                image: response,
             };
         }));
-
+        
         return result;
     } catch {
         return [];

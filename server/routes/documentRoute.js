@@ -1,15 +1,16 @@
 const express = require('express');
 const { authenticateToken } = require('../middlewares/authenticate');
-//Variables:
-const documentRoute = express.Router();
 const documentController = require('../controllers/documentController');
+const documentRoute = express.Router();
 
-documentRoute.get('/forUser/:user_id', authenticateToken, documentController.getAllForUser);
+documentRoute.get('/byUser', authenticateToken, documentController.getAllForUser);
 
-documentRoute.get('/get/:id', authenticateToken, documentController.getById);
+documentRoute.get('/byId/:id', authenticateToken, documentController.getById);
 
 documentRoute.post('', authenticateToken, documentController.create);
 
 documentRoute.patch('', authenticateToken, documentController.patch);
+
+documentRoute.delete('', authenticateToken, documentController.delete);
 
 module.exports = documentRoute;

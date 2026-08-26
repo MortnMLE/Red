@@ -81,6 +81,9 @@
 </template>
 
 <script>
+import { POSTauthLogin, POSTauthRegister } from '@/constants/endpoints';
+import { setAccessToken } from '@/services/accessToken';
+
 
 export default {
   name: 'LoginPage',
@@ -122,8 +125,8 @@ export default {
       }
       
       const endpoint = this.isLogin
-      ? 'http://localhost:5000/user/auth'
-      : 'http://localhost:5000/user';
+      ? POSTauthLogin
+      : POSTauthRegister;
 
       const body = {
         user: this.form.email,
@@ -144,6 +147,7 @@ export default {
         const responseData = await response.json();
 
         if (responseData.success) {
+          setAccessToken(responseData.token);
           localStorage.setItem('userId', responseData.id); 
           this.$router.push('/editor');
         } else {

@@ -15,12 +15,12 @@ const upload = multer({
     }
 });
 
-imageRoute.post('/new', upload.single('image'), authenticateToken, imageController.create);
+imageRoute.post('', upload.single('image'), authenticateToken, imageController.create);
 
-imageRoute.get('/:id', authenticateToken, imageController.getById);
+imageRoute.get('/byId/:id', authenticateToken, imageController.getById);
 
 imageRoute.get('/allForDocId/:doc_id', authenticateToken, imageController.getAllIdsByDocId);
 
-imageRoute.delete('/delete', authenticateToken, imageController.delete);
+imageRoute.delete('', authenticateToken, imageController.delete);
 
 module.exports = imageRoute;

@@ -7,12 +7,12 @@ import { getLocalRecordsByIndex,
     clearLocalDatabase
  } from '@/services/indexedDB/indexedDbService';
 
-import { serverRequest } from '@/services/apiService';
-import { endpointDocByUser, endpointDocDelete, endpointDocNew, endpointPatch } from '@/constants/endpoints';
+import { GETdocsForUser, DELETEdoc, POSTnewDocument, PATCHdocument } from '@/constants/endpoints';
 import { DEFAULT_DOCUMENT } from '@/constants/defaultDocument';
 import { debouncer } from '@/services/debouncer';
 import { DB_DOCUMENTS } from '@/constants/stores';
 import { Validator } from '@/services/validator';
+import { authenticatedFetch } from '@/services/accessToken';
 
 //state
 const documents = ref([]);
@@ -58,7 +58,7 @@ export function useDocuments(options = {}) {
         updateCountTempIds 
     } = options;
     
-    // synchronization with IndexedDB via indexedDBservice and backend server via apiService
+    // synchronization with IndexedDB
     async function loadDocuments() {
         const serverDocuments = [];
         const localDocuments = [];
@@ -89,14 +89,17 @@ export function useDocuments(options = {}) {
 
         try {
             // Fetch documents from server
-            const fetchedDocs = await serverRequest(
-                'POST',
-                { user_id: localStorage.userId }, 
-                endpointDocByUser
-            );
+            const response = await authenticatedFetch(GETdocsForUser, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: { user_id: localStorage.userId }
+            });
 
-            if (fetchedDocs.success) {
-                serverDocuments = await JSON.parse(fetchedDocs.documents);
+            if (response.success) {
+                // serverDocuments = await JSON.parse(fetchedDocs.documents);
+                serverDocuments = await response.json();
             }
         } catch (err) {
             console.warn('Error loading documents: ', err);
@@ -140,12 +143,14 @@ export function useDocuments(options = {}) {
                 }
 
                 if (localDoc.deleted) {
-                    const response = await serverRequest(
-                        'POST',
-                        { _id: localDoc._id },
-                        endpointDocDelete
-                    );
-                    
+                    const response = await authenticatedFetch(DELETEdoc, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: { _id: localDoc._id}
+                    });
+                   
                     if (response.success) {
                         await deleteLocalRecord(DB_DOCUMENTS, localDoc._id);
                     }
@@ -183,15 +188,18 @@ export function useDocuments(options = {}) {
             try{
                 //Only try to reach the server once.
                 if (serverIsReachable) {
-                    const response = await serverRequest(
-                        'POST',
-                        { 
+                    const response = await authenticatedFetch(POSTnewDocument, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: {
                             user_id: doc.user_id,
                             title: doc.title,
                             content: doc.content,
                             version: doc.version
-                        }, endpointDocNew
-                    );
+                        }
+                    });
 
                     if (response.success) {
                         newDoc = {
@@ -229,11 +237,13 @@ export function useDocuments(options = {}) {
         if (serverIsReachable) {
             for (const doc of docsToBeDeleted) {
                 try {
-                    const response = await serverRequest(
-                        'POST',
-                        { _id: doc._id }, 
-                        endpointDocDelete
-                    );
+                    const response = await authenticatedFetch(DELETEdoc, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: { _id: doc._id }
+                    });
                     
                     if (response.success) {
                         deleteLocalRecord(DB_DOCUMENTS, doc._id);
@@ -245,16 +255,18 @@ export function useDocuments(options = {}) {
 
             for (const doc of docsToBePatched) {
                 try {
-                    const response = await serverRequest(
-                        'PATCH',
-                        {
+                    const response = authenticatedFetch(PATCHdocument, {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: {
                             _id: doc._id,
                             content: doc.content,
                             title: doc.title,
                             localVersion: doc.localVersion
                         },
-                        endpointPatch
-                    )
+                    });
 
                     if (!response.success) {
                         console.error(`error during patch: ${response.message}; ${doc._id}`);
@@ -274,11 +286,15 @@ export function useDocuments(options = {}) {
         )
         
         try {
-            const response = await serverRequest(
-                'POST',
-                { _id: id },
-                endpointDocDelete
-            ); 
+            const response = await authenticatedFetch(DELETEdoc, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: {
+                    _id: id
+                },
+            });
 
             if (response.success) {
                 deleteLocalRecord(DB_DOCUMENTS, id);
@@ -319,16 +335,18 @@ export function useDocuments(options = {}) {
         setActiveDocument(newDoc._id);
         
         try {
-            const response = await serverRequest(
-                'POST',
-                {
+            const response = await authenticatedFetch(POSTnewDocument, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: {
                     user_id: localStorage.userId,
                     title: newDoc.title,
                     content: newDoc.content,
                     version: newDoc.version
-                }, 
-                endpointDocNew
-            );
+                },
+            });
 
             if (response.success) {
 
@@ -477,16 +495,18 @@ export function useDocuments(options = {}) {
     const syncRemoteDebounced = debouncer(
         async (ref) => {
             try {
-                const response = await serverRequest(
-                    'PATCH',
-                    {
+                await authenticatedFetch( PATCHdocument, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: {
                         _id: ref.value._id,
                         content: ref.value.content,
                         title: ref.value.title,
                         localVersion: ref.value.version
-                    },
-                    endpointPatch
-                );
+                    }
+                });
             } catch (err) {
                 console.error(err);
             }

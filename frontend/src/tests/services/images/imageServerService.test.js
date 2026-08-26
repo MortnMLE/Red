@@ -1,14 +1,14 @@
 import { describe, expect, spyOn, afterEach, mock } from 'vitest';
 
-vi.mock('@/services/apiService', () => ({
-    serverRequest: vi.fn()
+vi.mock('@/services/accessToken', () => ({
+    authenticatedFetch: vi.fn()
 }));
 
 import { 
     deleteImageFromServer, newServerImage,
     serverFetchImageIdsForDocuments, serverFetchImagesForIds 
 } from '@/services/images/imageServerService';
-import { serverRequest } from '@/services/apiService';
+import { authenticatedFetch } from '@/services/accessToken';
 
 describe('imageServerService', () => {
     const validFile = new File(['Hallo'], 'hallo.txt');    
@@ -19,7 +19,7 @@ describe('imageServerService', () => {
 
     describe('newServerImage', () => {
         test('should throw on invalid inputs', async () => {
-            const fetchSpy = vi.spyOn(global, 'fetch');
+            authenticatedFetch.mockResolvedValue({});
 
             await expect(newServerImage('', 'name', validFile)).rejects.toThrow();
             await expect(newServerImage(null, 'name', validFile)).rejects.toThrow();
@@ -32,11 +32,11 @@ describe('imageServerService', () => {
             await expect(newServerImage('id', 'name', null)).rejects.toThrow();
             await expect(newServerImage('id', 'name', {})).rejects.toThrow();
 
-            expect(fetchSpy).not.toHaveBeenCalled();
+            expect(authenticatedFetch).not.toHaveBeenCalled();
         });
         
         test('should return empty string on unsuccessful answer from server', async() => {
-            vi.spyOn(global, 'fetch').mockResolvedValue({
+            authenticatedFetch.mockResolvedValue({
                 json: vi.fn().mockResolvedValue({
                     id: '',
                     success: false,
@@ -51,7 +51,7 @@ describe('imageServerService', () => {
         test('should return the correct id on successful answer from server', async() => {
             const insertedId = 'insertedId';
             
-            vi.spyOn(global, 'fetch').mockResolvedValue({
+            authenticatedFetch.mockResolvedValue({
                 json: vi.fn().mockResolvedValue({
                     id: 'insertedId',
                     success: true,
@@ -64,7 +64,7 @@ describe('imageServerService', () => {
         });
 
         test('should return empty string on error inside try catch block', async () => {
-            vi.spyOn(global, 'fetch').mockResolvedValue({
+            authenticatedFetch.mockResolvedValue({
                 json: () => Promise.reject(new Error('Invalid JSON'))
             });
 
@@ -81,11 +81,11 @@ describe('imageServerService', () => {
             await expect(deleteImageFromServer(null)).rejects.toThrow();
             await expect(deleteImageFromServer(undefined)).rejects.toThrow();
 
-            expect(serverRequest).not.toHaveBeenCalled();            
+            expect(authenticatedFetch).not.toHaveBeenCalled();            
         });
 
         test('should return false on unsuccessful request', async () => {
-            vi.mocked(serverRequest).mockResolvedValue({
+            authenticatedFetch.mockResolvedValue({
                 success: false
             });
 
@@ -95,7 +95,7 @@ describe('imageServerService', () => {
         });
 
         test('should return false on error', async () => {
-            vi.mocked(serverRequest).mockRejectedValue(new Error('Server Error'));
+            authenticatedFetch.mockRejectedValue(new Error('Server Error'));
 
             const result = await deleteImageFromServer('id');
             
@@ -103,8 +103,10 @@ describe('imageServerService', () => {
         });
 
         test('should return true on successful request', async () => {
-            vi.mocked(serverRequest).mockResolvedValue({
-                success: true
+            authenticatedFetch.mockResolvedValue({
+                json: vi.fn(() => {
+                    return {success: true}
+                }),
             });
 
             const result = await deleteImageFromServer('id');
@@ -130,7 +132,7 @@ describe('imageServerService', () => {
         });
 
         test('should return serverWasReached is false if fetch throws', async () => {
-            vi.spyOn(global, 'fetch').mockRejectedValue(new Error('Error'));
+            authenticatedFetch.mockRejectedValue(new Error('Error'));
 
             const result = await serverFetchImageIdsForDocuments(['id1', 'id2']);
 
@@ -138,7 +140,7 @@ describe('imageServerService', () => {
         });
 
         test('should return empty array if fetch returns no images', async () => {
-            vi.spyOn(global, 'fetch').mockResolvedValue({
+            authenticatedFetch.mockResolvedValue({
                 json: vi.fn().mockResolvedValue({
                     images: [],
                     serverWasReached: true
@@ -152,7 +154,7 @@ describe('imageServerService', () => {
         });
 
         test('should return array of imageIds if fetch returns images', async () => {
-            vi.spyOn(global, 'fetch').mockResolvedValue({
+            authenticatedFetch.mockResolvedValue({
                 json: vi.fn().mockResolvedValue({
                     images: ['id1', 'id2'],
                     serverWasReached: true
@@ -168,7 +170,7 @@ describe('imageServerService', () => {
         });
 
         test('should not throw in case of response.json error', async () => {
-            vi.spyOn(global, 'fetch').mockResolvedValue({
+            authenticatedFetch.mockResolvedValue({
                 json: vi.fn().mockRejectedValue(new Error('invalid json'))
             });
 
@@ -198,7 +200,7 @@ describe('imageServerService', () => {
         });
 
         test('should not throw and return empty array on fetch error', async () => {
-            vi.spyOn(global, 'fetch').mockRejectedValue(new Error('error'));
+            authenticatedFetch.mockRejectedValue(new Error('error'));
 
             const result = await serverFetchImagesForIds(['id']);
 
@@ -208,7 +210,7 @@ describe('imageServerService', () => {
         test('should return array of objects', async () => {
             const response = new Response(new Uint8Array([1, 2, 3]));
 
-            vi.spyOn(global, 'fetch').mockResolvedValue(response);
+            authenticatedFetch.mockResolvedValue(response);
 
             const result = await serverFetchImagesForIds(['id1']);
             
