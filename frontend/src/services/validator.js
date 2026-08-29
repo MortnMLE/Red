@@ -84,4 +84,20 @@ export class Validator{
             throw new Error(`object must be of type ${type.name}`);
         }
     }
+
+    static validateFunction(func) {
+        if (typeof func !== 'function') {
+            throw new Error(`Input must be a function`);
+        }
+    }
+
+    static validateAsyncFunction(func) {
+        this.validateFunction(func);
+        
+        const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+
+        if (func.constructor !== AsyncFunction) {
+            throw new Error(`Input must be an async function`);
+        }
+    }
 }

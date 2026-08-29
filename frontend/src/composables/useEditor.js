@@ -15,7 +15,7 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { markdownImages } from '@/services/editor/imageWidget';
 import { basicSetup } from 'codemirror';
 import { markdownFadeInactiveLines, removeMarkdown } from '@/services/editor/markdownService';
-import { addOrSetLocalRecord, deleteLocalRecord, getLocalRecord, replaceLocalDbEntry } from '@/services/indexedDB/indexedDbService';
+import { addOrSetLocalRecord, deleteLocalRecord, getLocalRecord, replaceLocalDbEntry } from '@/services/indexedDB/indexedDbApi';
 import { DB_SETTINGS, DB_DOCUMENTS, DB_IMAGES} from '@/constants/stores';
 import { toRaw, unref } from 'vue';
 import { Validator } from '@/services/validator';
@@ -127,7 +127,7 @@ export function useEditor(options = {}) {
                         event.preventDefault();
 
                         const insertedId = await createNewLocalImage(
-                            activeDocument.value._id,
+                            activeDocument.value.id,
                             file.name,
                             file
                         );
@@ -208,7 +208,7 @@ export function useEditor(options = {}) {
         Validator.validateFile(file);
 
         // post the image to the server
-        const insertedId = await newServerImage(doc._id, name, file);
+        const insertedId = await newServerImage(doc.id, name, file);
 
         if (!insertedId) {
             return;
@@ -218,11 +218,11 @@ export function useEditor(options = {}) {
         const replacedImage = await replaceLocalDbEntry(
             DB_IMAGES,
             {
-                _id: insertedId,
-                doc_id: doc._id,
+                id: insertedId,
+                docId: doc.id,
                 file,
                 name,
-                user_id: localStorage.userId
+                userId: localStorage.userId
             },
             tempId
         );
@@ -233,7 +233,7 @@ export function useEditor(options = {}) {
 
         // if the user is still in the original document, change the editor content,
         // which prompts the subsequent storing process for local storage and server
-        if (activeDocument.value?._id === doc._id) {
+        if (activeDocument.value?.id === doc.id) {
             // replace the imageCache entry
             imageCache.replaceId(tempId, insertedId);
 
@@ -250,7 +250,7 @@ export function useEditor(options = {}) {
 
         // if active document has changed while awaiting newServerImage:
         // fetch document from local storage, as it may have changed during await
-        const storedDocument = await getLocalRecord(DB_DOCUMENTS, doc._id);
+        const storedDocument = await getLocalRecord(DB_DOCUMENTS, doc.id);
 
         // if true document has been deleted then exit
         if (!storedDocument) {
@@ -280,12 +280,12 @@ export function useEditor(options = {}) {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: {
-                        _id: storedDocument._id,
+                    body: JSON.stringify({
+                        id: storedDocument.id,
                         content: storedDocument.content,
                         title: storedDocument.title,
-                        localVersion: storedDocument.version
-                    }
+                        version: storedDocument.version
+                    }),
                 }
             );
         } catch (err) {
@@ -336,7 +336,7 @@ export function useEditor(options = {}) {
         await addOrSetLocalRecord(DB_SETTINGS, { 
             key: 'enableVim', 
             value: toRaw(unref(enableVim.value)),
-            user_id: localStorage.userId
+            userId: localStorage.userId
         });
 
         editorView.value.dispatch({

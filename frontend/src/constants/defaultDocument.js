@@ -1,5 +1,5 @@
 export const DEFAULT_DOCUMENT = Object.freeze({
-    _id: 'welcome',
+    id: 'welcome',
     title: 'Welcome',
     content: '# Welcome 👋\nWelcome to your markdown ' + 
         'workspace. This editor supports realtime markdown rendering, so you can write ' + 

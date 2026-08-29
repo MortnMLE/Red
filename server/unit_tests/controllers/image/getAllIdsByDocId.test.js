@@ -13,7 +13,7 @@ describe('imageController.getAllIdsByDocId', () => {
     beforeEach(() => {
         mReq = {
             params: {
-                doc_id: '123'
+                docId: '123'
             }
         };
 
@@ -26,7 +26,7 @@ describe('imageController.getAllIdsByDocId', () => {
     });
 
     test('should return 400 on empty param', async () => {
-        mReq.params.doc_id = '';
+        mReq.params.docId = '';
 
         await controller.getAllIdsByDocId(mReq, mRes);
 
@@ -64,7 +64,7 @@ describe('imageController.getAllIdsByDocId', () => {
     });
 
     test('should return imageIds and success true', async () => {
-        const arr = [{_id: '123'}, {_id: '456'}];
+        const arr = [{id: '123'}, {id: '456'}];
         getAll.mockResolvedValue(arr);
 
         await controller.getAllIdsByDocId(mReq, mRes);

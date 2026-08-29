@@ -26,10 +26,10 @@
       <!-- List of Documents -->
       <button
         v-for="doc in documents"
-        :key="doc._id"
+        :key="doc.id"
         class="sidebar-item"
-        :class="{ active: activeDocument && activeDocument._id === doc._id }"
-        @click="openDocument(doc._id); handleChangeActiveDocument(doc._id)"
+        :class="{ active: activeDocument && activeDocument.id === doc.id }"
+        @click="openDocument(doc.id); handleChangeActiveDocument(doc.id)"
       >
           {{ doc.title }}
       </button>
@@ -42,10 +42,10 @@
         class="tabbar">
         <button
           v-for="doc in openDocuments"
-          :key="doc._id"
+          :key="doc.id"
           class="tab"
-          :class="{ active: activeDocument && activeDocument._id === doc._id }"
-          @click="handleChangeActiveDocument(doc._id)"
+          :class="{ active: activeDocument && activeDocument.id === doc.id }"
+          @click="handleChangeActiveDocument(doc.id)"
         >
           {{ doc.title }}
           <span
@@ -140,7 +140,7 @@ setUpdateEditorContent(updateEditorContent);
 
 async function handleChangeActiveDocument(nextDocumentId) {
   // hold the id of the currently active id
-  const previousDocumentId = activeDocument.value._id;
+  const previousDocumentId = activeDocument.value.id;
 
   // if the function was triggered by a click on the activeDocument then exit
   if (nextDocumentId === previousDocumentId) {
@@ -162,20 +162,20 @@ async function handleCloseDocument(docToBeClosed) {
 
   if (!nextDocument) {
     setActiveDocument('welcome');
-  } else if (nextDocument._id !== activeDocument.value._id) {
-    await handleChangeActiveDocument(nextDocument._id);
+  } else if (nextDocument.id !== activeDocument.value.id) {
+    await handleChangeActiveDocument(nextDocument.id);
   }
 
-  closeDocument(docToBeClosed._id);
+  closeDocument(docToBeClosed.id);
 }
 
 async function handleDeleteActiveDocument() {
-  if (activeDocument.value._id == 'welcome') {
+  if (activeDocument.value.id == 'welcome') {
     return;
   }
 
   const docToBeDeleted = documents.value.find(
-    doc => doc._id === activeDocument.value._id
+    doc => doc.id === activeDocument.value.id
   );
 
   handleCloseDocument(docToBeDeleted);

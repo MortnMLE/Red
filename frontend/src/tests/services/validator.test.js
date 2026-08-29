@@ -194,4 +194,73 @@ describe('Validator', () => {
                 .toThrow('object must not be null or undefined');
         });
     });
+
+    describe('validateFunction', () => {
+        test('accepts regular function', () => {
+            expect(() => Validator.validateFunction(function () {}))
+                .not.toThrow();
+        });
+
+        test('accepts arrow function', () => {
+            expect(() => Validator.validateFunction(() => {}))
+                .not.toThrow();
+        });
+
+        test('accepts async function', () => {
+            expect(() => Validator.validateFunction(async function () {}))
+                .not.toThrow();
+        });
+
+        test('throws for non-function', () => {
+            expect(() => Validator.validateFunction('not a function'))
+                .toThrow('Input must be a function');
+        });
+
+        test('throws for null', () => {
+            expect(() => Validator.validateFunction(null))
+                .toThrow('Input must be a function');
+        });
+
+        test('throws for undefined', () => {
+            expect(() => Validator.validateFunction(undefined))
+                .toThrow('Input must be a function');
+        });
+    });
+
+    describe('validateAsyncFunction', () => {
+        test('accepts async function', () => {
+            expect(() => Validator.validateAsyncFunction(async function () {}))
+                .not.toThrow();
+        });
+
+        test('accepts async arrow function', () => {
+            expect(() => Validator.validateAsyncFunction(async () => {}))
+                .not.toThrow();
+        });
+
+        test('throws for regular function', () => {
+            expect(() => Validator.validateAsyncFunction(function () {}))
+                .toThrow('Input must be an async function');
+        });
+
+        test('throws for arrow function', () => {
+            expect(() => Validator.validateAsyncFunction(() => {}))
+                .toThrow('Input must be an async function');
+        });
+
+        test('throws for non-function', () => {
+            expect(() => Validator.validateAsyncFunction('not a function'))
+                .toThrow('Input must be a function');
+        });
+
+        test('throws for null', () => {
+            expect(() => Validator.validateAsyncFunction(null))
+                .toThrow('Input must be a function');
+        });
+
+        test('throws for undefined', () => {
+            expect(() => Validator.validateAsyncFunction(undefined))
+                .toThrow('Input must be a function');
+        });
+    });
 });

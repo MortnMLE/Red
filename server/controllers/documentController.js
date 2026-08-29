@@ -14,13 +14,15 @@ exports.getAllForUser = async (req, res) => {
             });
         }
 
-        const documents = await db.getAll({ user_id: new ObjectId(userId) }).toArray();
+        const documents = await db.getAll(documentDbName, { userId: new ObjectId(userId) });
         
+        console.log(`received GET request, with userId: ${userId}, returning: ${documents.length} documents`);
         return res.status(200).json({
-            documents,
+            documents: documents.toArray(),
             success: true
         });
     } catch (error) {
+        console.log(error);
         return res.status(500).json({
             error,
             success: false
@@ -49,7 +51,7 @@ exports.getById = async (req, res) => {
         }
 
         return res.status(200).json({
-            _id: document._id,
+            id: document.id,
             title: document.title,
             content: document.content,
             version: document.version,
@@ -98,7 +100,7 @@ exports.create = async (req, res) => {
     try {
         const { title, content, version } = req.body;
 
-        if (!validate([title, content, version])) {
+        if (!validate([title, version])) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
                 success: false
@@ -108,7 +110,7 @@ exports.create = async (req, res) => {
         const response = await db.insertOne(
             documentDbName,
             {
-                user_id: new ObjectId(req.user),
+                userId: new ObjectId(req.user),
                 title,
                 content,
                 version
@@ -137,7 +139,13 @@ exports.patch = async (req, res) => {
     try {
         const { id, content, title, version } = req.body;
 
-        if (!validate([id, content, title, version])) {
+        console.log(`Patch parameters:`);
+        console.log(`id: ${id}`);
+        console.log(`content: ${content}`);
+        console.log(`title: ${title}`);
+        console.log(`version: ${version}`);
+
+        if (!validate([id, title, version])) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
                 success: false

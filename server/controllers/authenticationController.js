@@ -30,7 +30,7 @@ exports.register = async (req, res) => {
         }
 
         // hash password
-        const salt = await bcrypt.genSalt(process.env.SALT);
+        const salt = await bcrypt.genSalt(Number(process.env.SALT));
         const hashPassword = await bcrypt.hash(password, salt);
 
         // create new user
@@ -54,6 +54,7 @@ exports.register = async (req, res) => {
             token: authToken
         });
     } catch (error) {
+        console.log(`register: ${error}`)
         res.status(500).json({
             error,
             success: false
@@ -78,11 +79,22 @@ exports.login = async (req, res) => {
             const authToken = createToken(existingUser._id, process.env.JWT_AUTH_EXPIRES);
             const refreshToken = createToken(existingUser._id, process.env.JWT_REFRESH_EXPIRES);
 
+            if (!refreshToken) {
+                console.log('did not create a refreshtoken');
+            } else {
+                console.log('created refresh token');
+            }
+
             refreshTokens.push(refreshToken);
 
             res.cookie('refreshToken', refreshToken, createRefreshTokenSettings());
 
-            return res.status(200).json({ 
+            console.log(`LOGIN Parameters:`);
+            console.log(`id: ${existingUser._id}`);
+            console.log(`token: ${authToken}`);
+
+            return res.status(200).json({
+                id: existingUser._id,
                 token: authToken,
                 success: true
             });
@@ -93,6 +105,7 @@ exports.login = async (req, res) => {
             });
         } 
     } catch (error) {
+        console.log(`\nlogin throws: ${error}`);
         res.status(500).json({
             error,
             success: false
@@ -126,7 +139,6 @@ exports.refresh = async (req, res) => {
                 });
             }
 
-            // check if I need additional checks
             const newAccessToken = createToken(decoded.sub, process.env.JWT_AUTH_EXPIRES);
 
             return res.status(200).json({ 

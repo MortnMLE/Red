@@ -11,9 +11,9 @@ exports.createToken = (sub, expiresIn) => {
 exports.createRefreshTokenSettings = () => {
     return {
         httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
+        secure: false,
+        sameSite: 'lax',
         // 7 days * 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
-        maxAge: process.env.JWT_REFRESH_EXPIRES * 24 * 60 * 60 * 1000
+        maxAge: process.env.MAX_AGE * 24 * 60 * 60 * 1000
     };
 }

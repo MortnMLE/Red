@@ -18,10 +18,11 @@ app.set('view engine');
 app.use(express.json());
 app.use(cors({
     origin: 'http://localhost:3000',
-    exposedHeaders: ['Content-Disposition']
+    exposedHeaders: ['Content-Disposition'],
+    credentials: true
 }));
 app.use(cookieparser());
-app.use('/user', authenticationRoute);
+app.use('/auth', authenticationRoute);
 app.use('/doc', documentRoute);
 app.use('/img', imageRoute);
 

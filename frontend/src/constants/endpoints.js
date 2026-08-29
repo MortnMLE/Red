@@ -10,6 +10,6 @@ export const POSTnewImage = 'http://localhost:5000/img';
 export const DELETEimage = 'http://localhost:5000/img';
 export const GETimageIdsForDocumentId = 'http://localhost:5000/img/allForDocId/';
 // authentication
-export const POSTrefreshAccessToken = 'https://localhost:5000/auth/refresh';
+export const POSTrefreshAccessToken = 'http://localhost:5000/auth/refresh';
 export const POSTauthRegister = 'http://localhost:5000/auth/register';
 export const POSTauthLogin = 'http://localhost:5000/auth/login';

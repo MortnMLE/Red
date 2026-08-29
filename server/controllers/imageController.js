@@ -5,16 +5,16 @@ const { validate } = require('../utils/validate');
 
 exports.create = async (req, res) => {
     try {
-        const { doc_id, name, file } = req.body;
+        const { docId, name, file } = req.body;
 
-        if (!validate([doc_id, name, file])) {
+        if (!validate([docId, name, file])) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
                 success: false
             });
         }
 
-        const newImage = image.create(doc_id, name, file);
+        const newImage = image.create(docId, name, file);
 
         const response = await db.insertOne(imageDbName, newImage);
 
@@ -71,16 +71,16 @@ exports.getById = async (req, res) => {
 
 exports.getAllIdsByDocId = async (req, res) => {
     try {
-        const { doc_id } = req.params;
+        const { docId } = req.params;
 
-        if (!validate([doc_id])) {
+        if (!validate([docId])) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
                 success: false
             });
         }
 
-        const images = await db.getAll(imageDbName, doc_id);
+        const images = await db.getAll(imageDbName, docId);
 
         if (!images) {
             return res.status(404).json({
@@ -92,7 +92,7 @@ exports.getAllIdsByDocId = async (req, res) => {
 
         let result = [];
         for(const image of images) {
-            result.push(image._id);
+            result.push(image.id);
         }
 
         return res.status(200).json({

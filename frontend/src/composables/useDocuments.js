@@ -5,7 +5,7 @@ import { getLocalRecordsByIndex,
     deleteLocalRecord,
     addOrSetLocalRecord,
     clearLocalDatabase
- } from '@/services/indexedDB/indexedDbService';
+ } from '@/services/indexedDB/indexedDbApi';
 
 import { GETdocsForUser, DELETEdoc, POSTnewDocument, PATCHdocument } from '@/constants/endpoints';
 import { DEFAULT_DOCUMENT } from '@/constants/defaultDocument';
@@ -20,18 +20,17 @@ const activeDocumentId = ref('');
 const openDocumentIds = ref([]);
 const docsInitialized = ref(false);
 
-const links = ref([]);
 let creationInProgress = false;
 
 const activeDocument = computed (() => 
     documents.value.find(
-        doc => doc._id === activeDocumentId.value
+        doc => doc.id === activeDocumentId.value
     ) || DEFAULT_DOCUMENT
 );
 
 const openDocuments = computed (() =>
     documents.value.filter(
-        doc => openDocumentIds.value.includes(doc._id)
+        doc => openDocumentIds.value.includes(doc.id)
     )
 );
 
@@ -40,19 +39,11 @@ export function getDocumentById(id) {
     Validator.validateStringEmptyNotAllowed(id);
 
     return documents.value.find(
-        (doc) => doc._id === id
+        (doc) => doc.id === id
     );
 }
 
 export function useDocuments(options = {}) {
-    // document: 
-    // _id: string
-    // title: string
-    // content: string
-    // version: number
-    // pendingSync: boolean
-    // deleted: boolean
-
     const { 
         countTempIds,
         updateCountTempIds 
@@ -60,56 +51,33 @@ export function useDocuments(options = {}) {
     
     // synchronization with IndexedDB
     async function loadDocuments() {
-        const serverDocuments = [];
-        const localDocuments = [];
-
-        try {
-        // Check if local database exists and load documents from local storage
-            if (await storeExists(DB_DOCUMENTS)) {
-                localDocuments = await getLocalRecordsByIndex(
-                    DB_DOCUMENTS,
-                    'user_id',
-                    localStorage.userId
-                );
-            } else { 
-                await createStore(
-                    DB_DOCUMENTS, 
-                    "_id",
-                    [{
-                        indexName: 'user_id',
-                        keyPath: 'user_id',
-                        options: { unique: false }
-                    }]
-                );
-            }
-        } catch (err) {
-            await clearLocalDatabase(DB_DOCUMENTS);
-            await loadDocuments(); // Retry loading documents after clearing local database
-        }
+        let serverDocuments = [];
+        let localDocuments = [];
 
         try {
             // Fetch documents from server
-            const response = await authenticatedFetch(GETdocsForUser, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: { user_id: localStorage.userId }
-            });
+            const userId = localStorage.userId;
 
-            if (response.success) {
-                // serverDocuments = await JSON.parse(fetchedDocs.documents);
-                serverDocuments = await response.json();
+            console.log(`sending GET: ${GETdocsForUser + userId}`);
+
+            const response = await authenticatedFetch(
+                GETdocsForUser + userId
+            );
+
+            const data = await response.json();
+
+            if (data.success) {
+                serverDocuments = await data.documents;
             }
         } catch (err) {
-            console.warn('Error loading documents: ', err);
+            console.warn(err);
         }
 
         return { serverDocuments, localDocuments };
     }
 
     async function syncDocuments(serverDocuments, localDocuments) {
-        //postToserverDocs = documents that should be updated or added on the server
+        //postToServerDocs = documents that should be updated or added on the server
         let docsToBeCreated = [];
         let docsToBeDeleted = [];
         let docsToBePatched = [];
@@ -126,7 +94,7 @@ export function useDocuments(options = {}) {
             // Handle synchronization between local storage and server
             for (let serverDoc of serverDocuments) {
                 const localDoc = localDocuments.find(
-                    doc => doc._id === serverDoc._id
+                    doc => doc.id === serverDoc.id
                 );
 
                 if (!localDoc) {
@@ -148,11 +116,13 @@ export function useDocuments(options = {}) {
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: { _id: localDoc._id}
+                        body: JSON.stringify({ id: localDoc.id}),
                     });
+
+                    const data = await response.json();
                    
-                    if (response.success) {
-                        await deleteLocalRecord(DB_DOCUMENTS, localDoc._id);
+                    if (data.success) {
+                        await deleteLocalRecord(DB_DOCUMENTS, localDoc.id);
                     }
                 }
 
@@ -169,7 +139,7 @@ export function useDocuments(options = {}) {
                 }
 
                 localDocuments = localDocuments.filter(
-                    doc => doc._id !== localDoc._id
+                    doc => doc.id !== localDoc.id
                 );
 
                 documents.value.push(serverDoc);
@@ -193,18 +163,20 @@ export function useDocuments(options = {}) {
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: {
-                            user_id: doc.user_id,
+                        body: JSON.stringify({
+                            userI: doc.userId,
                             title: doc.title,
                             content: doc.content,
                             version: doc.version
-                        }
+                        }),
                     });
 
-                    if (response.success) {
+                    const data = await response.json();
+
+                    if (data.success) {
                         newDoc = {
-                            _id: response._id,
-                            user_id: doc.user_id,
+                            id: data.id,
+                            userId: doc.userId,
                             title: doc.title,
                             content: doc.content,
                             version: doc.version,
@@ -212,7 +184,7 @@ export function useDocuments(options = {}) {
                             deleted: false
                         }    
                         
-                        await deleteLocalRecord(DB_DOCUMENTS, doc._id);
+                        await deleteLocalRecord(DB_DOCUMENTS, doc.id);
                         await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
                     } else {
                         serverIsReachable = false;
@@ -223,7 +195,7 @@ export function useDocuments(options = {}) {
                 newDoc = doc;
             } finally {
                 const index = documents.value.findIndex(
-                    d => d._id === doc._id
+                    d => d.id === doc.id
                 );
 
                 if (index !== -1) {
@@ -242,11 +214,13 @@ export function useDocuments(options = {}) {
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: { _id: doc._id }
+                        body: JSON.stringify({ id: doc.id }),
                     });
+
+                    const data = await response.json();
                     
-                    if (response.success) {
-                        deleteLocalRecord(DB_DOCUMENTS, doc._id);
+                    if (data.success) {
+                        deleteLocalRecord(DB_DOCUMENTS, doc.id);
                     }
                 } catch (err) {
                     console.warn('Could not delete document from server. Skipping deletion process', err);
@@ -260,16 +234,18 @@ export function useDocuments(options = {}) {
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: {
-                            _id: doc._id,
+                        body: JSON.stringify({
+                            id: doc.id,
                             content: doc.content,
                             title: doc.title,
-                            localVersion: doc.localVersion
-                        },
+                            version: doc.version
+                        }),
                     });
 
-                    if (!response.success) {
-                        console.error(`error during patch: ${response.message}; ${doc._id}`);
+                    const data = await response.json();
+
+                    if (!data.success) {
+                        console.error(`error during patch: ${response.message}; ${doc.id}`);
                     }
                 } catch (err) {
 
@@ -279,10 +255,10 @@ export function useDocuments(options = {}) {
     }
 
     async function deleteDocument(doc) {
-        const id = doc._id;
+        const id = doc.id;
         
         documents.value = documents.value.filter(
-            doc => doc._id !== id
+            doc => doc.id !== id
         )
         
         try {
@@ -291,12 +267,14 @@ export function useDocuments(options = {}) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: {
-                    _id: id
-                },
+                body: JSON.stringify({
+                    id: id
+                }),
             });
 
-            if (response.success) {
+            const data = await response.json();
+
+            if (data.success) {
                 deleteLocalRecord(DB_DOCUMENTS, id);
             } else {
                 doc.deleted = true;
@@ -321,18 +299,18 @@ export function useDocuments(options = {}) {
 
         
         let newDoc = {
-            _id: tempId,
-            user_id: localStorage.userId,
+            id: tempId,
+            userId: localStorage.userId,
             title: 'Title',
             content: '',
-            version: 0,
+            version: 1,
             pendingSync: true,
             deleted: false
         }
 
         documents.value.push(newDoc);
-        openDocument(newDoc._id, newDoc.title);
-        setActiveDocument(newDoc._id);
+        openDocument(newDoc.id, newDoc.title);
+        setActiveDocument(newDoc.id);
         
         try {
             const response = await authenticatedFetch(POSTnewDocument, {
@@ -340,25 +318,25 @@ export function useDocuments(options = {}) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: {
-                    user_id: localStorage.userId,
+                body: JSON.stringify({
+                    userId: localStorage.userId,
                     title: newDoc.title,
                     content: newDoc.content,
                     version: newDoc.version
-                },
+                }),
             });
 
-            if (response.success) {
+            const data = await response.json();
 
-                
-                newDoc._id = response._id;
+            if (data.success) {
+                newDoc.id = data.id;
                 newDoc.pendingSync = false;
                 newDoc.deleted = false;
 
                 const index = openDocuments.value.findIndex(id => id === tempId);
 
                 if (index !== -1) {
-                    openDocuments.value[index] = newDoc._id;
+                    openDocuments.value[index] = newDoc.id;
                 }
             } else {
 
@@ -404,10 +382,10 @@ export function useDocuments(options = {}) {
         Validator.validateStringEmptyNotAllowed(id);
 
         const doc = documents.value?.find(
-            doc => doc._id === id
+            doc => doc.id === id
         );
 
-        activeDocumentId.value = doc?._id;
+        activeDocumentId.value = doc?.id;
     }
 
     function shiftActiveDocument(docToBeClosed, offset) {
@@ -421,10 +399,10 @@ export function useDocuments(options = {}) {
 
         // 
         const index = openDocumentIds.value.findIndex(
-            openDocId => openDocId === docToBeClosed._id
+            openDocId => openDocId === docToBeClosed.id
         );
 
-        if (docToBeClosed._id !== activeDocumentId.value) {
+        if (docToBeClosed.id !== activeDocumentId.value) {
             return;
         }
 
@@ -449,13 +427,13 @@ export function useDocuments(options = {}) {
 
         // if the document to be closed is not the activeDocument
         // we do not need to change the active document, hence return active document 
-        if (docToBeClosed._id !== activeDocumentId.value) {
+        if (docToBeClosed.id !== activeDocumentId.value) {
             return activeDocument.value;
         }
 
         // fetch the index of the document to be closed in opendocuments
         const index = openDocumentIds.value.findIndex(
-            id => id === docToBeClosed._id
+            id => id === docToBeClosed.id
         );
 
         let nextId = null;
@@ -500,12 +478,12 @@ export function useDocuments(options = {}) {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: {
-                        _id: ref.value._id,
+                    body: JSON.stringify({
+                        id: ref.value.id,
                         content: ref.value.content,
                         title: ref.value.title,
-                        localVersion: ref.value.version
-                    }
+                        version: ref.value.version
+                    }),
                 });
             } catch (err) {
                 console.error(err);
@@ -520,7 +498,7 @@ export function useDocuments(options = {}) {
         Validator.validateStringEmptyAllowed(title);
 
         // if the activeDocument is the default-document we exit
-        if (activeDocument.value._id === 'welcome') {
+        if (activeDocument.value.id === 'welcome') {
             return;
         }
         
@@ -535,7 +513,7 @@ export function useDocuments(options = {}) {
     }
 
     // initialization
-    onMounted(async () => {       
+    onMounted(async () => {
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
 

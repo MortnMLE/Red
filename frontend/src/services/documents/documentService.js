@@ -1,6 +1,6 @@
 import { DB_DOCUMENTS } from '@/constants/stores';
 import { Validator } from '@/services/validator';
-import { addOrSetLocalRecord } from '../indexedDB/indexedDbService';
+import { addOrSetLocalRecord } from '../indexedDB/indexedDbApi';
 
 export async function replaceImageIdForStoredDocument(oldId, newId, docId) {
     // validate input

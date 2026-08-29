@@ -1,12 +1,12 @@
 import { vi } from 'vitest';
 
-vi.mock('@/services/indexedDB/indexedDbService', () => ({
+vi.mock('@/services/indexedDB/indexedDbApi', () => ({
     getLocalRecordsByIndex: vi.fn()
 }));
 
 import { setImageCache, getImageCache, createCacheEntriesForImages, freeImageCache, revokeAllForDocId, createCacheEntriesForDocument } from '@/services/images/imageCacheService';
 import { ImageCache } from '@/services/images/imageCache';
-import { getLocalRecordsByIndex } from '@/services/indexedDB/indexedDbService';
+import { getLocalRecordsByIndex } from '@/services/indexedDB/indexedDbApi';
 describe('imageCacheService', () => {
 
     afterEach(() => {
@@ -104,8 +104,8 @@ describe('imageCacheService', () => {
             setImageCache(new ImageCache());
             
             vi.mocked(getLocalRecordsByIndex).mockResolvedValue([
-                {_id: 'id1'}, 
-                {_id: 'id2'}
+                {id: 'id1'}, 
+                {id: 'id2'}
             ]);
 
             const result = await revokeAllForDocId('docId');

@@ -18,14 +18,14 @@ describe('imageController.create', () => {
 
     beforeEach(() => {
         newImage = {
-            doc_id: 'doc_id',
+            docId: 'docId',
             name: 'image.png',
             file: 'file'
         }
 
         mReq = {
             body: {
-                doc_id: 'doc_id',
+                docId: 'docId',
                 name: 'image.png',
                 file: 'file'
             }
@@ -86,7 +86,7 @@ describe('imageController.create', () => {
     });
 
     test('should return 400 on missing parameter', async () => {
-        mReq.body.doc_id = '';
+        mReq.body.docId = '';
 
         await controller.create(mReq, mRes);
 

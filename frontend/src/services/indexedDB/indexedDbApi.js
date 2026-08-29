@@ -14,9 +14,14 @@ export function openLocalDatabase(database) {
     });
 }
 
-export async function createStore(storeObject, keyPath, indexes = []) {
+export async function createStore(options = {}, request = null) {
+    Validator.validateObjectNotNull(options);
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(storeObject.database);
+        const { storeObject, keyPath, indexes } = options;
+
+        if (request === null) {
+            request = indexedDB.open(storeObject.database);
+        }
 
         request.onsuccess = () => {
             const db = request.result;
@@ -52,6 +57,7 @@ export async function createStore(storeObject, keyPath, indexes = []) {
             };
 
             upgradeRequest.onsuccess = () => {
+                console.log(`Created: ${options.storeObject.name}`);
                 resolve(upgradeRequest.result);
             };
 

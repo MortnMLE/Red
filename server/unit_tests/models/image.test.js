@@ -14,7 +14,7 @@ describe('create', () => {
 
     const result = await create(docId, name, file);
 
-    expect(result.doc_id).toEqual(new ObjectId(docId));
+    expect(result.docId).toEqual(new ObjectId(docId));
     expect(result.name).toBe(name);
     expect(result.mimeType).toBe(file.mimeType);
     expect(result.size).toBe(file.size);
@@ -31,8 +31,8 @@ describe('create', () => {
 
     const result = await create(docId, 'test.txt', file);
 
-    expect(result.doc_id).toBeInstanceOf(ObjectId);
-    expect(result.doc_id.toString()).toBe(docId);
+    expect(result.docId).toBeInstanceOf(ObjectId);
+    expect(result.docId.toString()).toBe(docId);
   });
 
   test('should convert file buffer to Binary', async () => {

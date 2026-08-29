@@ -2,7 +2,7 @@ import {
     storeExists, 
     addOrSetLocalRecord, 
     deleteLocalRecord
-} from "@/services/indexedDB/indexedDbService";
+} from "@/services/indexedDB/indexedDbApi";
 import { onMounted } from "vue";
 import { Validator } from "@/services/validator";
 
@@ -16,7 +16,6 @@ import {
     getEmbeddedImageIds, 
     getServerImageIds,
     fetchMissingImages,
-    syncFromLocalToServer,
     addServerImageToLocalStorage,
     postMissingImages
 } from "@/services/images/imageInitService";
@@ -79,10 +78,10 @@ export function useImages(options = {}) {
         try {
             // create the local image record
             await addOrSetLocalRecord(DB_IMAGES, {
-                _id: id,
+                id: id,
                 name: name,
-                doc_id: docId,
-                user_id: localStorage.userId,
+                docId: docId,
+                userId: localStorage.userId,
                 file: file
             });
         } catch (err) {
@@ -180,38 +179,38 @@ export function useImages(options = {}) {
             await addOrSetLocalRecord(
                 DB_IMAGES,
                 {
-                    _id: image.newId,
+                    id: image.newId,
                     file: image.image.file,
                     name: image.image.name,
-                    doc_id: image.image.doc_id,
-                    user_id: localStorage.userId
+                    docId: image.image.docId,
+                    userId: localStorage.userId
                 }
             );
 
             // if the document to be updated is active, replace the image id in the live editor
-            if (activeDocument.value._id === image.image.doc_id) {
+            if (activeDocument.value.id === image.image.docId) {
                 const newContent = activeDocument.content.replace(
-                    image.image._id,
+                    image.image.id,
                     image.newId
                 );
 
                 udpateEditorContent(newContent);
 
                 imageCache.replaceId(
-                    image.image._id,
+                    image.image.id,
                     image.newId
                 );
             // if the document is not active, update the document entry in local storage
             } else {
                 await replaceImageIdForStoredDocument(
-                    image.image._id,
+                    image.image.id,
                     image.newId, 
-                    image.image.doc_id
+                    image.image.docId
                 );
             }
 
             // delete the old record
-            await deleteLocalRecord(DB_IMAGES, image.image._id);
+            await deleteLocalRecord(DB_IMAGES, image.image.id);
         }
     });
 

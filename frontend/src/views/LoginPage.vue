@@ -82,7 +82,8 @@
 
 <script>
 import { POSTauthLogin, POSTauthRegister } from '@/constants/endpoints';
-import { setAccessToken } from '@/services/accessToken';
+import { getAccessToken, setAccessToken } from '@/services/accessToken';
+import { ensureDBs } from '@/services/indexedDB/databaseSetup';
 
 
 export default {
@@ -128,30 +129,36 @@ export default {
       ? POSTauthLogin
       : POSTauthRegister;
 
-      const body = {
-        user: this.form.email,
+      this.isLoading = true;
+
+      const credentials = {
+        username: this.form.email,
         password: this.form.password
       };
-      
-      this.isLoading = true;
-      
+
       try {
         const response = await fetch(endpoint, {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(body)
+          body: JSON.stringify(credentials),
         });
 
-        const responseData = await response.json();
+        const data = await response.json();
 
-        if (responseData.success) {
-          setAccessToken(responseData.token);
-          localStorage.setItem('userId', responseData.id); 
+        if (data.success) {
+          console.log(`token: ${data.token}`);
+          setAccessToken(data.token);
+          console.log(`accessToken set to: ${getAccessToken()}`);
+          localStorage.setItem('userId', data.id);
+
+          await ensureDBs();
+
           this.$router.push('/editor');
         } else {
-          alert(responseData.message);
+          alert(data.error);
           return;
         }
       } catch (err) {

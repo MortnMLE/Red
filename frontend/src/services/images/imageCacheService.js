@@ -1,6 +1,6 @@
 import { ImageCache } from '@/services/images/imageCache';
 import { Validator } from '@/services/validator';
-import { getLocalRecordsByIndex } from '@/services/indexedDB/indexedDbService';
+import { getLocalRecordsByIndex } from '@/services/indexedDB/indexedDbApi';
 import { DB_IMAGES } from '@/constants/stores';
 
 let imageCache = null;
@@ -51,13 +51,13 @@ export async function revokeAllForDocId(docId) {
         // fetch all images for given docId
         const images = await getLocalRecordsByIndex(
             DB_IMAGES,
-            'doc_id',
+            'docId',
             docId
         );
 
         // push individual ids to revokeUrls
         for (const image of images) {
-            imageCache.revokeUrl(image._id);
+            imageCache.revokeUrl(image.id);
         }    
     } catch (err) {
         console.warn('could not get local records for document id', err);
@@ -77,7 +77,7 @@ export async function createCacheEntriesForDocument(docId) {
         // fetch IndexedDB-images for document id
         const localImages = await getLocalRecordsByIndex(
             DB_IMAGES,
-            'doc_id',
+            'docId',
             docId
         );
         
@@ -89,7 +89,7 @@ export async function createCacheEntriesForDocument(docId) {
         // push individual objects to urlCreationImages
         for (const image of localImages) {
             urlCreationImages.push({
-                id: image._id,
+                id: image.id,
                 file: image.file
             });
         }

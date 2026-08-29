@@ -19,7 +19,7 @@ imageRoute.post('', upload.single('image'), authenticateToken, imageController.c
 
 imageRoute.get('/byId/:id', authenticateToken, imageController.getById);
 
-imageRoute.get('/allForDocId/:doc_id', authenticateToken, imageController.getAllIdsByDocId);
+imageRoute.get('/allForDocId/:docId', authenticateToken, imageController.getAllIdsByDocId);
 
 imageRoute.delete('', authenticateToken, imageController.delete);
 

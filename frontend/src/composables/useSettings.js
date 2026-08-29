@@ -4,7 +4,7 @@ import {
     addOrSetLocalRecord, 
     storeExists,
     getLocalRecordsByIndex,
-} from '@/services/indexedDB/indexedDbService';
+} from '@/services/indexedDB/indexedDbApi';
 
 import { 
     DB_DOCUMENTS,
@@ -20,70 +20,45 @@ export function useSettings() {
 
     async function loadSettings() {
         try {
-            if (await storeExists(DB_SETTINGS)) {
-                updateCountTempIds();
+            updateCountTempIds();
 
-                const settings = await getLocalRecordsByIndex(
-                    DB_SETTINGS,
-                    'user_id',
-                    localStorage.userId
+            const settings = await getLocalRecordsByIndex(
+                DB_SETTINGS,
+                'userId',
+                localStorage.userId
+            );
+
+            if (settings) {
+                const vimSetting = settings.find(
+                    setting => setting.key === 'enableVim'
                 );
 
-                if (settings) {
-                    const vimSetting = settings.find(
-                        setting => setting.key === 'enableVim'
-                    );
-
-                    enableVim.value = vimSetting.value ?? false;
-                }        
-            } else {
-                await createStore(
-                    DB_SETTINGS,
-                    'key', 
-                    [{
-                        indexName: 'user_id', 
-                        keyPath: 'user_id', 
-                        options: { unique: false }
-                    }]
-                );
-
-                await addOrSetLocalRecord(DB_SETTINGS, { 
-                    key: 'countTemporaryIds',
-                    value: 0,
-                    user_id: localStorage.userId
-                });
-
-                await addOrSetLocalRecord(DB_SETTINGS, { 
-                    key: 'enableVim',
-                    value: true, 
-                    user_id: localStorage.userId
-                });
-            } 
+                enableVim.value = vimSetting.value ?? false;
+            }        
         } catch (err) {
             console.error('Error initializing local settings database: ' + err.message);
         }
-
     }
 
     async function updateCountTempIds() {
         let documents = await getLocalRecordsByIndex(
             DB_DOCUMENTS,
-            'user_id', 
+            'userId', 
             localStorage.userId
         );
 
         let images = await getLocalRecordsByIndex(
             DB_IMAGES,
-            'user_id',
+            'userId',
             localStorage.userId
         );
 
         const countDocs = documents.filter(doc => 
-            doc._id.includes('temp-')
+            doc.id.includes('temp-')
         ).length;
 
         const countImgs = images.filter(doc => 
-            doc._id.includes('temp-')
+            doc.id.includes('temp-')
         ).length;
 
         const count = countDocs + countImgs;
@@ -91,13 +66,13 @@ export function useSettings() {
         await addOrSetLocalRecord(DB_SETTINGS, {
             key: 'countTemporaryIds',
             value: count,
-            user_id: localStorage.userId
+            userId: localStorage.userId
         });
         countTempIds.value = count;
     }
 
-    onMounted(() => {
-        loadSettings();
+    onMounted(async () => {
+        await loadSettings();
     });
 
     return {

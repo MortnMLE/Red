@@ -5,7 +5,7 @@ import {
     deleteLocalRecord, 
     getLocalRecord,
     localEntryExists
-} from "@/services/indexedDB/indexedDbService";
+} from "@/services/indexedDB/indexedDbApi";
 
 import { 
     serverFetchImageIdsForDocuments, 
@@ -16,14 +16,9 @@ import {
 import { Parser } from '@/services/parser';
 
 import { 
-    DB_DOCUMENTS,
     DB_IMAGES
 } from "@/constants/stores";
 
-import { ImageCache } from "./imageCache";
-
-// collects all embedded images from local documents
-// returns {id: string, doc_id: string}
 export function getEmbeddedImageIds(documents, mapImageIdToDocId) {
     // validate parameter
     Validator.validateArrEmptyAllowed(documents);
@@ -42,7 +37,7 @@ export function getEmbeddedImageIds(documents, mapImageIdToDocId) {
 
             for (const id of ids) {
                 result.push(id);
-                mapImageIdToDocId.set(id, doc._id)
+                mapImageIdToDocId.set(id, doc.id)
             };
         } catch {
             return result;
@@ -120,13 +115,13 @@ export async function addServerImageToLocalStorage(image, id, docId) {
         await addOrSetLocalRecord(
             DB_IMAGES,
             {
-                _id: id,
+                id: id,
                 file: blob,
                 name: image.headers
                     .get('Content-Disposition')
                     ?.match(/filename="(.+)"/)?.[1] ?? '',
-                user_id: localStorage.userId,
-                doc_id: docId
+                userId: localStorage.userId,
+                docId: docId
             }
         );
     } catch {
@@ -149,7 +144,6 @@ export async function requiresFetch(id, serverImageIds) {
             return true;
         }
     } catch (err) {
-        console.warn('failed checking for local image:', err);
         return false;
     }
 }
@@ -181,7 +175,7 @@ export async function postMissingImages(embeddedImageIds, serverImages) {
             return {
                 image: localImage,
                 newId: await newServerImage(
-                    localImage.doc_id,
+                    localImage.docId,
                     localImage.name,
                     localImage.file
                 )

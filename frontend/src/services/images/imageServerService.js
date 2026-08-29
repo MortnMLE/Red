@@ -19,8 +19,8 @@ export async function newServerImage(docId, name, file) {
     const formData = new FormData();
     formData.append('image', file);
     formData.append('name', name);
-    formData.append('user_id', localStorage.userId);
-    formData.append('doc_id', docId);
+    formData.append('userId', localStorage.userId);
+    formData.append('docId', docId);
 
     try {
         // POST image to server
@@ -28,19 +28,19 @@ export async function newServerImage(docId, name, file) {
             POSTnewImage, 
             {
                 method: 'POST',
-                body: formData
-            }
+                body: JSON.stringify(formData),
+            },
         );
 
         // catch bug
         Validator.validateObjectNotNull(response);
 
         // get json content of response
-        const json = await response.json();
+        const data = await response.json();
 
         // if image has been successfully created return id
-        if (json.success) {
-            result = json.id;
+        if (data.success) {
+            result = data.id;
         }
     } catch (err) {
         console.error(err.message);
@@ -60,10 +60,9 @@ export async function deleteImageFromServer(id) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: { id }
+            body: JSON.stringify({ id }),
         });
 
-        
         return await response.json().success;
     } catch (err) {
         return false;
@@ -85,7 +84,7 @@ export async function serverFetchImageIdsForDocuments(documents) {
     // start individual fetch requests
     for (const doc of documents) {
         tasks.push(authenticatedFetch(
-            GETimageIdsForDocumentId + doc._id
+            GETimageIdsForDocumentId + doc.id
         ));
     }
 
@@ -128,7 +127,6 @@ export async function serverFetchImageIdsForDocuments(documents) {
 }
 
 // fetches all image objects for passed image ids
-// returns [{id, image}]
 export async function serverFetchImagesForIds(ids) {
     // validate parameter
     Validator.validateArrEmptyAllowed(ids);

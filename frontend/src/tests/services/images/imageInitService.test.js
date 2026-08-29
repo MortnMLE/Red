@@ -6,7 +6,7 @@ vi.mock('@/services/images/imageServerService', () => ({
     newServerImage: vi.fn()
 }));
 
-vi.mock('@/services/indexedDB/indexedDbService', () => ({
+vi.mock('@/services/indexedDB/indexedDbApi', () => ({
     localEntryExists: vi.fn(),
     addOrSetLocalRecord: vi.fn(),
     getLocalRecord: vi.fn(),
@@ -32,7 +32,7 @@ import {
     getLocalRecord, 
     localEntryExists, 
     getLocalRecord 
-} from '@/services/indexedDB/indexedDbService';
+} from '@/services/indexedDB/indexedDbApi';
 
 describe('imageInitService', () => {
     let parser;
@@ -75,7 +75,7 @@ describe('imageInitService', () => {
             vi.spyOn(Parser.prototype, 'parseImageIds').mockReturnValue([]);
 
             const map = new Map();
-            const result = getEmbeddedImageIds([{_id: 'id', content: 'content'}], map);
+            const result = getEmbeddedImageIds([{id: 'id', content: 'content'}], map);
 
             expect(result).toEqual([]);
             expect(map.size).toBe(0);
@@ -89,16 +89,16 @@ describe('imageInitService', () => {
             
             const map = new Map();
             const documents = [
-                {_id: 'docid1', content: '!(image)[id1]'},
-                {_id: 'docid2', content: '!(image)[id2]'}
+                {id: 'docId1', content: '!(image)[id1]'},
+                {id: 'docId2', content: '!(image)[id2]'}
             ];
 
             const result = getEmbeddedImageIds(documents, map);
 
             expect(spy).toHaveBeenCalled();
             expect(result).toEqual(['id1', 'id2']);
-            expect(map.get('id1')).toBe('docid1');
-            expect(map.get('id2')).toBe('docid2');
+            expect(map.get('id1')).toBe('docId1');
+            expect(map.get('id2')).toBe('docId2');
         });
 
         test('should return empty on error in parseImageIds', () => {
@@ -106,8 +106,8 @@ describe('imageInitService', () => {
             
             const map = new Map();
             const documents = [
-                {_id: 'docid1', content: '!(image)[id1]'},
-                {_id: 'docid2', content: '!(image)[id2]'}
+                {id: 'docId1', content: '!(image)[id1]'},
+                {id: 'docId2', content: '!(image)[id2]'}
             ];
 
             const result = getEmbeddedImageIds(documents, map);
@@ -289,7 +289,7 @@ describe('imageInitService', () => {
         });
 
         test('should return false when localEntryExists throws', async () => {
-            vi.mocked(localEntryExists).mockThrow();
+            localEntryExists.mockRejectedValue(new Error(''));
 
             const result = await requiresFetch('id', ['id']);
 
@@ -334,7 +334,7 @@ describe('imageInitService', () => {
         });
 
         test('should return two objects', async () => {
-            const dummyImage = {doc_id: 'docId', name: 'name', file: {}};
+            const dummyImage = {docId: 'docId', name: 'name', file: {}};
             vi.mocked(getLocalRecord).mockResolvedValue(dummyImage);
 
             vi.mocked(newServerImage)

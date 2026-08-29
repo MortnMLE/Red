@@ -49,7 +49,7 @@ describe('documentController.getById', () => {
 
     test('should return 200', async () => {
         const document = {
-            _id: '123',
+            id: '123',
             title: 'title',
             content: 'content',
             version: 1
@@ -60,7 +60,7 @@ describe('documentController.getById', () => {
 
         expect(mRes.status).toHaveBeenCalledWith(200);
         expect(mRes.json).toHaveBeenCalledWith({
-            _id: document._id,
+            id: document.id,
             title: document.title,
             content: document.content,
             version: document.version,
