@@ -93,7 +93,7 @@ describe('authenticationController.login', () => {
     });
 
     test('should return 200', async () => {
-        getOne.mockResolvedValue({password: '123', id: '123'});
+        getOne.mockResolvedValue({password: '123', _id: '123'});
 
         passwordIsEqual.mockResolvedValue(true);
 

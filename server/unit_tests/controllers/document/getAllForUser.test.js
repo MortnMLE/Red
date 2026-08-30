@@ -37,9 +37,7 @@ describe('documentController.getAllForUser', () => {
 
     test('should return 500 if getAll throws', async () => {
         const error = new Error('server error');
-        getAll.mockReturnValue({
-            toArray: jest.fn().mockRejectedValue(error)
-        });
+        getAll.mockRejectedValue(error);
 
         await controller.getAllForUser(mReq, mRes);
 
@@ -67,9 +65,9 @@ describe('documentController.getAllForUser', () => {
 
     test('should return 200 and documents', async () => {
         const arr = [{}, {}]
-        getAll.mockReturnValue({
+        getAll.mockResolvedValue({
             toArray: jest.fn().mockResolvedValue(arr)
-        })
+        });
 
         await controller.getAllForUser(mReq, mRes);
 
