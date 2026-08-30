@@ -63,7 +63,7 @@ export function useDocuments(options = {}) {
             const data = await response.json();
 
             if (data.success) {
-                serverDocuments = await data.documents;
+                serverDocuments = data.documents;
             }
         } catch (err) {
             console.warn(err);
