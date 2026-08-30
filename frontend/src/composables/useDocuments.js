@@ -77,6 +77,8 @@ export function useDocuments(options = {}) {
     }
 
     async function syncDocuments(serverDocuments, localDocuments) {
+        Validator.validateArrEmptyAllowed(serverDocuments);
+        Validator.validateArrEmptyAllowed(localDocuments);
         //postToServerDocs = documents that should be updated or added on the server
         let docsToBeCreated = [];
         let docsToBeDeleted = [];
@@ -98,7 +100,6 @@ export function useDocuments(options = {}) {
                 );
 
                 if (!localDoc) {
-                    serverDoc.pendingSync = false;
                     serverDoc.deleted = false;
 
                     await addOrSetLocalRecord(
@@ -129,7 +130,6 @@ export function useDocuments(options = {}) {
                 if (localDoc.version > serverDoc.version) {
                     docsToBePatched.push(localDoc);
                 } else {
-                    serverDoc.pendingSync = false;
                     serverDoc.deleted = false;
 
                     await addOrSetLocalRecord(
@@ -180,9 +180,8 @@ export function useDocuments(options = {}) {
                             title: doc.title,
                             content: doc.content,
                             version: doc.version,
-                            pendingSync: false,
                             deleted: false
-                        }    
+                        }
                         
                         await deleteLocalRecord(DB_DOCUMENTS, doc.id);
                         await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
@@ -304,7 +303,6 @@ export function useDocuments(options = {}) {
             title: 'Title',
             content: '',
             version: 1,
-            pendingSync: true,
             deleted: false
         }
 
@@ -330,7 +328,6 @@ export function useDocuments(options = {}) {
 
             if (data.success) {
                 newDoc.id = data.id;
-                newDoc.pendingSync = false;
                 newDoc.deleted = false;
 
                 const index = openDocuments.value.findIndex(id => id === tempId);
