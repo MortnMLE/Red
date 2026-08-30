@@ -1,10 +1,6 @@
 import { onMounted, ref, computed, toRaw } from 'vue';
-import { getLocalRecordsByIndex,
-    createStore,
-    storeExists, 
-    deleteLocalRecord,
+import { deleteLocalRecord,
     addOrSetLocalRecord,
-    clearLocalDatabase
  } from '@/services/indexedDB/indexedDbApi';
 
 import { GETdocsForUser, DELETEdoc, POSTnewDocument, PATCHdocument } from '@/constants/endpoints';
@@ -107,7 +103,16 @@ export function useDocuments(options = {}) {
                         serverDoc
                     );
 
-                    documents.value.push(serverDoc);
+                    const i = documents.value.findIndex(
+                        doc => doc.id === serverDoc.id
+                    );
+
+                    if (i > -1) {
+                        documents.value[i] = serverDoc;
+                    } else {
+                        documents.value.push(serverDoc);
+                    }
+
                     continue;
                 }
 
@@ -141,8 +146,16 @@ export function useDocuments(options = {}) {
                 localDocuments = localDocuments.filter(
                     doc => doc.id !== localDoc.id
                 );
+                
+                const j = documents.value.findIndex( 
+                    doc => doc.id === serverDoc.id 
+                );
 
-                documents.value.push(serverDoc);
+                if (j > -1) {
+                    documents.value[j] = serverDoc;
+                } else {
+                    documents.value.push(serverDoc);
+                }
             }
 
             docsToBeCreated.push(...localDocuments);
@@ -228,7 +241,7 @@ export function useDocuments(options = {}) {
 
             for (const doc of docsToBePatched) {
                 try {
-                    const response = authenticatedFetch(PATCHdocument, {
+                    const response = await authenticatedFetch(PATCHdocument, {
                         method: 'PATCH',
                         headers: {
                             'Content-Type': 'application/json',

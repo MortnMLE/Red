@@ -75,11 +75,22 @@
 
 <script setup>
 
+import { useRouter } from 'vue-router';
 import { useSettings } from '@/composables/useSettings';
 import { useDocuments } from '@/composables/useDocuments';
 import { useEditor } from '@/composables/useEditor';
 import { useImages } from '@/composables/useImages';
 import { ImageCache } from '../services/images/imageCache';
+
+const router = useRouter();
+
+// Redirect to login if user is not authenticated
+let ok = false;
+if (!localStorage.userId) {
+  router.push('/');
+}
+
+ok = true;
 
 const imageCache = new ImageCache();
 

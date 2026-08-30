@@ -107,7 +107,6 @@ export default {
       this.isLogin = !this.isLogin;
     },
 
-    // TODO: handle submit logic
     async handleSubmit() {
       if (this.isLoading) {
         return;
