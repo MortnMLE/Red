@@ -21,7 +21,7 @@ export async function fetchAccessToken() {
     const data = await response.json();
 
     if (!data.success) {
-        accessToken = setAccessToken(null);
+        setAccessToken(null);
         return false;
     }
 
@@ -33,6 +33,11 @@ export async function fetchAccessToken() {
 export async function authenticatedFetch(endpoint, options = {}) {
     const makeRequest = async () => {
         const token = getAccessToken();
+
+        if (token == null) {
+            return null;
+        }
+
         console.log(`fetch with token: ${token}`);
 
         return await fetch(endpoint, {
@@ -46,7 +51,10 @@ export async function authenticatedFetch(endpoint, options = {}) {
 
     const response = await makeRequest();
 
-    if (response.status !== 401 && response.status !== 403) {
+    if (response != null &&
+        response.status !== 401 && 
+        response.status !== 403
+    ) {
         return response;
     }
 

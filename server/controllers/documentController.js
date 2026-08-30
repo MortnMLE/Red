@@ -18,7 +18,7 @@ exports.getAllForUser = async (req, res) => {
         
         console.log(`received GET request, with userId: ${userId}, returning: ${documents.length} documents`);
         return res.status(200).json({
-            documents: documents.toArray(),
+            documents: documents !== undefined ? documents.toArray() : [],
             success: true
         });
     } catch (error) {
