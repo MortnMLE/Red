@@ -79,19 +79,9 @@ exports.login = async (req, res) => {
             const authToken = createToken(existingUser._id, process.env.JWT_AUTH_EXPIRES);
             const refreshToken = createToken(existingUser._id, process.env.JWT_REFRESH_EXPIRES);
 
-            if (!refreshToken) {
-                console.log('did not create a refreshtoken');
-            } else {
-                console.log('created refresh token');
-            }
-
             refreshTokens.push(refreshToken);
 
             res.cookie('refreshToken', refreshToken, createRefreshTokenSettings());
-
-            console.log(`LOGIN Parameters:`);
-            console.log(`id: ${existingUser._id}`);
-            console.log(`token: ${authToken}`);
 
             return res.status(200).json({
                 id: existingUser._id,
@@ -105,7 +95,6 @@ exports.login = async (req, res) => {
             });
         } 
     } catch (error) {
-        console.log(`\nlogin throws: ${error}`);
         res.status(500).json({
             error,
             success: false
