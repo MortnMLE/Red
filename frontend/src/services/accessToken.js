@@ -25,20 +25,18 @@ export async function fetchAccessToken() {
         return false;
     }
 
-    accessToken = setAccessToken(data.token);
+    setAccessToken(data.token);
 
     return true;
 }
 
 export async function authenticatedFetch(endpoint, options = {}) {
     const makeRequest = async () => {
-        const token = getAccessToken();
+        let token = getAccessToken();
 
-        if (token == null) {
+        if(token == null) {
             return null;
         }
-
-        console.log(`fetch with token: ${token}`);
 
         return await fetch(endpoint, {
             ...options,
