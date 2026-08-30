@@ -72,6 +72,7 @@ export function useSettings() {
     }
 
     onMounted(async () => {
+        console.log(`onmounted for settings executed`);
         await loadSettings();
     });
 

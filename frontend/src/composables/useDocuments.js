@@ -524,6 +524,7 @@ export function useDocuments(options = {}) {
 
     // initialization
     onMounted(async () => {
+        console.log(`onmounted documents executed`);
         const { serverDocuments, localDocuments } = await loadDocuments();
         await syncDocuments(serverDocuments, localDocuments);
 

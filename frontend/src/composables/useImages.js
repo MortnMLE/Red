@@ -132,6 +132,7 @@ export function useImages(options = {}) {
     }
 
     onMounted(async () => { 
+        console.log(`onmounted useImages was executed`);
         // wait for documents to finish intializing       
         while (!docsInitialized.value) {
             await new Promise(r => setTimeout(r, 100));

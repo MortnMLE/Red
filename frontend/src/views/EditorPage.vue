@@ -83,22 +83,13 @@ import { useImages } from '@/composables/useImages';
 import { ImageCache } from '../services/images/imageCache';
 
 const router = useRouter();
-
-// Redirect to login if user is not authenticated
-let ok = false;
-if (!localStorage.userId) {
-  router.push('/');
-}
-
-ok = true;
-
 const imageCache = new ImageCache();
 
 const {
-  countTempIds,
-  updateCountTempIds,
-  enableVim,
-} = useSettings();
+    countTempIds,
+    updateCountTempIds,
+    enableVim,
+  } = useSettings();
 
 const { 
   documents,

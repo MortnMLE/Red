@@ -12,13 +12,24 @@ const routes = [
   {
     path: '/editor',
     name: 'editor',
-    component: EditorPage
+    component: EditorPage,
+    meta: {
+      requiresAuth: true
+    },
   },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes,
+  routes
+});
+
+router.beforeEach((to) => {
+    const userId = localStorage.getItem('userId');
+    
+    if (to.meta.requiresAuth && !userId) {
+        return '/';
+    }
 });
 
 export default router;
