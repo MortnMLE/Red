@@ -9,6 +9,7 @@ import { debouncer } from '@/services/debouncer';
 import { DB_DOCUMENTS } from '@/constants/stores';
 import { Validator } from '@/services/validator';
 import { authenticatedFetch } from '@/services/accessToken';
+import { loadDocuments } from '@/services/documents/documentInitialization';
 
 //state
 const documents = ref([]);
@@ -46,31 +47,32 @@ export function useDocuments(options = {}) {
     } = options;
     
     // synchronization with IndexedDB
-    async function loadDocuments() {
-        let serverDocuments = [];
-        let localDocuments = [];
+    // async function loadDocuments() {
+    //     let serverDocuments = [];
+    //     let localDocuments = [];
 
-        try {
-            // Fetch documents from server
-            const userId = localStorage.userId;
+    //     try {
+    //         // Fetch documents from server
+    //         const userId = localStorage.userId;
 
-            console.log(`sending GET: ${GETdocsForUser + userId}`);
+    //         console.log(`sending GET: ${GETdocsForUser + userId}`);
 
-            const response = await authenticatedFetch(
-                GETdocsForUser + userId
-            );
+    //         const response = await authenticatedFetch(
+    //             GETdocsForUser + userId
+    //         );
 
-            const data = await response.json();
+    //         console.log(`fetched response: ${toString(response)}`);
+    //         const data = await response.json();
+    //         console.log(`fetched data: ${toString(data)}`);
+    //         if (data.success) {
+    //             serverDocuments = data.documents;
+    //         }
+    //     } catch (err) {
+    //         console.warn(err);
+    //     }
 
-            if (data.success) {
-                serverDocuments = data.documents;
-            }
-        } catch (err) {
-            console.warn(err);
-        }
-
-        return { serverDocuments, localDocuments };
-    }
+    //     return { serverDocuments, localDocuments };
+    // }
 
     async function syncDocuments(serverDocuments, localDocuments) {
         Validator.validateArrEmptyAllowed(serverDocuments);
@@ -97,6 +99,8 @@ export function useDocuments(options = {}) {
 
                 if (!localDoc) {
                     serverDoc.deleted = false;
+
+                    console.log(`doc to be stored on local: ${serverDoc.id}`);
 
                     await addOrSetLocalRecord(
                         DB_DOCUMENTS,
@@ -524,9 +528,15 @@ export function useDocuments(options = {}) {
 
     // initialization
     onMounted(async () => {
-        console.log(`onmounted documents executed`);
         const { serverDocuments, localDocuments } = await loadDocuments();
-        await syncDocuments(serverDocuments, localDocuments);
+
+        for(const serverDoc of serverDocuments) {
+            console.log(`serverDoc: ${serverDoc.id}`);
+        }
+
+        for(const localDoc of localDocuments) {
+            console.log(`localDoc: ${localDoc.id}`);
+        }
 
         docsInitialized.value = true;
     });
