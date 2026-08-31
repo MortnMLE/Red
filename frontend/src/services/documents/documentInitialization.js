@@ -2,6 +2,7 @@ import { authenticatedFetch } from "../accessToken";
 import { GETdocsForUser } from "@/constants/endpoints";
 import { getLocalRecordsByIndex } from "../indexedDB/indexedDbApi";
 import { DB_DOCUMENTS } from "@/constants/stores";
+import { createDocuments } from '@/services/documents/documentFactory';
 
 export async function loadDocuments() {
     const [serverDocuments, localDocuments] = await Promise.all([
@@ -23,13 +24,13 @@ async function getDocumentsFromServer() {
 
         const json = await response.json();
 
-        let documents = [];
+        let serverDocuments = [];
         
         if (json.success) {
-            documents = json.documents;
+            serverDocuments = json.documents;
         }
 
-        return documents;
+        return createDocuments(serverDocuments);
     } catch (error) {
         console.log(`error: ${error}`);
         return [];
@@ -41,11 +42,13 @@ async function getDocumentsFromLocalStorage() {
     try {
         const userId = localStorage.getItem('userId');
 
-        return await getLocalRecordsByIndex(
+        const localDocuments = await getLocalRecordsByIndex(
             DB_DOCUMENTS,
             'userId',
             userId
         );
+
+        return createDocuments(localDocuments);
     } catch (error) {
         console.log(`getDocumentsFromLocalStorage error: ${error}`);
         return [];
