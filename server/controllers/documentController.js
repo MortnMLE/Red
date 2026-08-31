@@ -16,13 +16,18 @@ exports.getAllForUser = async (req, res) => {
 
         const documents = await db.getAll(documentDbName, { userId: new ObjectId(userId) });
 
-        // let documentArray = await documents.toArray();
-        // if (!documentArray) {
-        //     documentArray = [];
-        // }
-        
+        let documentsArray = await documents.toArray();
+        documentsArray = documentsArray.map(doc => {
+            const { _id, ...rest } = doc;
+
+            return {
+                ...rest,
+                id: _id
+            };
+        });
+
         return res.status(200).json({
-            documents: await documents.toArray(),
+            documents: documentsArray,
             success: true
         });
     } catch (error) {
