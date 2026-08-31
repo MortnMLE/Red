@@ -37,7 +37,7 @@ async function getDocumentsFromServer() {
 }
 
 // get all documents that belong to the user from local storage
-export async function getDocumentsFromLocalStorage() {
+async function getDocumentsFromLocalStorage() {
     try {
         const userId = localStorage.getItem('userId');
 
