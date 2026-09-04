@@ -3,13 +3,15 @@ import { deleteLocalRecord,
     addOrSetLocalRecord,
  } from '@/services/indexedDB/indexedDbApi';
 
-import { GETdocsForUser, DELETEdoc, POSTnewDocument, PATCHdocument } from '@/constants/endpoints';
+import { DELETEdoc, POSTnewDocument, PATCHdocument } from '@/constants/endpoints';
 import { DEFAULT_DOCUMENT } from '@/constants/defaultDocument';
 import { debouncer } from '@/services/debouncer';
 import { DB_DOCUMENTS } from '@/constants/stores';
 import { Validator } from '@/services/validator';
 import { authenticatedFetch } from '@/services/accessToken';
-import { loadDocuments } from '@/services/documents/documentInitialization';
+import { getDocumentsFromLocalStorage, loadDocuments } from '@/services/documents/documentInitialization';
+import { syncLocalDocument, syncServerDocument } from '@/services/documents/documentSync';
+import { createDocument, createDocumentFlags } from '@/services/documents/documentFactory';
 
 //state
 const documents = ref([]);
@@ -46,265 +48,32 @@ export function useDocuments(options = {}) {
         updateCountTempIds 
     } = options;
     
-    // synchronization with IndexedDB
-    // async function loadDocuments() {
-    //     let serverDocuments = [];
-    //     let localDocuments = [];
-
-    //     try {
-    //         // Fetch documents from server
-    //         const userId = localStorage.userId;
-
-    //         console.log(`sending GET: ${GETdocsForUser + userId}`);
-
-    //         const response = await authenticatedFetch(
-    //             GETdocsForUser + userId
-    //         );
-
-    //         console.log(`fetched response: ${toString(response)}`);
-    //         const data = await response.json();
-    //         console.log(`fetched data: ${toString(data)}`);
-    //         if (data.success) {
-    //             serverDocuments = data.documents;
-    //         }
-    //     } catch (err) {
-    //         console.warn(err);
-    //     }
-
-    //     return { serverDocuments, localDocuments };
-    // }
-
-    async function syncDocuments(serverDocuments, localDocuments) {
-        Validator.validateArrEmptyAllowed(serverDocuments);
-        Validator.validateArrEmptyAllowed(localDocuments);
-        //postToServerDocs = documents that should be updated or added on the server
-        let docsToBeCreated = [];
-        let docsToBeDeleted = [];
-        let docsToBePatched = [];
-        
-        docsToBeDeleted = localDocuments.filter(
-            doc => doc.deleted
-        );
-        
-        localDocuments = localDocuments.filter(
-            doc => !doc.deleted
-        );
-
-        try {
-            // Handle synchronization between local storage and server
-            for (let serverDoc of serverDocuments) {
-                const localDoc = localDocuments.find(
-                    doc => doc.id === serverDoc.id
-                );
-
-                if (!localDoc) {
-                    serverDoc.deleted = false;
-
-                    console.log(`doc to be stored on local: ${serverDoc.id}`);
-
-                    await addOrSetLocalRecord(
-                        DB_DOCUMENTS,
-                        serverDoc
-                    );
-
-                    const i = documents.value.findIndex(
-                        doc => doc.id === serverDoc.id
-                    );
-
-                    if (i > -1) {
-                        documents.value[i] = serverDoc;
-                    } else {
-                        documents.value.push(serverDoc);
-                    }
-
-                    continue;
-                }
-
-                if (localDoc.deleted) {
-                    const response = await authenticatedFetch(DELETEdoc, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ id: localDoc.id}),
-                    });
-
-                    const data = await response.json();
-                   
-                    if (data.success) {
-                        await deleteLocalRecord(DB_DOCUMENTS, localDoc.id);
-                    }
-                }
-
-                if (localDoc.version > serverDoc.version) {
-                    docsToBePatched.push(localDoc);
-                } else {
-                    serverDoc.deleted = false;
-
-                    await addOrSetLocalRecord(
-                        DB_DOCUMENTS,
-                        serverDoc
-                    );
-                }
-
-                localDocuments = localDocuments.filter(
-                    doc => doc.id !== localDoc.id
-                );
-                
-                const j = documents.value.findIndex( 
-                    doc => doc.id === serverDoc.id 
-                );
-
-                if (j > -1) {
-                    documents.value[j] = serverDoc;
-                } else {
-                    documents.value.push(serverDoc);
-                }
-            }
-
-            docsToBeCreated.push(...localDocuments);
-        } catch (err) {
-            console.warn('Error synchronizing server-documents: ', err);
-        }
-
-        // Handle documents that exist in local storage but not on server
-        let serverIsReachable = true;
-        
-        for (const doc of docsToBeCreated) {
-            let newDoc = doc;
-            try{
-                //Only try to reach the server once.
-                if (serverIsReachable) {
-                    const response = await authenticatedFetch(POSTnewDocument, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            userI: doc.userId,
-                            title: doc.title,
-                            content: doc.content,
-                            version: doc.version
-                        }),
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        newDoc = {
-                            id: data.id,
-                            userId: doc.userId,
-                            title: doc.title,
-                            content: doc.content,
-                            version: doc.version,
-                            deleted: false
-                        }
-                        
-                        await deleteLocalRecord(DB_DOCUMENTS, doc.id);
-                        await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
-                    } else {
-                        serverIsReachable = false;
-                    }
-                }
-            } catch (err) {
-                serverIsReachable = false;
-                newDoc = doc;
-            } finally {
-                const index = documents.value.findIndex(
-                    d => d.id === doc.id
-                );
-
-                if (index !== -1) {
-                    documents.value[index] = newDoc;
-                } else {
-                    documents.value.push(newDoc);
-                }
-            }
-        }
-
-        if (serverIsReachable) {
-            for (const doc of docsToBeDeleted) {
-                try {
-                    const response = await authenticatedFetch(DELETEdoc, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ id: doc.id }),
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        deleteLocalRecord(DB_DOCUMENTS, doc.id);
-                    }
-                } catch (err) {
-                    console.warn('Could not delete document from server. Skipping deletion process', err);
-                }
-            }
-
-            for (const doc of docsToBePatched) {
-                try {
-                    const response = await authenticatedFetch(PATCHdocument, {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            id: doc.id,
-                            content: doc.content,
-                            title: doc.title,
-                            version: doc.version
-                        }),
-                    });
-
-                    const data = await response.json();
-
-                    if (!data.success) {
-                        console.error(`error during patch: ${response.message}; ${doc.id}`);
-                    }
-                } catch (err) {
-
-                }
-            }
-        }
-    }
-
     async function deleteDocument(doc) {
-        const id = doc.id;
-        
-        documents.value = documents.value.filter(
-            doc => doc.id !== id
-        )
-        
+        doc.flags.deleted = true;
+
+        const serverTask = authenticatedFetch(DELETEdoc, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id: doc.id
+            }),
+        });
+
+        const localTask = addOrSetLocalRecord(DB_DOCUMENTS, 
+            structuredClone(toRaw(doc)));
+
         try {
-            const response = await authenticatedFetch(DELETEdoc, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id: id
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                deleteLocalRecord(DB_DOCUMENTS, id);
-            } else {
-                doc.deleted = true;
-                addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
-            }
-        } catch (err) {
-            doc.deleted = true;
-            addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(doc)));
-        } 
+            await Promise.all([serverTask, localTask]);
+        } finally {
+            documents.value = documents.value.filter(
+                activeDocument => activeDocument.id !== doc.id
+            );
+        }
     }
 
-    // actions for creation, deletion and updating documents 
-    async function createDocument() {
-
+    async function handleDocumentCreation() {
         while(creationInProgress) {
             await new Promise(resolve => setTimeout(resolve, 20));
         }
@@ -313,15 +82,13 @@ export function useDocuments(options = {}) {
 
         const tempId = `temp-${Number(countTempIds.value) + 1}`;
 
-        
-        let newDoc = {
-            id: tempId,
-            userId: localStorage.userId,
-            title: 'Title',
-            content: '',
-            version: 1,
-            deleted: false
-        }
+        let newDoc = createDocument(
+            tempId,
+            '',
+            '',
+            1,
+            createDocumentFlags(false, false, true),
+        );
 
         documents.value.push(newDoc);
         openDocument(newDoc.id, newDoc.title);
@@ -337,7 +104,8 @@ export function useDocuments(options = {}) {
                     userId: localStorage.userId,
                     title: newDoc.title,
                     content: newDoc.content,
-                    version: newDoc.version
+                    version: newDoc.version,
+                    flags: newDoc.flags
                 }),
             });
 
@@ -353,7 +121,7 @@ export function useDocuments(options = {}) {
                     openDocuments.value[index] = newDoc.id;
                 }
             } else {
-
+                
             }
         } catch (err) {
             console.error('failed to add document to server');
@@ -529,23 +297,33 @@ export function useDocuments(options = {}) {
     // initialization
     onMounted(async () => {
         const { serverDocuments, localDocuments } = await loadDocuments();
+        const tasks = [];
 
-        for(const serverDoc of serverDocuments) {
-            console.log(`serverDoc: ${serverDoc.id}`);
+        // synchronization between the local storage and server
+        for(const document of localDocuments) {
+            tasks.push(syncLocalDocument(document, serverDocuments));
         }
 
-        for(const localDoc of localDocuments) {
-            console.log(`localDoc: ${localDoc.id}`);
+        for(const document of serverDocuments) {
+            tasks.push(syncServerDocument(document, localDocuments));
         }
 
+        await Promise.all(tasks);
+
+        // -> allow initialization for images
         docsInitialized.value = true;
+
+        // update the global documents for display in the sidebar
+        // only display not deleted documents
+        const updatedDocuments = await getDocumentsFromLocalStorage();
+        documents.value = updatedDocuments.filter(doc => !doc.flags.deleted);
     });
 
     return {
         documents,
         activeDocument,
         openDocuments,
-        createDocument,
+        createDocument: handleDocumentCreation,
         deleteDocument,
         openDocument,
         setActiveDocument,
