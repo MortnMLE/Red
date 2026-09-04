@@ -1,6 +1,6 @@
 import { Validator } from '@/services/validator';
 
-export function createDocument(id, content, title, version, dirty = false) {
+export function createDocument(id, content, title, version, flags) {
     Validator.validateStringEmptyNotAllowed(id);
     Validator.validateStringEmptyAllowed(content);
     Validator.validateStringEmptyAllowed(title);
@@ -11,8 +11,8 @@ export function createDocument(id, content, title, version, dirty = false) {
         content,
         title,
         version,
-        dirty,
         userId: localStorage.getItem('userId'),
+        flags
     };
 }
 
@@ -27,9 +27,17 @@ export function createDocuments(documents) {
             document.content,
             document.title,
             document.version,
-            document.dirty != null ? document.dirty : false
+            document.flags
         ));
     }
 
     return result;
+}
+
+export function createDocumentFlags(dirty, deleted, isNew) {
+    return {
+        dirty: dirty != null ? dirty : false,
+        deleted: deleted != null ? deleted : false,
+        isNew: isNew != null ? isNew : false,
+    };
 }
