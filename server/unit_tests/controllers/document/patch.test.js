@@ -14,7 +14,7 @@ describe('documentController.patch', () => {
     beforeEach(() => {
         mReq = {
             body: {
-                id: '1236a9ad3046c0a8048e32fbd9d',
+                id: '6a9ad3046c0a8048e32fbd9d',
                 title: 'title',
                 content: 'content',
                 version: 5

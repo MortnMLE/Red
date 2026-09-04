@@ -4,6 +4,7 @@ jest.mock('../../../db/databaseService', () => ({
 
 const controller = require('../../../controllers/documentController');
 const { getOne } = require('../../../db/databaseService');
+const { ObjectId } = require('mongodb');
 
 describe('documentController.getById', () => {
     let mRes;
@@ -11,7 +12,7 @@ describe('documentController.getById', () => {
 
     beforeEach(() => {
         mReq = {
-            params: {id: '123'},
+            params: {id: 'B25C8076A6A8773CBF8138B6'},
             user: 'B25C8076A6A8773CBF8138B6',
         };
 
@@ -49,10 +50,11 @@ describe('documentController.getById', () => {
 
     test('should return 200', async () => {
         const document = {
-            id: '123',
+            id: 'B25C8076A6A8773CBF8138B6',
             title: 'title',
             content: 'content',
-            version: 1
+            version: 1,
+            flags: {}
         };
         getOne.mockResolvedValue(document);
 
@@ -64,7 +66,8 @@ describe('documentController.getById', () => {
             title: document.title,
             content: document.content,
             version: document.version,
-            success: true
+            success: true,
+            flags: {}
         });
     });
     

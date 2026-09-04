@@ -12,7 +12,7 @@ describe('documentController.delete', () => {
 
     beforeEach(() => {
         mReq = {
-            body: {id: '123'},
+            body: {id: 'B25C8076A6A8773CBF8138B6'},
             user: 'B25C8076A6A8773CBF8138B6',
         };
 
