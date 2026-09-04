@@ -17,7 +17,6 @@ exports.clearRefreshTokens = () => {
     refreshTokens = [];
 }
 
-// TODO: ensure that an account does not already exists
 exports.register = async (req, res) => { 
     try {
         const { username, password } = req.body;
@@ -54,7 +53,6 @@ exports.register = async (req, res) => {
             token: authToken
         });
     } catch (error) {
-        console.log(`register: ${error}`)
         res.status(500).json({
             error,
             success: false

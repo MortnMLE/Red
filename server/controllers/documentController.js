@@ -31,7 +31,6 @@ exports.getAllForUser = async (req, res) => {
             success: true
         });
     } catch (error) {
-        console.log(error);
         return res.status(500).json({
             error,
             success: false
@@ -50,7 +49,7 @@ exports.getById = async (req, res) => {
             });
         }
 
-        const document = await db.getOne(documentDbName, id);
+        const document = await db.getOne(documentDbName, new ObjectId(id));
 
         if (!document) {
             return res.status(404).json({
@@ -64,6 +63,7 @@ exports.getById = async (req, res) => {
             title: document.title,
             content: document.content,
             version: document.version,
+            flags: document.flags,
             success: true
         });
     } catch (error) {
@@ -85,9 +85,22 @@ exports.delete = async (req, res) => {
             });
         }
 
-        const response = await db.deleteOne(documentDbName, id);
+        const document = await db.getOne(documentDbName, new ObjectId(id));
 
-        if (response.deletedCount === 1) {
+        if (!document.flags?.deleted) {
+            document.flags.deleted = true;
+        }
+
+        const filter = { _id: new ObjectId(id) };
+        const query = {
+            $set: {
+                'flags.deleted': true
+            }
+        }
+
+        const response = await db.update(documentDbName, filter, query);
+
+        if (response.modifiedCount == 1) {
             return res.status(200).json({
                 success: true
             });
@@ -122,7 +135,8 @@ exports.create = async (req, res) => {
                 userId: new ObjectId(req.user),
                 title,
                 content,
-                version
+                version,
+                flags: {deleted: false}
             }
         );
 
@@ -155,27 +169,32 @@ exports.patch = async (req, res) => {
             });
         }
 
-        const document = await db.getOne(documentDbName, id);
+        const existingDocument = await db.getOne(documentDbName, new ObjectId(id));
 
-        if (!document) {
+        if (!existingDocument) {
             return res.status(404).json({
                 error: 'NOT_FOUND',
                 success: false
             });
         }
 
-        if (document.version >= version) {
+        if (existingDocument.version >= version) {
             return res.status(409).json({
                 error: 'VERSION_CONFLICT',
                 success: false
             });
         }
 
-        document.title = title;
-        document.content = content;
-        document.version = version;
+        const filter = { _id: new ObjectId(id)};
+        const query = {
+            $set: {
+                title,
+                content,
+                version
+            }
+        };
 
-        const result = await db.update(documentDbName, document);
+        const result = await db.update(documentDbName, filter, query);
 
         if (result.modifiedCount === 0) {
             return res.status(500).json({
@@ -185,8 +204,8 @@ exports.patch = async (req, res) => {
         }
 
         return res.status(200).json({
-            id: document.uuid,
-            newSyncedVersion: document.version,
+            id: existingDocument.uuid,
+            newSyncedVersion: existingDocument.version,
             success: true
         });
     } catch (error) {

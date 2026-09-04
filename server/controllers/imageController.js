@@ -92,7 +92,7 @@ exports.getAllIdsByDocId = async (req, res) => {
 
         let result = [];
         for(const image of images) {
-            result.push(image.id);
+            result.push(image._id);
         }
 
         return res.status(200).json({

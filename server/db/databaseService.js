@@ -18,10 +18,10 @@ async function getOne(dbname, query) {
     return await con.findOne(query);
 }
 
-async function update(dbname, query) {
+async function update(dbname, filter, query) {
     const con = await conn.getConnection(dbname);
 
-    return await con.updateOne(query);
+    return await con.updateOne(filter, query);
 }
 
 async function deleteOne(dbname, query) {
