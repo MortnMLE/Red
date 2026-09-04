@@ -6,7 +6,7 @@ jest.mock('../../../db/databaseService', () => ({
 const { getOne, update } = require('../../../db/databaseService');
 const controller = require('../../../controllers/documentController');
 
-describe('documentController.create', () => {
+describe('documentController.patch', () => {
     let mRes;
     let mReq;
     let doc; 
@@ -14,7 +14,7 @@ describe('documentController.create', () => {
     beforeEach(() => {
         mReq = {
             body: {
-                id: '123',
+                id: '1236a9ad3046c0a8048e32fbd9d',
                 title: 'title',
                 content: 'content',
                 version: 5

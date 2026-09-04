@@ -14,7 +14,7 @@ describe('documentController.create', () => {
             body: {
                 title: 'title',
                 content: 'content',
-                version: 1
+                version: 1,
             },
             user: 'B25C8076A6A8773CBF8138B6',
         };

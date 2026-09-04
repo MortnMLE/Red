@@ -4,7 +4,6 @@ jest.mock('../../../db/databaseService', () => ({
 
 const { getAll } = require('../../../db/databaseService');
 const controller = require('../../../controllers/imageController');
-const expectCookies = require('supertest/lib/cookies');
 
 describe('imageController.getAllIdsByDocId', () => {
     let mReq;
@@ -64,7 +63,7 @@ describe('imageController.getAllIdsByDocId', () => {
     });
 
     test('should return imageIds and success true', async () => {
-        const arr = [{id: '123'}, {id: '456'}];
+        const arr = [{_id: '123'}, {_id: '456'}];
         getAll.mockResolvedValue(arr);
 
         await controller.getAllIdsByDocId(mReq, mRes);

@@ -1,8 +1,9 @@
 jest.mock('../../../db/databaseService', () => ({
-    deleteOne: jest.fn(),
+    update: jest.fn(),
+    getOne: jest.fn(),
 }));
 
-const { deleteOne } = require('../../../db/databaseService');
+const { update, getOne } = require('../../../db/databaseService');
 const controller = require('../../../controllers/documentController');
 
 describe('documentController.delete', () => {
@@ -49,7 +50,7 @@ describe('documentController.delete', () => {
 
     test('should return 500 if deleteOne throws', async () => {
         const error = new Error('server error');
-        deleteOne.mockRejectedValue(error);
+        getOne.mockRejectedValue(error);
 
         await controller.delete(mReq, mRes);
 
@@ -61,7 +62,8 @@ describe('documentController.delete', () => {
     });
 
     test('should return 200 document was deleted', async () => {
-        deleteOne.mockResolvedValue({deletedCount: 1});
+        getOne.mockResolvedValue({flags:{deleted: false}});
+        update.mockResolvedValue({modifiedCount: 1});
 
         await controller.delete(mReq, mRes);
 
@@ -72,7 +74,8 @@ describe('documentController.delete', () => {
     });
 
     test('should return 404 if no document was deleted', async () => {
-        deleteOne.mockResolvedValue({deletedCount: 0});
+        getOne.mockResolvedValue({flags:{deleted: false}});
+        update.mockResolvedValue({modifiedCount: 0});
 
         await controller.delete(mReq, mRes);
 
