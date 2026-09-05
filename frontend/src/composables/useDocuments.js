@@ -1,8 +1,5 @@
 import { onMounted, ref, computed, toRaw } from 'vue';
-import { deleteLocalRecord,
-    addOrSetLocalRecord,
- } from '@/services/indexedDB/indexedDbApi';
-
+import { addOrSetLocalRecord } from '@/services/indexedDB/indexedDbApi';
 import { DELETEdoc, POSTnewDocument, PATCHdocument } from '@/constants/endpoints';
 import { DEFAULT_DOCUMENT } from '@/constants/defaultDocument';
 import { debouncer } from '@/services/debouncer';
@@ -33,24 +30,17 @@ const openDocuments = computed (() =>
     )
 );
 
-export function getDocumentById(id) {
-    Validator.validateArrEmptyAllowed(documents.value);
-    Validator.validateStringEmptyNotAllowed(id);
-
-    return documents.value.find(
-        (doc) => doc.id === id
-    );
-}
-
 export function useDocuments(options = {}) {
     const { 
         countTempIds,
         updateCountTempIds 
     } = options;
     
+    // flags a document as deleted and removes the document from the sidebar
     async function deleteDocument(doc) {
         doc.flags.deleted = true;
 
+        // flag server document as deleted
         const serverTask = authenticatedFetch(DELETEdoc, {
             method: 'DELETE',
             headers: {
@@ -61,18 +51,22 @@ export function useDocuments(options = {}) {
             }),
         });
 
+        // flag local document as deleted
         const localTask = addOrSetLocalRecord(DB_DOCUMENTS, 
             structuredClone(toRaw(doc)));
 
         try {
+            // await both the fetch to the server and the local change
             await Promise.all([serverTask, localTask]);
         } finally {
+            // remove the document from the sidebar
             documents.value = documents.value.filter(
                 activeDocument => activeDocument.id !== doc.id
             );
         }
     }
 
+    // creates a document locally and on the server, if possible
     async function handleDocumentCreation() {
         while(creationInProgress) {
             await new Promise(resolve => setTimeout(resolve, 20));
@@ -82,10 +76,10 @@ export function useDocuments(options = {}) {
 
         const tempId = `temp-${Number(countTempIds.value) + 1}`;
 
-        let newDoc = createDocument(
+        const newDoc = createDocument(
             tempId,
             '',
-            '',
+            'Title',
             1,
             createDocumentFlags(false, false, true),
         );
@@ -113,15 +107,13 @@ export function useDocuments(options = {}) {
 
             if (data.success) {
                 newDoc.id = data.id;
-                newDoc.deleted = false;
+                newDoc.flags.isNew = false;
 
                 const index = openDocuments.value.findIndex(id => id === tempId);
 
                 if (index !== -1) {
                     openDocuments.value[index] = newDoc.id;
                 }
-            } else {
-                
             }
         } catch (err) {
             console.error('failed to add document to server');
@@ -135,7 +127,6 @@ export function useDocuments(options = {}) {
     }
 
     function openDocument(id) {
-        // validate parameter
         Validator.validateStringEmptyNotAllowed(id);
 
         // check if the document is already open
@@ -149,8 +140,8 @@ export function useDocuments(options = {}) {
         }
     }
 
+    // removes the document from the document bar
     function closeDocument(id) {
-        // validate parameter
         Validator.validateStringEmptyNotAllowed(id);
 
         // remove id from openDocuments
@@ -159,8 +150,8 @@ export function useDocuments(options = {}) {
         );
     }
 
+    // assigns a document to the activeDocument ref
     function setActiveDocument(id) {
-        // validate paramter
         Validator.validateStringEmptyNotAllowed(id);
 
         const doc = documents.value?.find(
@@ -170,8 +161,8 @@ export function useDocuments(options = {}) {
         activeDocumentId.value = doc?.id;
     }
 
+    // shifts the active document in the document bar
     function shiftActiveDocument(docToBeClosed, offset) {
-        // validate parameters
         Validator.validateObjectNotNull(docToBeClosed);
         Validator.validateNumber(offset);
         
@@ -179,7 +170,6 @@ export function useDocuments(options = {}) {
             throw new Error('must not be 0');
         }
 
-        // 
         const index = openDocumentIds.value.findIndex(
             openDocId => openDocId === docToBeClosed.id
         );
@@ -197,6 +187,7 @@ export function useDocuments(options = {}) {
         }
     }
 
+    // shifts the currently active document from openDocumentIds ref
     function getNextActiveDocument(docToBeClosed, offset) {
         // validate parameters
         Validator.validateObjectNotNull(docToBeClosed);
@@ -231,7 +222,9 @@ export function useDocuments(options = {}) {
             return undefined;
         }
 
-        return getDocumentById(nextId);
+        return documents.value.find(
+            doc => doc.id === nextId
+        );
     }
 
     // debounces incoming changes to reduce unnecessary write to local storage
@@ -243,8 +236,8 @@ export function useDocuments(options = {}) {
                     DB_DOCUMENTS,
                     structuredClone(toRaw(ref.value)), 
                 );
-
             } catch (err) {
+                console.error('LOCAL_UPDATE_ERROR');
                 console.error(err);
             }
         },
@@ -255,7 +248,7 @@ export function useDocuments(options = {}) {
     const syncRemoteDebounced = debouncer(
         async (ref) => {
             try {
-                await authenticatedFetch( PATCHdocument, {
+                await authenticatedFetch(PATCHdocument, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -267,15 +260,15 @@ export function useDocuments(options = {}) {
                         version: ref.value.version
                     }),
                 });
-            } catch (err) {
-                console.error(err);
+            } catch {
+                console.error('SERVER_UPDATE_ERROR');
             }
         },
         300
     )
 
+    // udpates the activeDocument ref and calls the debounced sync functions
     function updateDocumentContent(content, title) {
-        // validate parameters
         Validator.validateStringEmptyAllowed(content);
         Validator.validateStringEmptyAllowed(title);
 
