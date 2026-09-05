@@ -91,27 +91,6 @@ export async function tryDeleteServerDocument(localDocument, serverDocument) {
             },
             body: JSON.stringify({ id: localDocument.id }),
         });
-
-        console.log(`tryDeleteServerDocument: ${a.status}`);
-        // const response = await authenticatedFetch(PATCHdocument, {
-        //     method: 'PATCH',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //     },
-        //     body: JSON.stringify({
-        //         id: localDocument.id,
-        //         title: localDocument.title,
-        //         content: localDocument.content,
-        //         version: localDocument.version,
-        //         flags:  localDocument.flags
-        //     }),
-        // });
-
-        // if (response.status != 200) {
-        //     return;
-        // }
-
-        // await addOrSetLocalRecord(DB_DOCUMENTS, localDocument);
     } catch (error) {
         console.log(`tryDeleteDocumentOnServer: ${error}`);
     }
