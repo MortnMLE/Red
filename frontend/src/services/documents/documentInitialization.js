@@ -32,7 +32,6 @@ export async function getDocumentsFromServer() {
 
         return createDocuments(serverDocuments);
     } catch (error) {
-        console.log(`error: ${error}`);
         return [];
     }
 }
