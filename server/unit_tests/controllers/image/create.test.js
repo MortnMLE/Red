@@ -26,8 +26,12 @@ describe('imageController.create', () => {
         mReq = {
             body: {
                 docId: 'docId',
-                name: 'image.png',
-                file: 'file'
+                name: 'image.png'
+            },
+            file: {
+                buffer: Buffer.from('file'),
+                mimetype: 'image/png',
+                size: 4
             }
         };
 

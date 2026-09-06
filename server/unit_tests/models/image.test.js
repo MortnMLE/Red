@@ -1,5 +1,4 @@
 const { ObjectId, Binary } = require('mongodb');
-
 const { create } = require('../../models/image');
 
 describe('create', () => {

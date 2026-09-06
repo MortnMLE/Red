@@ -12,7 +12,7 @@ describe('imageController.delete', () => {
     beforeEach(() => {
         mReq = {
             body: {
-                id: '123'
+                id: '507f1f77bcf86cd799439013'
             }
         };
 

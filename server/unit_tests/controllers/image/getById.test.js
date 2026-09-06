@@ -12,7 +12,7 @@ describe('imageController.getById', () => {
     beforeEach(() => {
         mReq = {
             params: {
-                id: '123'
+                id: '507f1f77bcf86cd799439013'
             }
         };
 

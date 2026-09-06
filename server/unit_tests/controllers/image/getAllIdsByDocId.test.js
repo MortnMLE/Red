@@ -12,7 +12,7 @@ describe('imageController.getAllIdsByDocId', () => {
     beforeEach(() => {
         mReq = {
             params: {
-                docId: '123'
+                docId: '507f1f77bcf86cd799439011'
             }
         };
 
@@ -51,7 +51,9 @@ describe('imageController.getAllIdsByDocId', () => {
 
     test('should return success true and empty array if no images were found', async () => {
         const arr = [];
-        getAll.mockResolvedValue(arr);
+        getAll.mockResolvedValue({
+            toArray: jest.fn().mockResolvedValue(arr)
+        });
 
         await controller.getAllIdsByDocId(mReq, mRes);
 
@@ -63,14 +65,19 @@ describe('imageController.getAllIdsByDocId', () => {
     });
 
     test('should return imageIds and success true', async () => {
-        const arr = [{_id: '123'}, {_id: '456'}];
-        getAll.mockResolvedValue(arr);
+        const arr = [
+            {_id: '507f1f77bcf86cd799439012'},
+            {_id: '507f1f77bcf86cd799439013'}
+        ];
+        getAll.mockResolvedValue({
+            toArray: jest.fn().mockResolvedValue(arr)
+        });
 
         await controller.getAllIdsByDocId(mReq, mRes);
 
         expect(mRes.status).toHaveBeenCalledWith(200);
         expect(mRes.json).toHaveBeenCalledWith({
-            images: ['123', '456'],
+            images: ['507f1f77bcf86cd799439012', '507f1f77bcf86cd799439013'],
             success: true
         });
     });
