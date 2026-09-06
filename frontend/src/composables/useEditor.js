@@ -319,7 +319,6 @@ export function useEditor(options = {}) {
     }
 
     onMounted(() => {
-        console.log(`onmounted editor executed`);
         createEditor(
             activeDocument?.value?.content || ''
         );
