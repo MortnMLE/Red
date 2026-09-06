@@ -5,8 +5,8 @@ import { backupDocument } from "./backupDocument";
 export async function tryCreateNewLocalDocument(document) {
     try {
         await addOrSetLocalRecord(DB_DOCUMENTS, document);
-    } catch (error) {
-        console.log(`tryCreateNewLocalDocument throws: ${error}`);
+    } catch {
+        // do nothing
     }
 }
 
@@ -18,8 +18,8 @@ export async function tryDeleteLocalDocument(localDocument, serverDocument) {
     try {
         localDocument.flags.deleted = true;
         await addOrSetLocalRecord(DB_DOCUMENTS, localDocument);
-    } catch (error) {
-        console.log(`tryDeleteLocalDocument throws: ${error}`);
+    } catch {
+        //do nothing
     }
 }
 
@@ -43,7 +43,7 @@ export async function tryUpdateLocalDocument(localDocument, serverDocument) {
         localDocument.flags.dirty = false;
 
         await addOrSetLocalRecord(DB_DOCUMENTS, localDocument);
-    } catch (error) {
-        console.log(`tryUpdateLocalDocument: ${error}`);
+    } catch {
+        //do nothing
     }
 }

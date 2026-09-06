@@ -33,8 +33,8 @@ export async function tryUpdateServerDocument(localDocument, serverDocument) {
 
         localDocument.flags.dirty = false;
         await addOrSetLocalRecord(DB_DOCUMENTS, localDocument);
-    } catch (error) {
-        console.log(`tryUpdateServerDocument throws: ${error}`);
+    } catch {
+        // do nothing
     }
 }
 
@@ -71,8 +71,8 @@ export async function tryPostNewDocumentToServer(document) {
             document,
             oldId
         );
-    } catch (error) {
-        console.log(`tryPostNewDocumentToServer: ${error}`);
+    } catch {
+        // do nothing
     }
 }
 
@@ -91,7 +91,7 @@ export async function tryDeleteServerDocument(localDocument, serverDocument) {
             },
             body: JSON.stringify({ id: localDocument.id }),
         });
-    } catch (error) {
-        console.log(`tryDeleteDocumentOnServer: ${error}`);
+    } catch {
+        // do nothing
     }
 }

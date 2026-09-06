@@ -31,7 +31,7 @@ export async function getDocumentsFromServer() {
         }
 
         return createDocuments(serverDocuments);
-    } catch (error) {
+    } catch {
         return [];
     }
 }
@@ -48,8 +48,7 @@ export async function getDocumentsFromLocalStorage() {
         );
 
         return createDocuments(localDocuments);
-    } catch (error) {
-        console.log(`getDocumentsFromLocalStorage error: ${error}`);
+    } catch {
         return [];
     }
 }
