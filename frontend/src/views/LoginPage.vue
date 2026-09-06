@@ -148,9 +148,7 @@ export default {
         const data = await response.json();
 
         if (data.success) {
-          console.log(`token: ${data.token}`);
           setAccessToken(data.token);
-          console.log(`accessToken set to: ${getAccessToken()}`);
           localStorage.setItem('userId', data.id);
 
           await ensureDBs();
@@ -161,7 +159,7 @@ export default {
           return;
         }
       } catch (err) {
-        alert(err.message);
+        alert('Could not reach the server.');
       } finally {
         this.isLoading = false;
       }
