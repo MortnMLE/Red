@@ -7,7 +7,6 @@ import {
 } from "@/constants/storeOptions";
 
 export async function createDocumentStore() {
-    console.log('entered createDocumentStore');
     if (await storeExists(DB_DOCUMENTS)){
         return true;
     }
@@ -15,7 +14,6 @@ export async function createDocumentStore() {
     try {
         await createStore(documentStoreOptions);
     } catch (error) {
-        console.log(error);
         return false;
     }
 
@@ -23,18 +21,12 @@ export async function createDocumentStore() {
 }
 
 export async function createSettingStore() {
-    console.log('entered createSettingsStore');
-
-    const exists = await storeExists(DB_SETTINGS);
-    console.log(`store exists: ${exists}`);
-    
     if (await storeExists(DB_SETTINGS)) {
         return true;
     }
     
     try {
         await createStore(settingStoreOptions);
-        console.log('created Setting Store');
 
         await addOrSetLocalRecord(DB_SETTINGS, { 
             key: 'countTemporaryIds',
@@ -47,8 +39,7 @@ export async function createSettingStore() {
             value: true, 
             userId: localStorage.userId
         });
-    } catch (error) {
-        console.log(error);
+    } catch {
         return false;
     }
 
@@ -56,7 +47,6 @@ export async function createSettingStore() {
 }
 
 export async function createImageStore() {
-    console.log('entered createImageStore');
     if (await storeExists(DB_IMAGES)) {
         return true;
     }
@@ -64,7 +54,6 @@ export async function createImageStore() {
     try {
         await createStore(imageStoreOptions);
     } catch (error) {
-        console.log(error);
         return false;
     }
 
