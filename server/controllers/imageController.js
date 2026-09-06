@@ -2,10 +2,12 @@ const image = require('../models/image');
 const db = require('../db/databaseService');
 const { imageDbName } = require('../constants');
 const { validate } = require('../utils/validate');
+const { ObjectId } = require('mongodb');
 
 exports.create = async (req, res) => {
     try {
-        const { docId, name, file } = req.body;
+        const { docId, name } = req.body;
+        const file = req.file;
 
         if (!validate([docId, name, file])) {
             return res.status(400).json({
@@ -41,7 +43,7 @@ exports.getById = async (req, res) => {
             });
         }
 
-        const image = await db.getOne(imageDbName, id);
+        const image = await db.getOne(imageDbName, new ObjectId(id));
 
         if (!image) {
             return res.status(404).json({
@@ -73,6 +75,8 @@ exports.getAllIdsByDocId = async (req, res) => {
     try {
         const { docId } = req.params;
 
+        console.log(`getAllbyIds, docId ${docId}`);
+
         if (!validate([docId])) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
@@ -80,12 +84,14 @@ exports.getAllIdsByDocId = async (req, res) => {
             });
         }
 
-        const images = await db.getAll(imageDbName, docId);
+        const cursor = await db.getAll(imageDbName, { docId: new ObjectId(docId) });
+        const images = await cursor.toArray();
+
+        console.log(`fetched images: ${images}`);
 
         if (!images) {
             return res.status(404).json({
                 error: 'NOT_FOUND',
-                message: 'images not found document id',
                 success: false
             });
         }
@@ -118,7 +124,7 @@ exports.delete = async (req, res) => {
             });
         }
 
-        const response = await db.deleteOne(imageDbName, id);
+        const response = await db.deleteOne(imageDbName, new ObjectId(id));
 
         if (response.deletedCount === 1) {
             return res.status(200).json({
