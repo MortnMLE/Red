@@ -57,7 +57,6 @@ export async function createStore(options = {}, request = null) {
             };
 
             upgradeRequest.onsuccess = () => {
-                console.log(`Created: ${options.storeObject.name}`);
                 resolve(upgradeRequest.result);
             };
 
@@ -164,25 +163,6 @@ export async function getLocalRecordsByIndex(storeObject, indexName, indexValue)
             } else {
                 resolve(results);
             }
-        };
-
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
-}
-
-export async function localEntryExists(storeObject, id) {
-    const db = await openLocalDatabase(storeObject.database);
-
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeObject.name, 'readonly');
-        const store = transaction.objectStore(storeObject.name);
-
-        const request = store.get(id);
-
-        request.onsuccess = () => {
-            resolve(request.result !== undefined);
         };
 
         request.onerror = () => {
