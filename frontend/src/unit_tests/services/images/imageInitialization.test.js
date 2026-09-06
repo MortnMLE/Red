@@ -19,7 +19,7 @@ import {
     addServerImageToLocalStorage,
     requiresFetch,
     postMissingImages
-} from '@/services/images/imageInitService';
+} from '@/services/images/imageInitialization';
 
 import { Parser } from '@/services/parser';
 
@@ -31,10 +31,11 @@ import {
 import { 
     getLocalRecord, 
     localEntryExists, 
-    getLocalRecord 
+    getLocalRecord, 
+    addOrSetLocalRecord
 } from '@/services/indexedDB/indexedDbApi';
 
-describe('imageInitService', () => {
+describe('imageInitialization', () => {
     let parser;
 
     beforeEach(() => {
@@ -42,7 +43,7 @@ describe('imageInitService', () => {
     });
 
     afterEach(() => {
-        vi.restoreAllMocks()
+        vi.clearAllMocks()
     });
 
     describe('getEmbeddedImageIds', () => {
@@ -222,53 +223,46 @@ describe('imageInitService', () => {
 
     describe('addServerImageToLocalStorage', async () => {
         test('should throw on invalid inputs', async () => {
-            await expect(addServerImageToLocalStorage(1, 'id', 'id')).rejects.toThrow();
-            await expect(addServerImageToLocalStorage(true, 'id', 'id')).rejects.toThrow();
-            await expect(addServerImageToLocalStorage([], 'id', 'id')).rejects.toThrow();
-            await expect(addServerImageToLocalStorage('string', 'id', 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage(1, 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage(true, 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage([], 'id')).rejects.toThrow();
+            await expect(addServerImageToLocalStorage('string', 'id')).rejects.toThrow();
 
-            await expect(addServerImageToLocalStorage({}, 1, 'id')).rejects.toThrow();
-            await expect(addServerImageToLocalStorage({}, true, 'id')).rejects.toThrow();
-            await expect(addServerImageToLocalStorage({}, [], 'id')).rejects.toThrow();
-            await expect(addServerImageToLocalStorage({}, {}, 'id')).rejects.toThrow();
-            await expect(addServerImageToLocalStorage({}, '', 'id')).rejects.toThrow();
-
-            await expect(addServerImageToLocalStorage({}, 'id', 1)).rejects.toThrow();
-            await expect(addServerImageToLocalStorage({}, 'id', true)).rejects.toThrow();
-            await expect(addServerImageToLocalStorage({}, 'id', [])).rejects.toThrow();
-            await expect(addServerImageToLocalStorage({}, 'id', {})).rejects.toThrow();
-            await expect(addServerImageToLocalStorage({}, 'id', '')).rejects.toThrow();
-        });
-
-        test('should return 0, if image.ok is false', async () => {
-            const image = {ok: false};
-
-            const result = await addServerImageToLocalStorage(image, 'id', 'id');
-
-            expect(result).toBe(0);
+            await expect(addServerImageToLocalStorage({}, 1)).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, true)).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, [])).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, {})).rejects.toThrow();
+            await expect(addServerImageToLocalStorage({}, '')).rejects.toThrow();
         });
 
         test('should return 0 on error', async () => {
             const image = {
-                ok: true,
-                blob: vi.fn().mockResolvedValue(new Error('blob failed'))
+                id: 'imageId',
+                file: new Blob(['test']),
+                name: 'name',
+                userId: 'userId',
+                docId: 'docId'
             };
 
-            const result = await addServerImageToLocalStorage(image, 'id', 'id');
+            addOrSetLocalRecord.mockRejectedValue(new Error(''));
+
+            const result = await addServerImageToLocalStorage(image, 'docId');
 
             expect(result).toBe(0);
         });
 
         test('should return 1', async () => {
             const image = {
-                ok: true,
-                blob: vi.fn().mockResolvedValue(new Blob(['test'])),
-                headers: new Headers({
-                    'Content-Disposition': 'attachment; filename="image.png"',
-                })
+                id: 'imageId',
+                file: new Blob(['test']),
+                name: 'name',
+                userId: 'userId',
+                docId: 'docId'
             };
 
-            const result = await addServerImageToLocalStorage(image, 'id', 'id');
+            addOrSetLocalRecord.mockResolvedValue({});
+
+            const result = await addServerImageToLocalStorage(image, 'id');
 
             expect(result).toBe(1);
         });
@@ -289,7 +283,7 @@ describe('imageInitService', () => {
         });
 
         test('should return false when localEntryExists throws', async () => {
-            localEntryExists.mockRejectedValue(new Error(''));
+            getLocalRecord.mockRejectedValue(new Error(''));
 
             const result = await requiresFetch('id', ['id']);
 
@@ -297,7 +291,7 @@ describe('imageInitService', () => {
         });
 
         test('should return true', async () => {
-            vi.mocked(localEntryExists).mockResolvedValue(false);
+            getLocalRecord.mockResolvedValue(null);
 
             const result = await requiresFetch('id', ['id']);
 

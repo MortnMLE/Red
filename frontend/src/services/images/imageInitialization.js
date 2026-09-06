@@ -2,9 +2,7 @@ import { Validator } from "@/services/validator"
 
 import { 
     addOrSetLocalRecord, 
-    deleteLocalRecord, 
     getLocalRecord,
-    localEntryExists
 } from "@/services/indexedDB/indexedDbApi";
 
 import { 
@@ -20,11 +18,9 @@ import {
 } from "@/constants/stores";
 
 export function getEmbeddedImageIds(documents, mapImageIdToDocId) {
-    // validate parameter
     Validator.validateArrEmptyAllowed(documents);
     Validator.validateObjectType(mapImageIdToDocId, Map);
 
-    // initialize result
     let result = [];
 
     // search documents and match against regex
@@ -37,10 +33,10 @@ export function getEmbeddedImageIds(documents, mapImageIdToDocId) {
 
             for (const id of ids) {
                 result.push(id);
-                mapImageIdToDocId.set(id, doc.id)
+                mapImageIdToDocId.set(id, doc.id);
             };
         } catch {
-            return result;
+            continue;
         }
     }
 
@@ -49,7 +45,6 @@ export function getEmbeddedImageIds(documents, mapImageIdToDocId) {
 
 // Fetches all imageIds for documents that exist locally
 export async function getServerImageIds(documents) {
-    // validate parameter
     Validator.validateArrEmptyAllowed(documents);
 
     // if no documents exist return empty array
@@ -97,31 +92,20 @@ export async function fetchMissingImages(embeddedImageIds, serverImageIds) {
     return await serverFetchImagesForIds(requests);
 }
 
-export async function addServerImageToLocalStorage(image, id, docId) {
+export async function addServerImageToLocalStorage(image, docId) {
     Validator.validateObjectNotNull(image);
-    Validator.validateStringEmptyNotAllowed(id);
     Validator.validateStringEmptyNotAllowed(docId);
 
-    // skip if server response is not ok
-    if (!image.ok) {
-        return 0;
-    }
-
     try {
-        // get the blob
-        const blob = await image.blob();
-
         // add blob to local indexedDB storage
         await addOrSetLocalRecord(
             DB_IMAGES,
             {
-                id: id,
-                file: blob,
-                name: image.headers
-                    .get('Content-Disposition')
-                    ?.match(/filename="(.+)"/)?.[1] ?? '',
-                userId: localStorage.userId,
-                docId: docId
+                id: image.id,
+                file: image.image,
+                name: image.name,
+                userId: localStorage.getItem('userId'),
+                docId,
             }
         );
     } catch {
@@ -134,17 +118,18 @@ export async function requiresFetch(id, serverImageIds) {
     Validator.validateStringEmptyNotAllowed(id);
     Validator.validateArrEmptyAllowed(serverImageIds);
 
+    let result = false;
     // if the image does not exist locally, but exists in the serverImages
     // we need to fetch it
     try {
-        if (
-            !(await localEntryExists(DB_IMAGES, id)) &&
+        const existing = await getLocalRecord(DB_IMAGES, id);
+        if (existing == null &&
             serverImageIds.includes(id)
         ){
-            return true;
+            result = true;
         }
-    } catch (err) {
-        return false;
+    } finally {
+        return result;
     }
 }
 
@@ -188,5 +173,7 @@ export async function postMissingImages(embeddedImageIds, serverImages) {
     }));
 
     // filter out undefined objects and return result
-    return result.filter(item => item !== undefined && item.newId !== undefined);
+    return result.filter(
+        item => item !== undefined && item.newId !== undefined
+    );
 }
