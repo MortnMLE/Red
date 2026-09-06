@@ -53,7 +53,8 @@ export function useDocuments(options = {}) {
 
         // flag local document as deleted
         const localTask = addOrSetLocalRecord(DB_DOCUMENTS, 
-            structuredClone(toRaw(doc)));
+            structuredClone(toRaw(doc))
+        );
 
         try {
             // await both the fetch to the server and the local change
