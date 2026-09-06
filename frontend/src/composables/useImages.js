@@ -18,7 +18,7 @@ import {
     fetchMissingImages,
     addServerImageToLocalStorage,
     postMissingImages
-} from "@/services/images/imageInitService";
+} from "@/services/images/imageInitialization";
 
 import { deleteImageFromServer, newServerImage } from "@/services/images/imageServerService";
 import { Parser } from '@/services/parser';
@@ -132,7 +132,6 @@ export function useImages(options = {}) {
     }
 
     onMounted(async () => { 
-        console.log(`onmounted useImages was executed`);
         // wait for documents to finish intializing       
         while (!docsInitialized.value) {
             await new Promise(r => setTimeout(r, 100));
@@ -165,15 +164,15 @@ export function useImages(options = {}) {
 
         // fetch images that do not exist locally
         const fetchedImages = await fetchMissingImages(embeddedImageIds, serverImageIds.arr);
-        
+       
         for (const image of fetchedImages) {
-            await addServerImageToLocalStorage(image.image, image.id, imageIdToDocId.get(image.id));
+            await addServerImageToLocalStorage(image, imageIdToDocId.get(image.id));
         }
         // post images to server if they do not exist yet
 
         // images that are not yet on the server are posted. Returns an array of newly
         // inserted images and ids
-        const insertedImages = postMissingImages(embeddedImageIds, serverImageIds.arr);
+        const insertedImages = await postMissingImages(embeddedImageIds, serverImageIds.arr);
 
         for(const image of insertedImages) {
             // create new image entry in local storage

@@ -35,7 +35,7 @@ describe('imageServerService', () => {
             expect(authenticatedFetch).not.toHaveBeenCalled();
         });
         
-        test('should return empty string on unsuccessful answer from server', async() => {
+        test('should return undefined on unsuccessful answer from server', async() => {
             authenticatedFetch.mockResolvedValue({
                 json: vi.fn().mockResolvedValue({
                     id: '',
@@ -45,13 +45,14 @@ describe('imageServerService', () => {
 
             const result = await newServerImage('docId', 'name', validFile);
             
-            expect(result).toBe('');
+            expect(result).toBe(undefined);
         });
 
-        test('should return the correct id on successful answer from server', async() => {
+        test('should return the id on successful answer from server', async() => {
             const insertedId = 'insertedId';
             
             authenticatedFetch.mockResolvedValue({
+                status: 200,
                 json: vi.fn().mockResolvedValue({
                     id: 'insertedId',
                     success: true,
@@ -63,14 +64,14 @@ describe('imageServerService', () => {
             expect(result).toBe(insertedId);
         });
 
-        test('should return empty string on error inside try catch block', async () => {
+        test('should return undefined on error inside try catch block', async () => {
             authenticatedFetch.mockResolvedValue({
                 json: () => Promise.reject(new Error('Invalid JSON'))
             });
 
             const result = await newServerImage('docId', 'name', validFile);
 
-            expect(result).toBe('');
+            expect(result).toBe(undefined);
         });
     });
 
@@ -155,15 +156,15 @@ describe('imageServerService', () => {
 
         test('should return array of imageIds if fetch returns images', async () => {
             authenticatedFetch.mockResolvedValue({
+                status: 200,
                 json: vi.fn().mockResolvedValue({
                     images: ['id1', 'id2'],
-                    serverWasReached: true
-                })
+                    success: true,
+                }),
             });
 
             const result = await serverFetchImageIdsForDocuments(['docId1']);
 
-            expect(result.serverWasReached).toBe(true);
             expect(result.arr.length).toBe(2);
             expect(result.arr[0]).toBe('id1');
             expect(result.arr[1]).toBe('id2');
@@ -178,7 +179,6 @@ describe('imageServerService', () => {
 
             expect(result).toBeDefined();
             expect(result.arr.length).toBe(0);
-            expect(result.serverWasReached).toBe(false);
         });
     });
 
@@ -208,13 +208,24 @@ describe('imageServerService', () => {
         });
 
         test('should return array of objects', async () => {
-            const response = new Response(new Uint8Array([1, 2, 3]));
-
-            authenticatedFetch.mockResolvedValue(response);
+            const blob = new Blob(['123']);
+            authenticatedFetch.mockResolvedValue({
+                status: 200,
+                blob: async () => {
+                    return blob
+                },
+                headers: new Headers({
+                    'Content-Disposition': "filename='image.png'"
+                }),
+            });
 
             const result = await serverFetchImagesForIds(['id1']);
             
-            expect(result).toEqual([{image: response, id: 'id1'}]);
+            expect(result).toEqual([{
+                image: blob, 
+                name: 'image.png',
+                id: 'id1'
+            }]);
         });
     });
 });

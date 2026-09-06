@@ -13,13 +13,12 @@ export async function newServerImage(docId, name, file) {
     Validator.validateStringEmptyNotAllowed(name);
     Validator.validateFile(file);
 
-    let result = '';
+    let result = undefined;
 
-    // create the body for the POST
+    // multer expects a multipart form upload.
     const formData = new FormData();
     formData.append('image', file);
     formData.append('name', name);
-    formData.append('userId', localStorage.userId);
     formData.append('docId', docId);
 
     try {
@@ -28,12 +27,13 @@ export async function newServerImage(docId, name, file) {
             POSTnewImage, 
             {
                 method: 'POST',
-                body: JSON.stringify(formData),
+                body: formData
             },
         );
 
-        // catch bug
-        Validator.validateObjectNotNull(response);
+        if (response.status != 200) {
+            return result;
+        }
 
         // get json content of response
         const data = await response.json();
@@ -42,17 +42,16 @@ export async function newServerImage(docId, name, file) {
         if (data.success) {
             result = data.id;
         }
-    } catch (err) {
-        console.error(err.message);
+    } finally {
+        return result;
     }
-
-    return result;
 }
 
 export async function deleteImageFromServer(id) {
     // valiate parameter
     Validator.validateStringEmptyNotAllowed(id);
 
+    let result = false;
     try {
     // delete the id from the server
         const response = await authenticatedFetch(DELETEimage, {
@@ -63,53 +62,46 @@ export async function deleteImageFromServer(id) {
             body: JSON.stringify({ id }),
         });
 
-        return await response.json().success;
-    } catch (err) {
-        return false;
+        result = await response.json().success;
+    } finally {
+        return result;
     }
 }
 
 // fetches all imageIds that belong to passed documents
 export async function serverFetchImageIdsForDocuments(documents) {
-    // validate parameter
     Validator.validateArrEmptyAllowed(documents);
-    
-    // initialize tasks and result
+
     const tasks = [];
     const result = {
         arr: [],
         serverWasReached: true
     };
     
-    // start individual fetch requests
     for (const doc of documents) {
         tasks.push(authenticatedFetch(
             GETimageIdsForDocumentId + doc.id
         ));
     }
 
-    // initialize responses
     let responses = [];
 
-    // try block, errors may be thrown during the await all
     try { 
         // wait for all fetch requests to finish
         responses = await Promise.all(tasks);
-    } catch (err) {
+    } catch {
         // if fetch is unsuccessful the server is unreachable and we exit
         result.serverWasReached = false;
         return result;
     }
 
-    // loop through all responses and add images to result
     for (const response of responses) {
-        // continue if a request resulted in an empty response
-        if (!response) {
+        // continue if fetch was not successfull
+        if (response.status != 200) {
             continue;
         }
 
-        // try getting json content
-        let json;
+        let json = [];
         try {
             json = await response.json();
         } catch {
@@ -136,9 +128,18 @@ export async function serverFetchImagesForIds(ids) {
         const result = await Promise.all(ids.map(async (id) => {
             const response = await authenticatedFetch(GETimageById + id);
             
+            if (response.status !== 200) {
+                return;
+            }
+
+            const image = await response.blob();
+
             return {
                 id,
-                image: response,
+                name: response.headers
+                    .get('Content-Disposition')
+                    ?.match(/filename='(.+)'/)?.[1] ?? '',
+                image,
             };
         }));
         
