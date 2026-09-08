@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
 
-vi.mock('@/services/accessToken', () => ({
+vi.mock('@/services/authentication', () => ({
     authenticatedFetch: vi.fn(),
 }));
 
@@ -8,7 +8,7 @@ vi.mock('@/services/indexedDB/indexedDbApi', () => ({
     addOrSetLocalRecord: vi.fn()
 }));
 
-import { authenticatedFetch } from '@/services/accessToken';
+import { authenticatedFetch } from '@/services/authentication';
 import { addOrSetLocalRecord } from '@/services/indexedDB/indexedDbApi';
 import { PATCHdocument } from '@/constants/endpoints';
 import { DB_DOCUMENTS } from '@/constants/stores';

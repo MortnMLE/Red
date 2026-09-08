@@ -1,6 +1,6 @@
 import { describe, expect, spyOn, afterEach, mock } from 'vitest';
 
-vi.mock('@/services/accessToken', () => ({
+vi.mock('@/services/authentication', () => ({
     authenticatedFetch: vi.fn()
 }));
 
@@ -8,7 +8,7 @@ import {
     deleteImageFromServer, newServerImage,
     serverFetchImageIdsForDocuments, serverFetchImagesForIds 
 } from '@/services/images/imageServerService';
-import { authenticatedFetch } from '@/services/accessToken';
+import { authenticatedFetch } from '@/services/authentication';
 
 describe('imageServerService', () => {
     const validFile = new File(['Hallo'], 'hallo.txt');    
@@ -208,24 +208,26 @@ describe('imageServerService', () => {
         });
 
         test('should return array of objects', async () => {
-            const blob = new Blob(['123']);
+            const file = new File(['123'], 'image.png');
+
             authenticatedFetch.mockResolvedValue({
                 status: 200,
                 blob: async () => {
-                    return blob
+                    return file
                 },
                 headers: new Headers({
-                    'Content-Disposition': "filename='image.png'"
+                    'Content-Disposition': "filename=\"image.png\""
                 }),
             });
 
             const result = await serverFetchImagesForIds(['id1']);
             
-            expect(result).toEqual([{
-                image: blob, 
-                name: 'image.png',
-                id: 'id1'
-            }]);
+            expect(result).toHaveLength(1);
+            expect(result[0].id).toBe('id1');
+            expect(result[0].name).toBe('image.png');
+            expect(result[0].image).toBeInstanceOf(File);
+            expect(result[0].image.name).toBe('image.png');
+            expect(await result[0].image.text()).toBe(await file.text());
         });
     });
 });

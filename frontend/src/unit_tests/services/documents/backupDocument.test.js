@@ -1,6 +1,6 @@
 import { afterEach, vi } from 'vitest';
 
-vi.mock('@/services/accessToken', () => ({
+vi.mock('@/services/authentication', () => ({
     authenticatedFetch: vi.fn(),
 }));
 
@@ -8,7 +8,7 @@ vi.mock('@/services/indexedDB/indexedDbApi', () => ({
     addOrSetLocalRecord: vi.fn(),
 }));
 
-import { authenticatedFetch } from '@/services/accessToken';
+import { authenticatedFetch } from '@/services/authentication';
 import { addOrSetLocalRecord } from '@/services/indexedDB/indexedDbApi';
 import { createDocument, createDocumentFlags} from '@/services/documents/documentFactory';
 import { backupDocument } from '@/services/documents/backupDocument';

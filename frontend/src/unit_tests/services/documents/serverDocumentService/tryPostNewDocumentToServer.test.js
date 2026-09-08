@@ -1,6 +1,6 @@
 import { afterEach, vi } from 'vitest';
 
-vi.mock('@/services/accessToken', () => ({
+vi.mock('@/services/authentication', () => ({
     authenticatedFetch: vi.fn(),    
 }));
 
@@ -8,7 +8,7 @@ vi.mock('@/services/indexedDB/indexedDbApi', () => ({
     replaceLocalDbEntry: vi.fn(),
 }));
 
-import { authenticatedFetch } from '@/services/accessToken';
+import { authenticatedFetch } from '@/services/authentication';
 import { replaceLocalDbEntry } from '@/services/indexedDB/indexedDbApi';
 import { tryPostNewDocumentToServer } from '@/services/documents/serverDocumentService';
 import { POSTnewDocument } from '@/constants/endpoints';

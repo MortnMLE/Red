@@ -12,7 +12,6 @@ vi.mock('@/services/documents/serverDocumentService', () => ({
 
 import { syncLocalDocument } from '@/services/documents/documentSync';
 import {
-    tryCreateNewLocalDocument,
     tryDeleteLocalDocument,
     tryUpdateLocalDocument
 } from '@/services/documents/localDocumentService';
