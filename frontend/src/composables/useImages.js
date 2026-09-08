@@ -3,7 +3,7 @@ import {
     addOrSetLocalRecord, 
     deleteLocalRecord
 } from "@/services/indexedDB/indexedDbApi";
-import { onMounted } from "vue";
+import { onMounted, ref } from "vue";
 import { Validator } from "@/services/validator";
 
 import { 
@@ -38,6 +38,8 @@ export function useImages(options = {}) {
         imageCache
     } = options;
 
+    const imageCacheVersion = ref(0);
+
     let udpateEditorContent = null;
 
     // sets the reference to 'updateEditorContent' function
@@ -51,16 +53,17 @@ export function useImages(options = {}) {
         Validator.validateStringEmptyNotAllowed(docId);
         // create the cache entries for docId
         await createCacheEntriesForDocument(docId);
+        imageCacheVersion.value += 1;
         // refresh the editor content to correctly display the images
     }
 
     // sends the image to the server
-    async function compCreateNewServerImage(docId, name, file) {
+    async function createNewServerImage(docId, name, file) {
         await newServerImage(docId, name, file);
     }
 
     // creates a new local image with a temporary id
-    async function compCreateNewLocalImage(docId, name, file) {
+    async function createNewLocalImage(docId, name, file) {
         // validate Parameters
         Validator.validateStringEmptyNotAllowed(docId);
         Validator.validateStringEmptyNotAllowed(name);
@@ -90,12 +93,13 @@ export function useImages(options = {}) {
 
         // create the Url object
         imageCache.setUrl(id, file);
+        imageCacheVersion.value += 1;
 
         return id;
     }
 
     // deletes all images for a document from the server and locally
-    async function compDeleteImagesForDoc(doc) {
+    async function deleteImagesForDocument(doc) {
         // validate parameter
         Validator.validateObjectNotNull(doc);
 
@@ -124,11 +128,14 @@ export function useImages(options = {}) {
                 console.error(`could not delete ${id}`);
             }
         }
+
+        imageCacheVersion.value += 1;
     }
 
     // revokes all currently existing Urls for docId
-    async function compRevokeImageUrlsForDocId(docId) {
-        revokeAllForDocId(docId);
+    async function revokeImageUrlsForDocumentId(docId) {
+        await revokeAllForDocId(docId);
+        imageCacheVersion.value += 1;
     }
 
     onMounted(async () => { 
@@ -156,9 +163,7 @@ export function useImages(options = {}) {
         // if a request was not successful, we continue with locally existing images and
         // do not synchronize images with server
 
-        if (serverImageIds.arr.length === 0 ||
-            !serverImageIds.serverWasReached
-        ) {
+        if (!serverImageIds.serverWasReached) {
             return;
         }
 
@@ -168,7 +173,6 @@ export function useImages(options = {}) {
         for (const image of fetchedImages) {
             await addServerImageToLocalStorage(image, imageIdToDocId.get(image.id));
         }
-        // post images to server if they do not exist yet
 
         // images that are not yet on the server are posted. Returns an array of newly
         // inserted images and ids
@@ -200,6 +204,7 @@ export function useImages(options = {}) {
                     image.image.id,
                     image.newId
                 );
+                imageCacheVersion.value += 1;
             // if the document is not active, update the document entry in local storage
             } else {
                 await replaceImageIdForStoredDocument(
@@ -216,11 +221,12 @@ export function useImages(options = {}) {
 
     return {
         imageCache,
-        createNewLocalImage: compCreateNewLocalImage,
-        createNewServerImage: compCreateNewServerImage,
+        imageCacheVersion,
+        createNewLocalImage,
+        createNewServerImage,
         initializeImageCacheForDocument: compCreateCacheEntriesForDocument,
-        revokeImageUrlsForDocId: compRevokeImageUrlsForDocId,
-        deleteImagesForDocId: compDeleteImagesForDoc,
+        revokeImageUrlsForDocId: revokeImageUrlsForDocumentId,
+        deleteImagesForDocId: deleteImagesForDocument,
         setUpdateEditorContent: compSetUpdateEditorContent
     };
 }

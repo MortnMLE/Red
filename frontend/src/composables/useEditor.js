@@ -9,7 +9,7 @@ import { EditorState, Compartment } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
 import { vim } from '@replit/codemirror-vim'
-import { marked } from 'marked';
+import { marked, Renderer } from 'marked';
 import DOMPurify from 'dompurify';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { markdownImages } from '@/services/editor/imageWidget';
@@ -21,7 +21,7 @@ import { toRaw, unref } from 'vue';
 import { Validator } from '@/services/validator';
 import { newServerImage } from '@/services/images/imageServerService';
 import { PATCHdocument } from '@/constants/endpoints';
-import { authenticatedFetch } from '@/services/accessToken';
+import { authenticatedFetch } from '@/services/authentication';
 
 const vimCompartment = new Compartment();
 
@@ -31,6 +31,7 @@ export function useEditor(options = {}) {
         onChange,
         enableVim,
         imageCache,
+        imageCacheVersion = ref(0),
         createNewLocalImage,
         updateCountTempIds,
         createNewServerImage
@@ -40,12 +41,26 @@ export function useEditor(options = {}) {
     const editorView = ref(null);
 
     const content = ref('');
+    const renderer = new Renderer();
+    const defaultImageRenderer = renderer.image.bind(renderer);
 
-    const renderedMarkdown = computed(() =>
-        DOMPurify.sanitize(
-            marked.parse(content.value)
-        )
-    );
+    renderer.image = (token) => {
+        const imageUrl = imageCache.getUrl(token.href);
+        return defaultImageRenderer({
+            ...token,
+            href: imageUrl || token.href,
+        });
+    };
+
+    const renderedMarkdown = computed(() => {
+        imageCacheVersion.value;
+        return DOMPurify.sanitize(
+            marked.parse(content.value, { renderer }),
+            {
+                ALLOWED_URI_REGEXP: /^(?:blob:|https?:|data:image\/)/i,
+            }
+        );
+    });
 
     function createEditor(initialContent = '') {
         if (!editorElement.value) {
@@ -107,6 +122,7 @@ export function useEditor(options = {}) {
                     }
                 }),
 
+                // Handling for dropped images:
                 EditorView.domEventHandlers({
                     async drop(event, view) {
                         const files =
@@ -125,7 +141,7 @@ export function useEditor(options = {}) {
                         }
 
                         event.preventDefault();
-
+                        
                         const insertedId = await createNewLocalImage(
                             activeDocument.value.id,
                             file.name,
@@ -236,6 +252,7 @@ export function useEditor(options = {}) {
         if (activeDocument.value?.id === doc.id) {
             // replace the imageCache entry
             imageCache.replaceId(tempId, insertedId);
+            imageCacheVersion.value += 1;
 
             replaceImageReferenceInLiveEditor(tempId, insertedId);
 

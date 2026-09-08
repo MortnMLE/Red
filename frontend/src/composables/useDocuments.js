@@ -1,11 +1,11 @@
 import { onMounted, ref, computed, toRaw } from 'vue';
-import { addOrSetLocalRecord } from '@/services/indexedDB/indexedDbApi';
+import { addOrSetLocalRecord, getLocalRecord } from '@/services/indexedDB/indexedDbApi';
 import { DELETEdoc, POSTnewDocument, PATCHdocument } from '@/constants/endpoints';
 import { DEFAULT_DOCUMENT } from '@/constants/defaultDocument';
 import { debouncer } from '@/services/debouncer';
 import { DB_DOCUMENTS } from '@/constants/stores';
 import { Validator } from '@/services/validator';
-import { authenticatedFetch } from '@/services/accessToken';
+import { authenticatedFetch } from '@/services/authentication';
 import { getDocumentsFromLocalStorage, loadDocuments } from '@/services/documents/documentInitialization';
 import { syncLocalDocument, syncServerDocument } from '@/services/documents/documentSync';
 import { createDocument, createDocumentFlags } from '@/services/documents/documentFactory';
@@ -233,23 +233,25 @@ export function useDocuments(options = {}) {
         async (ref) => {
             try {
                 ref.value.version += 1;
+
                 await addOrSetLocalRecord(
                     DB_DOCUMENTS,
                     structuredClone(toRaw(ref.value)), 
                 );
             } catch (err) {
-                console.error('LOCAL_UPDATE_ERROR');
-                console.error(err);
+                // do nothing
             }
         },
-        200
+        500
     )
 
     // debounces incoming changes to reduce unnecessary posts to the server
     const syncRemoteDebounced = debouncer(
         async (ref) => {
             try {
-                await authenticatedFetch(PATCHdocument, {
+                const versionToBePosted = ref.value.version;
+
+                const response = await authenticatedFetch(PATCHdocument, {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
@@ -261,11 +263,18 @@ export function useDocuments(options = {}) {
                         version: ref.value.version
                     }),
                 });
+
+                if (response.status === 200 && 
+                    versionToBePosted === ref.value.version
+                ) {
+                    ref.value.flags.dirty = false;
+                    await addOrSetLocalRecord(DB_DOCUMENTS, structuredClone(toRaw(ref.value)));
+                }
             } catch {
-                console.error('SERVER_UPDATE_ERROR');
+                // do nothing
             }
         },
-        300
+        1000
     )
 
     // udpates the activeDocument ref and calls the debounced sync functions
@@ -281,6 +290,7 @@ export function useDocuments(options = {}) {
         // update the content and title of the active document
         activeDocument.value.content = content;
         activeDocument.value.title = title !== '' ? title : 'Title';
+        activeDocument.value.flags.dirty = true;
 
         // queue change to be stored on the server and local storage
         // using a debouncer
