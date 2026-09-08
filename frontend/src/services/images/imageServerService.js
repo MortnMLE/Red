@@ -5,10 +5,9 @@ import {
     POSTnewImage,
     DELETEimage 
 } from "@/constants/endpoints";
-import { authenticatedFetch } from "../accessToken";
+import { authenticatedFetch } from "../authentication";
 
 export async function newServerImage(docId, name, file) {
-    // validate Parameters
     Validator.validateStringEmptyNotAllowed(docId);
     Validator.validateStringEmptyNotAllowed(name);
     Validator.validateFile(file);
@@ -48,7 +47,6 @@ export async function newServerImage(docId, name, file) {
 }
 
 export async function deleteImageFromServer(id) {
-    // valiate parameter
     Validator.validateStringEmptyNotAllowed(id);
 
     let result = false;
@@ -132,19 +130,21 @@ export async function serverFetchImagesForIds(ids) {
                 return;
             }
 
-            const image = await response.blob();
+            const name = response.headers
+                    .get('Content-Disposition')
+                    ?.match(/filename="(.+)"/)?.[1] ?? '';
+
+            const image = new File([await response.blob()], name);
 
             return {
                 id,
-                name: response.headers
-                    .get('Content-Disposition')
-                    ?.match(/filename='(.+)'/)?.[1] ?? '',
+                name,
                 image,
             };
         }));
         
         return result;
-    } catch {
+    } catch (err) {
         return [];
     }
 }
