@@ -22,12 +22,14 @@ import { Validator } from '@/services/validator';
 import { newServerImage } from '@/services/images/imageServerService';
 import { PATCHdocument } from '@/constants/endpoints';
 import { authenticatedFetch } from '@/services/authentication';
+import { renderDocumentLinks } from '@/services/documents/documentLinks';
 
 const vimCompartment = new Compartment();
 
 export function useEditor(options = {}) {
     const { 
         activeDocument, 
+        documents,
         onChange,
         enableVim,
         imageCache,
@@ -55,9 +57,12 @@ export function useEditor(options = {}) {
     const renderedMarkdown = computed(() => {
         imageCacheVersion.value;
         return DOMPurify.sanitize(
-            marked.parse(content.value, { renderer, breaks: true }),
+            marked.parse(
+                renderDocumentLinks(content.value, documents?.value || []),
+                { renderer, breaks: true },
+            ),
             {
-                ALLOWED_URI_REGEXP: /^(?:blob:|https?:|data:image\/)/i,
+                ALLOWED_URI_REGEXP: /^(?:#|blob:|https?:|data:image\/)/i,
             }
         );
     });

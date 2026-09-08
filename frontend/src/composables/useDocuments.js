@@ -9,6 +9,7 @@ import { authenticatedFetch } from '@/services/authentication';
 import { getDocumentsFromLocalStorage, loadDocuments } from '@/services/documents/documentInitialization';
 import { syncLocalDocument, syncServerDocument } from '@/services/documents/documentSync';
 import { createDocument, createDocumentFlags } from '@/services/documents/documentFactory';
+import { updateDocumentTitleLinks } from '@/services/documents/documentLinks';
 
 //state
 const documents = ref([]);
@@ -287,15 +288,73 @@ export function useDocuments(options = {}) {
             return;
         }
         
+        const previousTitle = activeDocument.value.title;
+        const nextTitle = title !== '' ? title : 'Title';
+
         // update the content and title of the active document
         activeDocument.value.content = content;
-        activeDocument.value.title = title !== '' ? title : 'Title';
+        activeDocument.value.title = nextTitle;
         activeDocument.value.flags.dirty = true;
 
         // queue change to be stored on the server and local storage
         // using a debouncer
         saveLocalDebounced(activeDocument);
         syncRemoteDebounced(activeDocument);
+
+        if (previousTitle === nextTitle) {
+            return;
+        }
+
+        const documentsToUpdate = updateDocumentTitleLinks(
+            documents.value,
+            activeDocument.value,
+            previousTitle,
+            nextTitle,
+        );
+
+        for (const updatedDocument of documentsToUpdate) {
+            const document = documents.value.find(
+                currentDocument => currentDocument.id === updatedDocument.id
+            );
+
+            document.content = updatedDocument.content;
+            document.flags.dirty = true;
+            persistRenamedDocument(document);
+        }
+    }
+
+    async function persistRenamedDocument(document) {
+        document.version += 1;
+
+        try {
+            await addOrSetLocalRecord(
+                DB_DOCUMENTS,
+                structuredClone(toRaw(document)),
+            );
+
+            const response = await authenticatedFetch(PATCHdocument, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: document.id,
+                    content: document.content,
+                    title: document.title,
+                    version: document.version,
+                }),
+            });
+
+            if (response.status === 200) {
+                document.flags.dirty = false;
+                await addOrSetLocalRecord(
+                    DB_DOCUMENTS,
+                    structuredClone(toRaw(document)),
+                );
+            }
+        } catch {
+            // the next synchronization will retry the update
+        }
     }
 
     // initialization
