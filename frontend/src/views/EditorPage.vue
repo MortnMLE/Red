@@ -14,10 +14,6 @@
       <button class="activity-item" aria-label="Search" title="Search">
         <span>⌕</span>
       </button>
-      
-      <button class="activity-item settings-item" aria-label="Settings" title="Settings">
-        <span>⚙</span>
-      </button>
     </nav>
 
     <aside class="sidebar">
@@ -76,12 +72,12 @@
           </div>
           <div v-show="activeDocument" ref="editorElement" class="editor"></div>
         </div>
-        <div class="pane preview-pane">
+        <div class="pane">
           <div class="pane-label">
             <span class="preview-icon">&gt;</span> 
             Preview
           </div>
-          <div class="preview" v-html="renderedMarkdown"></div>
+          <div class="preview" v-html="renderedMarkdown" @click.prevent="handlePreviewClick"></div>
         </div>
       </section>
 
@@ -113,12 +109,23 @@ const {
   imageCacheVersion,
 } = useImages({ documents, docsInitialized, countTempIds, activeDocument, imageCache });
 const { editorElement, renderedMarkdown, updateEditorContent } = useEditor({
-  activeDocument, onChange: updateDocumentContent, enableVim, imageCache,
+  activeDocument, documents, onChange: updateDocumentContent, enableVim, imageCache,
   imageCacheVersion,
   createNewLocalImage, createNewServerImage, updateCountTempIds,
 });
 
 setUpdateEditorContent(updateEditorContent);
+
+async function handlePreviewClick(event) {
+  event.preventDefault();
+
+  const link = event.target.closest('a[href^="#document="]');
+
+  if (!link) return;
+
+  const documentId = decodeURIComponent(link.getAttribute('href').slice('#document='.length));
+  await handleChangeActiveDocument(documentId);
+}
 
 async function handleChangeActiveDocument(nextDocumentId) {
   const previousDocumentId = activeDocument.value.id;
@@ -165,6 +172,7 @@ async function handleDeleteActiveDocument() {
   margin: 1px 0; 
 }
 
+/*for images inm the codemirror editor*/
 .cm-image-block img { 
   display: block; 
   max-width: 50%; 
@@ -187,6 +195,31 @@ async function handleDeleteActiveDocument() {
   font-family: "Segoe UI", system-ui, sans-serif; 
 }
 
+/*scroll-bar*/
+:global(.editor-layout *) {
+  scrollbar-color: #f14c4c #1e1e1e;
+  scrollbar-width: thin;
+}
+
+:global(.editor-layout *::-webkit-scrollbar) {
+  width: 10px;
+  height: 10px;
+}
+
+:global(.editor-layout *::-webkit-scrollbar-track) {
+  background: #1e1e1e;
+}
+
+:global(.editor-layout *::-webkit-scrollbar-thumb) {
+  background: #682f32;
+  border: 2px solid #1e1e1e;
+}
+
+:global(.editor-layout *::-webkit-scrollbar-thumb:hover) {
+  background: #682f32;
+}
+
+/*whole editor page*/
 .editor-layout { 
   display: flex;
   height: 100vh; 
@@ -196,6 +229,7 @@ async function handleDeleteActiveDocument() {
   font-size: 13px; 
 }
 
+/*left-most bar, containing the explorer and search activity items*/
 .activity-bar { 
   display: flex; 
   width: 48px; 
@@ -205,6 +239,7 @@ async function handleDeleteActiveDocument() {
   border-right: 1px solid #252525; 
 }
 
+/*The 'R' at the top left*/
 .brand-mark { 
   display: grid; 
   width: 48px; 
@@ -216,6 +251,7 @@ async function handleDeleteActiveDocument() {
   border-bottom: 1px solid #252525; 
 }
 
+/*individual items of the activity-bar*/
 .activity-item { 
   position: relative; 
   width: 48px; 
@@ -228,10 +264,13 @@ async function handleDeleteActiveDocument() {
   cursor: pointer; 
 }
 
-.activity-item:hover, .activity-item.active {
+/*hover behavior for activity-item*/
+.activity-item:hover, 
+.activity-item.active {
   color: #f1f1f1; 
 }
 
+/*behavior when activity-item is active*/
 .activity-item.active::before { 
   position: absolute; 
   top: 0; 
@@ -242,10 +281,7 @@ async function handleDeleteActiveDocument() {
   content: ""; 
 }
 
-.settings-item { 
-  margin-top: auto; 
-}
-
+/*sidebar containing options for document creation and deletion + list of documents*/
 .sidebar { 
   display: flex; 
   width: 248px; 
@@ -255,6 +291,7 @@ async function handleDeleteActiveDocument() {
   border-right: 1px solid #2b2b2b; 
 }
 
+/*'RED Notes'*/
 .sidebar-heading { 
   display: flex; 
   height: 55px; 
@@ -266,11 +303,7 @@ async function handleDeleteActiveDocument() {
   letter-spacing: 0.08em; 
 }
 
-.icon-button:hover { 
-  background: #2a2d2e; 
-  color: #ffffff; 
-}
-
+/*workspace name, e.g. 'Explorer' or 'Search'*/
 .workspace-name { 
   padding: 9px 20px 8px; 
   border-top: 1px solid #252525; 
@@ -280,12 +313,14 @@ async function handleDeleteActiveDocument() {
   letter-spacing: 0.08em; 
 }
 
+/*contains the toolbar-buttons, see below*/
 .document-toolbar { 
   display: flex; 
   gap: 4px; 
   padding: 0 12px 9px; 
 }
 
+/**/
 .toolbar-button { 
   padding: 5px 7px; 
   border: 1px solid transparent; 
@@ -321,19 +356,26 @@ async function handleDeleteActiveDocument() {
   cursor: pointer; 
 }
 
-.sidebar-item:hover, .sidebar-item.active { 
+.sidebar-item:hover {
   background: #37373d; 
-  color: #ffffff; 
+  color: #f14c4c;
 }
 
-.file-icon, .tab-file-icon { 
+.sidebar-item.active { 
+  background: #37373d; 
+  color: #ffffff;
+}
+
+.file-icon, 
+.tab-file-icon { 
   color: #57a6d9; 
   font-family: Consolas, monospace; 
   font-size: 11px; 
   font-weight: 700; 
 }
 
-.document-title, .tab-title { 
+.document-title, 
+.tab-title { 
   overflow: hidden; 
   text-overflow: ellipsis; 
   white-space: nowrap; 
@@ -490,6 +532,15 @@ async function handleDeleteActiveDocument() {
   line-height: 1.65; 
 }
 
+.preview :deep(a),
+.preview :deep(a:visited),
+.preview :deep(a:hover),
+.preview :deep(a:active),
+.preview :deep(a:focus) {
+  color: #f14c4c;
+  text-decoration: none;
+}
+
 .preview :deep(img) { 
   display: block; 
   max-width: 50%; 
@@ -534,10 +585,6 @@ async function handleDeleteActiveDocument() {
 
   .editor-container { 
     grid-template-columns: 1fr; 
-  } 
-
-  .preview-pane { 
-    display: none; 
   } 
 }
 </style>
