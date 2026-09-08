@@ -1,80 +1,99 @@
 <template>
   <div class="editor-layout">
-    <!-- Sidebar -->
+    <nav class="activity-bar" 
+      aria-label="Application navigation"
+    >
+      <div class="brand-mark" aria-label="Red home">
+          R
+      </div>
+      
+      <button class="activity-item active" aria-label="Explorer" title="Explorer">
+        <span>☷</span>
+      </button>
+      
+      <button class="activity-item" aria-label="Search" title="Search">
+        <span>⌕</span>
+      </button>
+      
+      <button class="activity-item settings-item" aria-label="Settings" title="Settings">
+        <span>⚙</span>
+      </button>
+    </nav>
+
     <aside class="sidebar">
-      <!-- Logo -->
-      <div class="sidebar-logo">
-        Red<span class="logo-dots">
-          <span>.</span>
-          <span>.</span>
-          <span>.</span>
-        </span>
+      <div class="sidebar-heading">
+        <span>RED Notes</span>
       </div>
 
-      <button @click="enableVim = !enableVim">
-        Vim: {{ enableVim ? 'ON' : 'OFF' }}
-      </button>
+      <div class="workspace-name">
+        Explorer
+      </div>
 
-      <div class="create-delete">
-        <button class="sidebar-item" @click="createDocument()">
-          + New
+      <div class="document-toolbar">
+        <button class="toolbar-button" @click="createDocument()">
+          + New file
         </button>
-        <button class="sidebar-item" @click="handleDeleteActiveDocument()">
+
+        <button class="toolbar-button" @click="handleDeleteActiveDocument()">
           - Delete
         </button>
       </div>
-      <!-- List of Documents -->
-      <button
-        v-for="doc in documents"
-        :key="doc.id"
-        class="sidebar-item"
-        :class="{ active: activeDocument && activeDocument.id === doc.id }"
-        @click="openDocument(doc.id); handleChangeActiveDocument(doc.id)"
-      >
-          {{ doc.title }}
+
+      <div class="document-list" aria-label="Documents">
+        <button v-for="doc in documents" :key="doc.id"
+          class="sidebar-item" :class="{ active: activeDocument && activeDocument.id === doc.id }" 
+          @click="openDocument(doc.id); handleChangeActiveDocument(doc.id)"
+        >
+          <span class="file-icon">M</span>
+          <span class="document-title">{{ doc.title }}</span>
+        </button>
+      </div>
+
+      <button class="vim-toggle" :class="{ enabled: enableVim }" @click="enableVim = !enableVim">
+        <span class="vim-indicator"></span> 
+          Vim mode 
+        <span class="vim-state">{{ enableVim ? 'ON' : 'OFF' }}</span>
       </button>
     </aside>
 
-    <!-- Main -->
-    <div class="main">
-      <!-- tabbar -->
-      <header
-        class="tabbar">
-        <button
-          v-for="doc in openDocuments"
-          :key="doc.id"
-          class="tab"
-          :class="{ active: activeDocument && activeDocument.id === doc.id }"
+    <main class="main">
+      <header class="tabbar">
+        <button v-for="doc in openDocuments" :key="doc.id" 
+          class="tab" :class="{ active: activeDocument && activeDocument.id === doc.id }" 
           @click="handleChangeActiveDocument(doc.id)"
         >
-          {{ doc.title }}
-          <span
-            class="close"
-            @click.stop="handleCloseDocument(doc)"
-          >
-            ×
-          </span>
+          <span class="tab-file-icon">M</span>
+          <span class="tab-title">{{ doc.title }}</span>
+          <span class="close" aria-label="Close document" @click.stop="handleCloseDocument(doc)">x</span>
         </button>
       </header>
 
-      <!-- Editor -->
       <section class="editor-container">
-          <div v-show="activeDocument"
-            ref="editorElement" 
-            class="editor"
-            ></div>
-
-          <div
-            class="preview"
-            v-html="renderedMarkdown"
-          ></div>
+        <div class="pane editor-pane">
+          <div class="pane-label">
+            <span class="file-icon">M</span> 
+            Markdown editor
+          </div>
+          <div v-show="activeDocument" ref="editorElement" class="editor"></div>
+        </div>
+        <div class="pane preview-pane">
+          <div class="pane-label">
+            <span class="preview-icon">&gt;</span> 
+            Preview
+          </div>
+          <div class="preview" v-html="renderedMarkdown"></div>
+        </div>
       </section>
-    </div>
+
+      <footer class="statusbar">
+        <span class="status-message">Red workspace</span>
+        <span>Markdown</span>
+      </footer>
+    </main>
   </div>
 </template>
 
 <script setup>
-
 import { useSettings } from '@/composables/useSettings';
 import { useDocuments } from '@/composables/useDocuments';
 import { useEditor } from '@/composables/useEditor';
@@ -82,78 +101,30 @@ import { useImages } from '@/composables/useImages';
 import { ImageCache } from '../services/images/imageCache';
 
 const imageCache = new ImageCache();
-
+const { countTempIds, updateCountTempIds, enableVim } = useSettings();
 const {
-    countTempIds,
-    updateCountTempIds,
-    enableVim,
-  } = useSettings();
-
-const { 
-  documents,
-  activeDocument,
-  openDocuments,
-  createDocument,
-  deleteDocument,
-  openDocument,
-  setActiveDocument,
-  updateDocumentContent,
-  shiftActiveDocument,
-  closeDocument,
-  docsInitialized,
-  getNextActiveDocument
-} = useDocuments({
-  countTempIds,
-  updateCountTempIds
-});
-
+  documents, activeDocument, openDocuments, createDocument, deleteDocument,
+  openDocument, setActiveDocument, updateDocumentContent, closeDocument,
+  docsInitialized, getNextActiveDocument,
+} = useDocuments({ countTempIds, updateCountTempIds });
 const {
-  createNewLocalImage,
-  initializeImageCacheForDocument, 
-  revokeImageUrlsForDocId,
-  deleteImagesForDocId,
-  createNewServerImage,
-  setUpdateEditorContent
-} = useImages({
-  documents,
-  docsInitialized,
-  countTempIds,
-  activeDocument,
-  imageCache
-});
-
-const {
-  editorElement,
-  renderedMarkdown,
-  updateEditorContent
-} = useEditor({ 
-  activeDocument,
-  onChange: updateDocumentContent,
-  enableVim,
-  imageCache,
-  createNewLocalImage,
-  createNewServerImage,
-  updateCountTempIds
+  createNewLocalImage, initializeImageCacheForDocument, revokeImageUrlsForDocId,
+  deleteImagesForDocId, createNewServerImage, setUpdateEditorContent,
+  imageCacheVersion,
+} = useImages({ documents, docsInitialized, countTempIds, activeDocument, imageCache });
+const { editorElement, renderedMarkdown, updateEditorContent } = useEditor({
+  activeDocument, onChange: updateDocumentContent, enableVim, imageCache,
+  imageCacheVersion,
+  createNewLocalImage, createNewServerImage, updateCountTempIds,
 });
 
 setUpdateEditorContent(updateEditorContent);
 
 async function handleChangeActiveDocument(nextDocumentId) {
-  // hold the id of the currently active id
   const previousDocumentId = activeDocument.value.id;
-
-  // if the function was triggered by a click on the activeDocument then exit
-  if (nextDocumentId === previousDocumentId) {
-    return;
-  }
-  
-  // initialize imageCache for the new document
+  if (nextDocumentId === previousDocumentId) return;
   await initializeImageCacheForDocument(nextDocumentId);
-
-  // revoke imageCache entries for the previous document
   await revokeImageUrlsForDocId(previousDocumentId);
-
-  // change the active document
   setActiveDocument(nextDocumentId);
 }
 
@@ -162,7 +133,8 @@ async function handleCloseDocument(docToBeClosed) {
 
   if (!nextDocument) {
     setActiveDocument('welcome');
-  } else if (nextDocument.id !== activeDocument.value.id) {
+  }
+  else if (nextDocument.id !== activeDocument.value.id) {
     await handleChangeActiveDocument(nextDocument.id);
   }
 
@@ -170,9 +142,7 @@ async function handleCloseDocument(docToBeClosed) {
 }
 
 async function handleDeleteActiveDocument() {
-  if (activeDocument.value.id == 'welcome') {
-    return;
-  }
+  if (activeDocument.value.id == 'welcome') return;
 
   const docToBeDeleted = documents.value.find(
     doc => doc.id === activeDocument.value.id
@@ -182,192 +152,392 @@ async function handleDeleteActiveDocument() {
   await deleteDocument(docToBeDeleted);
   await deleteImagesForDocId(docToBeDeleted);
 }
-
 </script>
 
-<!--global style-->
 <style>
-  .cm-md-faded {
-    opacity: 0.25;
-    transition: opacity 0.12s ease;
-  }
+.cm-md-faded { 
+  opacity: 0.25; 
+  transition: opacity 0.12s ease; 
+}
 
-  .cm-image-block {
-    display: block;
-    margin: 1px 0;
-  }
+.cm-image-block { 
+  display: block; 
+  margin: 1px 0; 
+}
 
-  .cm-image-block img {
-    display: block;
-    max-width: 50%;
-    max-height: 50vh;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    border-radius: 12px;
-  }
+.cm-image-block img { 
+  display: block; 
+  max-width: 50%; 
+  max-height: 50vh; 
+  width: auto; 
+  height: auto; 
+  object-fit: contain; 
+  border-radius: 8px; 
+}
 </style>
 
-<!--local style-->
 <style scoped>
-.editor-layout {
+:global(*) { 
+  box-sizing: border-box; 
+}
+
+:global(body) { 
+  margin: 0; 
+  overflow: hidden; 
+  font-family: "Segoe UI", system-ui, sans-serif; 
+}
+
+.editor-layout { 
   display: flex;
-  height: 100vh;
-  background: #1e1e1e;
-  color: #e5e5e5;
+  height: 100vh; 
+  min-width: 680px; 
+  background: #181818; 
+  color: #cccccc; 
+  font-size: 13px; 
 }
 
-/* Sidebar */
-
-.sidebar {
-  /*width: 240px;*/
-  display: flex;
-  flex-direction: column;
-  background: #252525;
-  border-right: 1px solid #333;
-  width: 10vh;
+.activity-bar { 
+  display: flex; 
+  width: 48px; 
+  flex-direction: column; 
+  align-items: center; 
+  background: #181818; 
+  border-right: 1px solid #252525; 
 }
 
-.logo-dots span {
-  opacity: 0;
-  animation: blink 1.5s infinite;
-  color: #f00817;
+.brand-mark { 
+  display: grid; 
+  width: 48px; 
+  height: 55px; 
+  place-items: center; 
+  color: #f14c4c; 
+  font-size: 23px; 
+  font-weight: 600; 
+  border-bottom: 1px solid #252525; 
 }
 
-.logo-dots span:nth-child(1) {
-  animation-delay: 0s;
+.activity-item { 
+  position: relative; 
+  width: 48px; 
+  height: 52px; 
+  padding: 0; 
+  border: 0; 
+  background: transparent; 
+  color: #858585; 
+  font-size: 20px; 
+  cursor: pointer; 
 }
 
-.logo-dots span:nth-child(2) {
-  animation-delay: 0.4s;
+.activity-item:hover, .activity-item.active {
+  color: #f1f1f1; 
 }
 
-.logo-dots span:nth-child(3) {
-  animation-delay: 0.8s;
+.activity-item.active::before { 
+  position: absolute; 
+  top: 0; 
+  bottom: 0; 
+  left: 0; 
+  width: 2px; 
+  background: #f14c4c; 
+  content: ""; 
 }
 
-@keyframes blink {
-  0% {
-    opacity: 1;
-  }
-  65% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-  }
+.settings-item { 
+  margin-top: auto; 
 }
 
-.sidebar-logo{
-  font-size: 36px;
-  padding: 12px 16px;
-  font-weight: 600;
-  border-bottom: 1px solid #333;
+.sidebar { 
+  display: flex; 
+  width: 248px; 
+  min-width: 190px; 
+  flex-direction: column; 
+  background: #181818;
+  border-right: 1px solid #2b2b2b; 
 }
 
-.sidebar-item {
-  padding: 12px 16px;
-  border: none;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s;
+.sidebar-heading { 
+  display: flex; 
+  height: 55px; 
+  align-items: center; 
+  justify-content: space-between; 
+  padding: 0 12px 0 20px; 
+  color: #bbbbbb; 
+  font-size: 11px; 
+  letter-spacing: 0.08em; 
 }
 
-.sidebar-item:hover {
-  background: #2d2d2d;
+.icon-button:hover { 
+  background: #2a2d2e; 
+  color: #ffffff; 
 }
 
-.sidebar-item.active {
-  background: #393939;
+.workspace-name { 
+  padding: 9px 20px 8px; 
+  border-top: 1px solid #252525; 
+  color: #888888; 
+  font-size: 10px; 
+  font-weight: 600; 
+  letter-spacing: 0.08em; 
 }
 
-/* Main */
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+.document-toolbar { 
+  display: flex; 
+  gap: 4px; 
+  padding: 0 12px 9px; 
 }
 
-/* Menubar */
-
-.tabbar {
-  height: 66px;
-  display: flex;
-  align-items: center;
-  background: #2d2d2d;
-  border-bottom: 1px solid #333;
-  overflow-x: auto;
+.toolbar-button { 
+  padding: 5px 7px; 
+  border: 1px solid transparent; 
+  background: transparent; 
+  color: #9d9d9d; 
+  font-size: 11px; 
+  cursor: pointer; 
 }
 
-.tab {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 14px;
-  border: none;
-  border-right: 1px solid #333;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
+.toolbar-button:hover { 
+  border-color: #3b3b3b; 
+  background: #252526; 
+  color: #ffffff; 
 }
 
-.tab.active {
-  background: #1e1e1e;
+.document-list { 
+  flex: 1; 
+  overflow: auto; 
 }
 
-.close {
-  opacity: 0.6;
-  font-size: 14px;
+.sidebar-item { 
+  display: flex; 
+  width: 100%; 
+  min-height: 31px; 
+  align-items: center; 
+  gap: 8px; 
+  padding: 5px 16px; 
+  border: 0; 
+  background: transparent; 
+  color: #bdbdbd; 
+  font-size: 13px; 
+  text-align: left; 
+  cursor: pointer; 
 }
 
-.close:hover {
-  opacity: 1;
+.sidebar-item:hover, .sidebar-item.active { 
+  background: #37373d; 
+  color: #ffffff; 
 }
 
-/* Editor */
-
-.editor-container {
-  flex: 1;
-  overflow: hidden;
+.file-icon, .tab-file-icon { 
+  color: #57a6d9; 
+  font-family: Consolas, monospace; 
+  font-size: 11px; 
+  font-weight: 700; 
 }
 
-.editor {
-  height: 100%;
+.document-title, .tab-title { 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+  white-space: nowrap; 
 }
 
-:deep(.cm-editor) {
-  height: 100%;
-  background: #121212;
-  color: white;
+.vim-toggle { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+  margin: 12px; 
+  padding: 8px 10px; 
+  border: 1px solid #303030; 
+  background: #202020; 
+  color: #999999; 
+  font-size: 11px; 
+  text-align: left; 
+  cursor: pointer; 
 }
 
-:deep(.cm-gutters) {
-  background: #252526;
-  color: #858585;
-  border-right: 1px solid #333;
+.vim-toggle.enabled { 
+  border-color: #684042; 
+  color: #f1d7d7; 
 }
 
-.preview {
-  padding: 16px;
-  overflow: auto;
-  background: #121212;
-  color: #121212;
+.vim-indicator { 
+  width: 7px; 
+  height: 7px; 
+  border-radius: 50%; 
+  background: #666666; 
 }
 
-.preview pre {
-  background: #121212;
-  padding: 12px;
-  overflow-x: auto;
+.vim-toggle.enabled .vim-indicator { 
+  background: #f14c4c; 
+  box-shadow: 0 0 7px rgba(241, 76, 76, 0.7); 
 }
 
-.preview code {
-  background: #121212;
-  padding: 2px 4px;
+.vim-state { 
+  margin-left: auto; 
+  color: #777777; 
+  font-size: 10px; 
 }
 
+.main { 
+  display: flex; 
+  min-width: 0;
+  flex: 1; 
+  flex-direction: column; 
+  background: #1e1e1e; 
+}
+
+.tabbar { 
+  display: flex; 
+  height: 36px; 
+  min-height: 36px; 
+  align-items: stretch; 
+  background: #181818; 
+  border-bottom: 1px solid #2b2b2b; 
+  overflow-x: auto; 
+}
+
+.tab { 
+  display: flex; 
+  height: 100%; 
+  min-width: 130px; 
+  max-width: 220px; 
+  align-items: center; 
+  gap: 8px; 
+  padding: 0 10px; 
+  border: 0; 
+  border-right: 1px solid #2b2b2b; 
+  border-top: 1px solid transparent; 
+  background: transparent; 
+  color: #999999; 
+  font-size: 12px; 
+  cursor: pointer; 
+}
+
+.tab.active { 
+  border-top-color: #f14c4c; 
+  background: #1e1e1e; 
+  color: #ffffff; 
+}
+
+.close { display: grid; 
+  width: 20px; 
+  height: 20px; 
+  margin-left: auto; 
+  place-items: center; 
+  opacity: 0.6; 
+  font-size: 16px; 
+}
+
+.close:hover { 
+  background: #3a3a3a; 
+  opacity: 1; 
+}
+
+.editor-container { 
+  display: grid; 
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); 
+  flex: 1; 
+  min-height: 0; 
+  overflow: hidden; 
+}
+
+.pane { 
+  display: flex; 
+  min-width: 0; 
+  min-height: 0; 
+  flex-direction: column; 
+  border-right: 1px solid #2b2b2b; 
+}
+
+.pane-label { 
+  display: flex; 
+  height: 29px; 
+  min-height: 29px; 
+  align-items: center; 
+  gap: 8px; 
+  padding: 0 14px; 
+  background: #1e1e1e; 
+  border-bottom: 1px solid #2b2b2b; 
+  color: #888888; 
+  font-size: 11px; 
+}
+
+.preview-icon { 
+  color: #c586c0; 
+}
+
+.editor { 
+  height: 100%; 
+  min-height: 0; 
+}
+
+:deep(.cm-editor) { 
+  height: 100%; 
+  background: #1e1e1e; 
+  color: #d4d4d4; 
+}
+
+:deep(.cm-gutters) { 
+  background: #1e1e1e; 
+  color: #858585; 
+  border-right: 1px solid #2b2b2b; 
+}
+
+.preview { 
+  flex: 1; 
+  padding: 22px 28px; 
+  overflow: auto; 
+  background: #202020; 
+  color: #d4d4d4; 
+  line-height: 1.65; 
+}
+
+.preview :deep(img) { 
+  display: block; 
+  max-width: 50%; 
+  max-height: 50vh; 
+  width: auto; 
+  height: auto; 
+  object-fit: contain; 
+  border-radius: 8px; 
+}
+
+.preview pre { 
+  background: #181818; 
+  padding: 12px; 
+  overflow-x: auto; 
+}
+
+.preview code { 
+  background: #2a2d2e; 
+  padding: 2px 4px; 
+}
+
+.statusbar { 
+  display: flex; 
+  height: 22px; 
+  min-height: 22px; 
+  align-items: center; 
+  gap: 15px; 
+  padding: 0 12px; 
+  background: #682f32; 
+  color: #f5e6e6; 
+  font-size: 11px; 
+}
+
+.status-message { 
+  flex: 1; 
+}
+
+@media (max-width: 1280px) { 
+  .sidebar { 
+    width: 210px; 
+  } 
+
+  .editor-container { 
+    grid-template-columns: 1fr; 
+  } 
+
+  .preview-pane { 
+    display: none; 
+  } 
+}
 </style>
