@@ -82,7 +82,7 @@
 
 <script>
 import { POSTauthLogin, POSTauthRegister } from '@/constants/endpoints';
-import { getAccessToken, setAccessToken } from '@/services/accessToken';
+import { setAccessToken } from '@/services/authentication';
 import { ensureDBs } from '@/services/indexedDB/databaseSetup';
 
 
