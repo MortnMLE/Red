@@ -301,6 +301,7 @@ export function useDocuments(options = {}) {
         saveLocalDebounced(activeDocument);
         syncRemoteDebounced(activeDocument);
 
+        // if the title has changed, all embedded links need to be udpated
         if (previousTitle === nextTitle) {
             return;
         }
