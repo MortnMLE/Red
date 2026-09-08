@@ -184,7 +184,7 @@ export default {
   justify-content: center;
   gap: 32px;
 
-  background: #121212;
+  background: #181818;
 
   padding: 16px;
 }
@@ -199,7 +199,7 @@ export default {
 .logo {
   font-size: 100px;
   font-weight: bold;
-  color: white;
+  color: #ffffff;
 
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -240,25 +240,25 @@ export default {
 
 .auth-card {
   width: min(360px, 100%);
-  background: #252525;
+  background: #1e1e1e;
+  border: 1px solid #2b2b2b;
   padding: 32px;
-  border-radius: 16px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .auth-card h1 {
   text-align: center;
   margin-bottom: 24px;
-  color: white;
+  color: #ffffff;
 }
 
 .toggle {
   display: flex;
-  background: #393939;
-  border-radius: 10px;
+  background: #252526;
+  border: 1px solid #2b2b2b;
   overflow: hidden;
   margin-bottom: 24px;
-  color: white;
+  color: #ffffff;
 }
 
 .toggle button {
@@ -268,21 +268,21 @@ export default {
   background: transparent;
   cursor: pointer;
   font-weight: bold;
-  color: white;
+  color: #ffffff;
   transition: 0.3s;
 }
 
 .toggle button.active {
-  background: #fa5c50;
-  color: white;
+  background: #f14c4c;
+  color: #ffffff;
 }
 
 .toggle button.active:hover {
-  background: #fe7467;
+  background: #f14c4c;
 }
 
 .toggle button:hover {
-  background: #4f4f4f;
+  background: #37373d;
 }
 
 .input-group {
@@ -292,50 +292,56 @@ export default {
 .input-group label {
   display: block;
   margin-bottom: 6px;
-  color: #f53f38;
+  color: #f14c4c;
   font-size: 14px;
 }
 
 .input-group input {
   width: 100%;
   padding: 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid #2b2b2b;
+  background: #202020;
+  color: #d4d4d4;
   outline: none;
   transition: 0.2s;
 }
 
 .input-group input:focus {
-  border-color: #fa5c50;
+  border-color: #f14c4c;
 }
 
 .submit-btn {
   width: 100%;
   padding: 12px;
-  border: none;
-  border-radius: 8px;
-  background: #fa5c50;
-  color: white;
+  border: 1px solid #2b2b2b;
+  background: #f14c4c;
+  color: #ffffff;
   font-size: 16px;
   cursor: pointer;
   transition: 0.3s;
 }
 
 .submit-btn:hover {
-  background: #fe7467;
+  background: #f14c4c;
 }
 
 .footer-text {
   text-align: center;
   margin-top: 18px;
   font-size: 14px;
-  color: white;
+  color: #ffffff;
 }
 
 .footer-text span {
-  color: #f53f38;
+  color: #f14c4c;
   cursor: pointer;
   font-weight: bold;
   margin-left: 4px;
+}
+
+@media (max-height: 576px) {
+  .logo {
+    display: none;
+  }
 }
 </style>
