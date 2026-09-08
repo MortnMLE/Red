@@ -356,14 +356,14 @@ async function handleDeleteActiveDocument() {
   cursor: pointer; 
 }
 
-.sidebar-item:hover {
-  background: #37373d; 
-  color: #f14c4c;
-}
-
 .sidebar-item.active { 
   background: #37373d; 
   color: #ffffff;
+}
+
+.sidebar-item:hover {
+  background: #37373d; 
+  color: #f14c4c;
 }
 
 .file-icon, 
@@ -609,6 +609,7 @@ async function handleDeleteActiveDocument() {
 
   .tab {
     width: 95px;
+    min-width: 90px;
   }
 }
 </style>
