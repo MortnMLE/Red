@@ -1,7 +1,7 @@
-import { authenticatedFetch } from "../accessToken";
+import { authenticatedFetch } from "@/services/authentication";
 import { POSTnewDocument } from "@/constants/endpoints";
-import { createDocument, createDocumentFlags } from "./documentFactory";
-import { addOrSetLocalRecord } from "../indexedDB/indexedDbApi";
+import { createDocument, createDocumentFlags } from "@/services/documents/documentFactory";
+import { addOrSetLocalRecord } from "@/services/indexedDB/indexedDbApi";
 import { DB_DOCUMENTS } from "@/constants/stores";
 
 export async function backupDocument(document) {

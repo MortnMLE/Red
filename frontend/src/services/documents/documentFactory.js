@@ -22,13 +22,17 @@ export function createDocuments(documents) {
     const result = [];
 
     for(const document of documents) {
-        result.push(createDocument(
+        const newDocument = createDocument(
             document.id,
             document.content,
             document.title,
             document.version,
             document.flags
-        ));
+        );
+
+        newDocument.flags.dirty = false;
+
+        result.push(newDocument);
     }
 
     return result;

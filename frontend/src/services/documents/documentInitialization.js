@@ -1,6 +1,6 @@
-import { authenticatedFetch } from "../accessToken";
+import { authenticatedFetch } from "@/services/authentication";
 import { GETdocsForUser } from "@/constants/endpoints";
-import { getLocalRecordsByIndex } from "../indexedDB/indexedDbApi";
+import { getLocalRecordsByIndex } from "@/services/indexedDB/indexedDbApi";
 import { DB_DOCUMENTS } from "@/constants/stores";
 import { createDocuments } from '@/services/documents/documentFactory';
 
