@@ -12,7 +12,6 @@ import { addOrSetLocalRecord } from '@/services/indexedDB/indexedDbApi';
 import { authenticatedFetch } from '@/services/authentication';
 import { tryDeleteServerDocument } from '@/services/documents/serverDocumentService';
 import { DELETEdoc } from '@/constants/endpoints';
-import { DB_DOCUMENTS } from '@/constants/stores';
 
 describe('serverDocumentService => tryDeleteServerDocument', () => {
     let localDocument;
