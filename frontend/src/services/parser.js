@@ -3,8 +3,6 @@ import { Validator } from "./validator";
 export class Parser {
     constructor () {
         this.regexImage = /!\[(image)\]\((.*?)\)/g;
-        this.regexDocument = /!\[(document)\]\((.*?)\)/g;
-
     }
 
     // returns all ids of all embedded images
@@ -14,15 +12,6 @@ export class Parser {
 
         const ids = this.parseId(str, this.regexImage);
         return ids;
-    }
-
-    // returns all link embedded in images
-    parseDocumentIds(str) {
-        // validate input
-        Validator.validateStringEmptyAllowed(str);
-
-        const docs = this.parseId(str, this.regexDocument);
-        return docs;
     }
 
     // parses for IDs given passed regex

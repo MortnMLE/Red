@@ -36,33 +36,6 @@ describe('parser', () => {
         });
     });
 
-    describe('parseDocumentIds', () => {
-        test.each([
-            null,
-            undefined,
-            123,
-            {},
-            [],
-            true
-        ])('throws on invalid input: %s', (value) => {
-            expect(() => parser.parseDocumentIds(value)).toThrow()
-        });
-
-        test('should return document ids', () => {
-            const result = parser.parseDocumentIds(
-                '![document](id1)....![document](id2)'
-            );
-
-            expect(result).toEqual(['id1', 'id2']);
-        });
-
-        test('should return empty array on empty string', () => {
-            const result = parser.parseDocumentIds('');
-
-            expect(result).toEqual([]);
-        });
-    });
-
     describe('parseId', () => {
         test.each([
             null,
