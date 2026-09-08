@@ -72,7 +72,7 @@
           </div>
           <div v-show="activeDocument" ref="editorElement" class="editor"></div>
         </div>
-        <div class="pane">
+        <div class="pane preview-pane">
           <div class="pane-label">
             <span class="preview-icon">&gt;</span> 
             Preview
@@ -439,7 +439,7 @@ async function handleDeleteActiveDocument() {
 .tab { 
   display: flex; 
   height: 100%; 
-  min-width: 130px; 
+  min-width: 100px; 
   max-width: 220px; 
   align-items: center; 
   gap: 8px; 
@@ -583,13 +583,32 @@ async function handleDeleteActiveDocument() {
   flex: 1; 
 }
 
-@media (max-width: 1280px) { 
-  .sidebar { 
-    width: 210px; 
-  } 
+@media (max-width: 1400px) { 
+  .sidebar {
+    width: 180px;
+  }
 
   .editor-container { 
     grid-template-columns: 1fr; 
   } 
+
+  .preview-pane {
+    display: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .editor-layout {
+    min-width: 380px;
+  }
+
+  .sidebar {
+    width: 105px;
+    min-width: 100px;
+  }
+
+  .tab {
+    width: 95px;
+  }
 }
 </style>
