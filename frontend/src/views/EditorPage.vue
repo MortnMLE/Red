@@ -53,7 +53,7 @@
     </aside>
 
     <main class="main">
-      <header class="tabbar">
+      <header class="tab-bar">
         <button v-for="doc in openDocuments" :key="doc.id" 
           class="tab" :class="{ active: activeDocument && activeDocument.id === doc.id }" 
           @click="handleChangeActiveDocument(doc.id)"
@@ -426,7 +426,7 @@ async function handleDeleteActiveDocument() {
   background: #1e1e1e; 
 }
 
-.tabbar { 
+.tab-bar { 
   display: flex; 
   height: 36px; 
   min-height: 36px; 
@@ -457,6 +457,11 @@ async function handleDeleteActiveDocument() {
   border-top-color: #f14c4c; 
   background: #1e1e1e; 
   color: #ffffff; 
+}
+
+.tab:hover{
+  background: #37373d; 
+  color: #f14c4c;
 }
 
 .close { display: grid; 
