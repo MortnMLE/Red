@@ -1,27 +1,20 @@
-import { Validator } from "../validator";
+import { Validator } from "@/services/validator";
+import { openLocalDatabase } from "@/services/indexedDB/openLocalDatabase";
 
-export function openLocalDatabase(database) {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(database);
-
-        request.onsuccess = () => {
-            resolve(request.result);
-        };
-
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
+let connection;
+// for testing
+export function closeLocalDatabase() {
+    connection?.close();
+    connection = undefined;
 }
 
-export async function createStore(options = {}, request = null) {
+
+export async function createStore(options = {}) {
     Validator.validateObjectNotNull(options);
     return new Promise((resolve, reject) => {
         const { storeObject, keyPath, indexes } = options;
 
-        if (request === null) {
-            request = indexedDB.open(storeObject.database);
-        }
+        const request = indexedDB.open(storeObject.database);
 
         request.onsuccess = () => {
             const db = request.result;
@@ -122,10 +115,12 @@ export async function storeExists(storeObject) {
 }
 
 export async function addOrSetLocalRecord(storeObject, record) {
-    const db = await openLocalDatabase(storeObject.database);
+    if (!connection) {
+        connection = await openLocalDatabase(storeObject.database);
+    }
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeObject.name, 'readwrite');
+        const transaction = connection.transaction(storeObject.name, 'readwrite');
         const store = transaction.objectStore(storeObject.name);
 
         const request = store.put(record);
@@ -141,10 +136,12 @@ export async function addOrSetLocalRecord(storeObject, record) {
 }
 
 export async function getLocalRecordsByIndex(storeObject, indexName, indexValue) {
-    const db = await openLocalDatabase(storeObject.database);
+    if (!connection) {
+        connection = await openLocalDatabase(storeObject.database);
+    }
 
     return new Promise((resolve, reject) => {
-        const store = db
+        const store = connection
             .transaction(storeObject.name, 'readonly')
             .objectStore(storeObject.name);
         
@@ -172,10 +169,12 @@ export async function getLocalRecordsByIndex(storeObject, indexName, indexValue)
 }
 
 export async function getLocalRecord(storeObject, key) {
-    const db = await openLocalDatabase(storeObject.database);
+    if (!connection) {
+        connection = await openLocalDatabase(storeObject.database);
+    }
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeObject.name, 'readonly');
+        const transaction = connection.transaction(storeObject.name, 'readonly');
         const store = transaction.objectStore(storeObject.name);
 
         const request = store.get(key);
@@ -191,10 +190,12 @@ export async function getLocalRecord(storeObject, key) {
 }
 
 export async function deleteLocalRecord(storeObject, key) {
-    const db = await openLocalDatabase(storeObject.database);
+    if (!connection) {
+        connection = await openLocalDatabase(storeObject.database);
+    }
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeObject.name, 'readwrite');
+        const transaction = connection.transaction(storeObject.name, 'readwrite');
         const store = transaction.objectStore(storeObject.name);
 
         const request = store.delete(key);
@@ -210,10 +211,12 @@ export async function deleteLocalRecord(storeObject, key) {
 }
 
 export async function clearLocalDatabase(storeObject) {
-    const db = await openLocalDatabase(storeObject.database);
+    if (!connection) {
+        connection = await openLocalDatabase(storeObject.database);
+    }
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(storeObject.name, 'readwrite');
+        const transaction = connection.transaction(storeObject.name, 'readwrite');
         const store = transaction.objectStore(storeObject.name);
         const request = store.clear();
 
