@@ -80,7 +80,7 @@ export async function fetchMissingImages(embeddedImageIds, serverImageIds) {
         // add the id to requests, if the local entry does not exist
         if (await requiresFetch(id, serverImageIds)) {
             requests.push(id);
-        } 
+        }
     }
 
     // if there is nothing to request exit the function
