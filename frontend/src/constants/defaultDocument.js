@@ -18,5 +18,13 @@ export const DEFAULT_DOCUMENT = Object.freeze({
         'Use headings to structure your documents:\n' +
         '# Heading 1\n' +
         '## Heading 2\n' +
-        '### Heading 3'
+        '### Heading 3\n\n' +
+        '---\n\n' +
+        '## Images\n' +
+        'Simply drag and drop your images into the editor window\n\n' +
+        '---\n\n' +
+        '## Vim Motions\n' +
+        'Vim Motions are activated by default\n' +
+        '**Don\'t want to use Vim motions?**\n' +
+        '--> Disable the option at the bottom left by clicking on \"Vim mode\"'
 });
