@@ -1,5 +1,5 @@
 import { DB_DOCUMENTS, DB_IMAGES, DB_SETTINGS } from "@/constants/stores";
-import { storeExists, createStore, addOrSetLocalRecord } from "./indexedDbApi";
+import { storeExists, createStore, addOrSetLocalRecord } from "@/services/indexedDB/indexedDbApi";
 import { 
     settingStoreOptions,
     documentStoreOptions, 

@@ -1,5 +1,5 @@
-import { authenticatedFetch } from "../accessToken";
-import { addOrSetLocalRecord, replaceLocalDbEntry } from "../indexedDB/indexedDbApi";
+import { authenticatedFetch } from "@/services/authentication";
+import { addOrSetLocalRecord, replaceLocalDbEntry } from "@/services/indexedDB/indexedDbApi";
 import { DELETEdoc, PATCHdocument, POSTnewDocument } from "@/constants/endpoints";
 import { DB_DOCUMENTS } from "@/constants/stores";
 

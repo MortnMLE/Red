@@ -1,6 +1,6 @@
-import { addOrSetLocalRecord } from "../indexedDB/indexedDbApi";
+import { addOrSetLocalRecord } from "@/services/indexedDB/indexedDbApi";
 import { DB_DOCUMENTS } from "@/constants/stores";
-import { backupDocument } from "./backupDocument";
+import { backupDocument } from "@/services/documents/backupDocument";
 
 export async function tryCreateNewLocalDocument(document) {
     try {
