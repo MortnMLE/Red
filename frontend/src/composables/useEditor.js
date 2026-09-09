@@ -380,6 +380,8 @@ export function useEditor(options = {}) {
         editorView,
         content,
         renderedMarkdown,
-        updateEditorContent
+        updateEditorContent,
+        uploadTempImageAndReplaceReferences,
+        replaceImageReferenceInLiveEditor
     };
 }
