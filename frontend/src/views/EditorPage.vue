@@ -26,7 +26,7 @@
       </div>
 
       <div class="document-toolbar">
-        <button class="toolbar-button" @click="createDocument()">
+        <button class="toolbar-button" @click="handleDocumentCreation()">
           + New file
         </button>
 
@@ -97,18 +97,24 @@ import { useImages } from '@/composables/useImages';
 import { ImageCache } from '../services/images/imageCache';
 
 const imageCache = new ImageCache();
+
 const { countTempIds, updateCountTempIds, enableVim } = useSettings();
+
 const {
-  documents, activeDocument, openDocuments, createDocument, deleteDocument,
+  documents, activeDocument, openDocuments, handleDocumentCreation, deleteDocument,
   openDocument, setActiveDocument, updateDocumentContent, closeDocument,
   docsInitialized, getNextActiveDocument,
 } = useDocuments({ countTempIds, updateCountTempIds });
+
 const {
   createNewLocalImage, initializeImageCacheForDocument, revokeImageUrlsForDocId,
   deleteImagesForDocId, createNewServerImage, setUpdateEditorContent,
   imageCacheVersion,
 } = useImages({ documents, docsInitialized, countTempIds, activeDocument, imageCache });
-const { editorElement, renderedMarkdown, updateEditorContent } = useEditor({
+
+const { 
+  editorElement, renderedMarkdown, updateEditorContent 
+} = useEditor({
   activeDocument, documents, onChange: updateDocumentContent, enableVim, imageCache,
   imageCacheVersion,
   createNewLocalImage, createNewServerImage, updateCountTempIds,
