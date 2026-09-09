@@ -11,30 +11,28 @@ import { syncLocalDocument, syncServerDocument } from '@/services/documents/docu
 import { createDocument, createDocumentFlags } from '@/services/documents/documentFactory';
 import { updateDocumentTitleLinks } from '@/services/documents/documentLinks';
 
-//state
-const documents = ref([]);
-const activeDocumentId = ref('');
-const openDocumentIds = ref([]);
-const docsInitialized = ref(false);
-
-let creationInProgress = false;
-
-const activeDocument = computed (() => 
-    documents.value.find(
-        doc => doc.id === activeDocumentId.value
-    ) || DEFAULT_DOCUMENT
-);
-
-const openDocuments = computed (() =>
-    documents.value.filter(
-        doc => openDocumentIds.value.includes(doc.id)
-    )
-);
-
 export function useDocuments(options = {}) {
+    const documents = ref([]);
+    const activeDocumentId = ref('');
+    const openDocumentIds = ref([]);
+    const docsInitialized = ref(false);
+    let creationInProgress = false;
+
+    const activeDocument = computed (() => 
+        documents.value.find(
+            doc => doc.id === activeDocumentId.value
+        ) || DEFAULT_DOCUMENT
+    );
+
+    const openDocuments = computed (() =>
+        documents.value.filter(
+            doc => openDocumentIds.value.includes(doc.id)
+        )
+    );
+
     const { 
-        countTempIds,
-        updateCountTempIds 
+        countTempIds = 0,
+        updateCountTempIds = async () => {} 
     } = options;
     
     // flags a document as deleted and removes the document from the sidebar
@@ -117,8 +115,8 @@ export function useDocuments(options = {}) {
                     openDocuments.value[index] = newDoc.id;
                 }
             }
-        } catch (err) {
-            console.error('failed to add document to server');
+        } catch  {
+            // do nothing
         }
         finally {
             await addOrSetLocalRecord(DB_DOCUMENTS, newDoc);
@@ -360,7 +358,13 @@ export function useDocuments(options = {}) {
 
     // initialization
     onMounted(async () => {
-        const { serverDocuments, localDocuments } = await loadDocuments();
+        if (documents.value.length > 0) {
+            docsInitialized.value = true;
+            return;
+        }
+
+        const loadedDocuments = await loadDocuments();
+        const { serverDocuments = [], localDocuments = [] } = loadedDocuments ?? {};
         const tasks = [];
 
         // synchronization between the local storage and server
@@ -379,7 +383,7 @@ export function useDocuments(options = {}) {
 
         // update the global documents for display in the sidebar
         // only display not deleted documents
-        const updatedDocuments = await getDocumentsFromLocalStorage();
+        const updatedDocuments = await getDocumentsFromLocalStorage() ?? [];
         documents.value = updatedDocuments.filter(doc => !doc.flags.deleted);
     });
 
@@ -387,14 +391,16 @@ export function useDocuments(options = {}) {
         documents,
         activeDocument,
         openDocuments,
-        createDocument: handleDocumentCreation,
+        handleDocumentCreation,
         deleteDocument,
         openDocument,
         setActiveDocument,
         updateDocumentContent,
+        persistRenamedDocument,
         shiftActiveDocument,
         closeDocument,
         docsInitialized,
-        getNextActiveDocument
+        getNextActiveDocument,
+        openDocumentIds,
     };
 }
