@@ -1,4 +1,4 @@
-jest.mock('../../../utils/tokenUtils', () => ({
+jest.mock('../../../../src/utils/tokenUtils', () => ({
     createToken: jest.fn(),
 }));
 
@@ -6,8 +6,8 @@ jest.mock('jsonwebtoken', () => ({
     verify: jest.fn(),
 }));
 
-const controller = require('../../../controllers/authenticationController');
-const { createToken } = require('../../../utils/tokenUtils');
+const controller = require('../../../../src/controllers/authenticationController');
+const { createToken } = require('../../../../src/utils/tokenUtils');
 const jwt = require('jsonwebtoken');
 
 describe('authenticationController.refresh', () => {

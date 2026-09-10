@@ -5,7 +5,7 @@ const {
   isEqual,
   isValid,
   passwordIsEqual,
-} = require('../../models/user');
+} = require('../../../src/models/user');
 
 jest.mock('bcrypt');
 

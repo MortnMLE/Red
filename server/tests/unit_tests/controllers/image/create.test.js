@@ -1,15 +1,15 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     insertOne: jest.fn(),
     getOne: jest.fn(),
 }));
 
-jest.mock('../../../models/image', () => ({
+jest.mock('../../../../src/models/image', () => ({
     create: jest.fn(),
 }));
 
-const controller = require('../../../controllers/imageController');
-const { insertOne, getOne } = require('../../../db/databaseService');
-const { create } = require('../../../models/image');
+const controller = require('../../../../src/controllers/imageController');
+const { insertOne, getOne } = require('../../../../src/db/databaseService');
+const { create } = require('../../../../src/models/image');
 
 describe('imageController.create', () => {
     let mReq;

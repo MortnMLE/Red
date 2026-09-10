@@ -1,9 +1,9 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     insertOne: jest.fn(),
 }));
 
-const { insertOne } = require('../../../db/databaseService');
-const controller = require('../../../controllers/documentController');
+const { insertOne } = require('../../../../src/db/databaseService');
+const controller = require('../../../../src/controllers/documentController');
 
 describe('documentController.create', () => {
     let mRes;

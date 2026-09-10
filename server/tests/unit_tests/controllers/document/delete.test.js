@@ -1,10 +1,10 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     update: jest.fn(),
     getOne: jest.fn(),
 }));
 
-const { update, getOne } = require('../../../db/databaseService');
-const controller = require('../../../controllers/documentController');
+const { update, getOne } = require('../../../../src/db/databaseService');
+const controller = require('../../../../src/controllers/documentController');
 
 describe('documentController.delete', () => {
     let mRes;

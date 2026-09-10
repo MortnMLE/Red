@@ -1,4 +1,4 @@
-const { validate } = require('../../utils/validate');
+const { validate } = require('../../../src/utils/validate');
 
 describe('validate', () => {
     test('should return true when all elements are truthy', () => {

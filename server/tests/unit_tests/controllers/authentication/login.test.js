@@ -1,20 +1,20 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     getOne: jest.fn(),
 }));
 
-jest.mock('../../../utils/tokenUtils', () => ({
+jest.mock('../../../../src/utils/tokenUtils', () => ({
     createToken: jest.fn(),
     createRefreshTokenSettings: jest.fn(),
 }));
 
-jest.mock('../../../models/user', () => ({
+jest.mock('../../../../src/models/user', () => ({
     passwordIsEqual: jest.fn(),
 }));
 
-const { getOne } = require('../../../db/databaseService');
-const controller = require('../../../controllers/authenticationController');
-const { createToken, createRefreshTokenSettings } = require('../../../utils/tokenUtils');
-const { passwordIsEqual } = require('../../../models/user');
+const { getOne } = require('../../../../src/db/databaseService');
+const controller = require('../../../../src/controllers/authenticationController');
+const { createToken, createRefreshTokenSettings } = require('../../../../src/utils/tokenUtils');
+const { passwordIsEqual } = require('../../../../src/models/user');
 
 
 describe('authenticationController.login', () => {

@@ -1,5 +1,5 @@
 const { ObjectId, Binary } = require('mongodb');
-const { create } = require('../../models/image');
+const { create } = require('../../../src/models/image');
 
 describe('create', () => {
   test('should create a document with the correct properties', async () => {

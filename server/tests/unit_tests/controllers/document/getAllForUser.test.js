@@ -1,9 +1,9 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     getAll: jest.fn(),
 }));
 
-const controller = require('../../../controllers/documentController');
-const { getAll } = require('../../../db/databaseService');
+const controller = require('../../../../src/controllers/documentController');
+const { getAll } = require('../../../../src/db/databaseService');
 
 describe('documentController.getAllForUser', () => {
     let mRes;

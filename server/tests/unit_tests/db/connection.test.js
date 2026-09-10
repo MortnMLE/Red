@@ -3,7 +3,7 @@ const {
     connectDB,
     getConnection,
     closeDB,
-} = require('../../db/connection');
+} = require('../../../src/db/connection');
 
 jest.mock('mongodb', () => {
     const mockClient = {

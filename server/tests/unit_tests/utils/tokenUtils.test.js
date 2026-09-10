@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const {
     createToken,
     createRefreshTokenSettings,
-} = require('../../utils/tokenUtils');
+} = require('../../../src/utils/tokenUtils');
 
 jest.mock('jsonwebtoken');
 

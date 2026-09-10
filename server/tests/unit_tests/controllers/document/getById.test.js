@@ -1,9 +1,9 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     getOne: jest.fn()
 }));
 
-const controller = require('../../../controllers/documentController');
-const { getOne } = require('../../../db/databaseService');
+const controller = require('../../../../src/controllers/documentController');
+const { getOne } = require('../../../../src/db/databaseService');
 const { ObjectId } = require('mongodb');
 
 describe('documentController.getById', () => {

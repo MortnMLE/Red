@@ -1,15 +1,15 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     insertOne: jest.fn(),
 }));
 
-jest.mock('../../../utils/tokenUtils', () => ({
+jest.mock('../../../../src/utils/tokenUtils', () => ({
     createToken: jest.fn(),
     createRefreshTokenSettings: jest.fn(),
 }));
 
-const { insertOne } = require('../../../db/databaseService');
-const controller = require('../../../controllers/authenticationController');
-const { createToken, createRefreshTokenSettings } = require('../../../utils/tokenUtils');
+const { insertOne } = require('../../../../src/db/databaseService');
+const controller = require('../../../../src/controllers/authenticationController');
+const { createToken, createRefreshTokenSettings } = require('../../../../src/utils/tokenUtils');
 
 describe('authenticationController.register', () => {
     let mRes;

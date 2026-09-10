@@ -1,10 +1,10 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     getOne: jest.fn(),
     update: jest.fn(),
 }));
 
-const { getOne, update } = require('../../../db/databaseService');
-const controller = require('../../../controllers/documentController');
+const { getOne, update } = require('../../../../src/db/databaseService');
+const controller = require('../../../../src/controllers/documentController');
 
 describe('documentController.patch', () => {
     let mRes;

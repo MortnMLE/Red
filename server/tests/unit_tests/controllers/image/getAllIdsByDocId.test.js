@@ -1,10 +1,10 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     getAll: jest.fn(),
     getOne: jest.fn(),
 }));
 
-const { getAll, getOne } = require('../../../db/databaseService');
-const controller = require('../../../controllers/imageController');
+const { getAll, getOne } = require('../../../../src/db/databaseService');
+const controller = require('../../../../src/controllers/imageController');
 
 describe('imageController.getAllIdsByDocId', () => {
     let mReq;

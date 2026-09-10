@@ -1,11 +1,11 @@
-jest.mock('../../../db/databaseService', () => ({
+jest.mock('../../../../src/db/databaseService', () => ({
     deleteOne: jest.fn(),
     getOne: jest.fn(),
 }));
 
-const { deleteOne, getOne } = require('../../../db/databaseService');
-const controller = require('../../../controllers/imageController');
-const { imageDbName } = require('../../../constants');
+const { deleteOne, getOne } = require('../../../../src/db/databaseService');
+const controller = require('../../../../src/controllers/imageController');
+const { imageDbName } = require('../../../../src/constants');
 const { ObjectId } = require('mongodb');
 
 describe('imageController.delete', () => {
