@@ -14,6 +14,10 @@
       <button class="activity-item" :class="{ active: activeActivity === 'search' }" aria-label="Search" title="Search" @click="showSearch">
         <span>⌕</span>
       </button>
+
+      <button class="activity-item logout-item" aria-label="Log out" title="Log out" @click="handleLogout">
+        <span>↪</span>
+      </button>
     </nav>
 
     <aside class="sidebar">
@@ -105,9 +109,12 @@ import { useSettings } from '@/composables/useSettings';
 import { useDocuments } from '@/composables/useDocuments';
 import { useEditor } from '@/composables/useEditor';
 import { useImages } from '@/composables/useImages';
+import { useRouter } from 'vue-router';
+import { setAccessToken } from '@/services/authentication';
 import { ImageCache } from '../services/images/imageCache';
 
 const imageCache = new ImageCache();
+const router = useRouter();
 const activeActivity = ref('explorer');
 const searchInput = ref('');
 const searchQuery = ref('');
@@ -179,6 +186,12 @@ async function showSearch() {
 
 function handleSearch() {
   searchQuery.value = searchInput.value.trim();
+}
+
+function handleLogout() {
+  setAccessToken(null);
+  localStorage.removeItem('userId');
+  router.push('/');
 }
 
 async function handlePreviewClick(event) {
@@ -344,6 +357,10 @@ async function handleDeleteActiveDocument() {
   width: 2px; 
   background: #f14c4c; 
   content: ""; 
+}
+
+.logout-item {
+  margin-top: auto;
 }
 
 /*sidebar containing options for document creation and deletion + list of documents*/

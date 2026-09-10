@@ -159,7 +159,7 @@ export default {
           return;
         }
       } catch (err) {
-        alert('Could not reach the server.');
+        alert('Could not reach the server. Please try again later.');
       } finally {
         this.isLoading = false;
       }
