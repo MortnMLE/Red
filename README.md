@@ -2,7 +2,7 @@
 
 ## Contents
 
-- [Concept](../README.md#Concept)
+- [Concept](#Concept)
 - Features
 - Tech Stack
 - Dependencies
