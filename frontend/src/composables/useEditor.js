@@ -36,7 +36,6 @@ export function useEditor(options = {}) {
         imageCacheVersion = ref(0),
         createNewLocalImage,
         updateCountTempIds,
-        createNewServerImage
     } = options;
 
     const editorElement = ref(null);
