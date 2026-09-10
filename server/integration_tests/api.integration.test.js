@@ -1,36 +1,11 @@
-const fs = require('fs');
-const path = require('path');
-
-const integrationEnvPath = path.join(__dirname, '..', '.env.integration');
-if (fs.existsSync(integrationEnvPath)) {
-    const integrationEnv = fs.readFileSync(integrationEnvPath, 'utf8');
-
-    for (const line of integrationEnv.split(/\r?\n/)) {
-        const trimmedLine = line.trim();
-
-        if (!trimmedLine || trimmedLine.startsWith('#')) {
-            continue;
-        }
-
-        const separatorIndex = trimmedLine.indexOf('=');
-        if (separatorIndex === -1) {
-            continue;
-        }
-
-        const name = trimmedLine.slice(0, separatorIndex).trim();
-        const value = trimmedLine.slice(separatorIndex + 1).trim();
-        process.env[name] = value.replace(/^(["'])(.*)\1$/, '$2');
-    }
-}
-
 const integrationEnabled = Boolean(
-    process.env.RUN_INTEGRATION_TESTS && process.env.MONGODB_TEST_URI
+    process.env.RUN_INTEGRATION_TESTS && process.env.MONGODB
 );
 
-if (process.env.RUN_INTEGRATION_TESTS && !process.env.MONGODB_TEST_URI) {
-    test('requires MONGODB_TEST_URI for integration tests', () => {
+if (process.env.RUN_INTEGRATION_TESTS && !process.env.MONGODB) {
+    test('requires MONGODB for integration tests', () => {
         throw new Error(
-            'Set MONGODB_TEST_URI to a disposable test MongoDB instance or create server/.env.integration.'
+            'Set MONGODB in server/.env before running integration tests.'
         );
     });
 }
@@ -38,8 +13,6 @@ if (process.env.RUN_INTEGRATION_TESTS && !process.env.MONGODB_TEST_URI) {
 const describeIntegration = integrationEnabled ? describe : describe.skip;
 
 if (integrationEnabled) {
-    process.env.MONGODB = process.env.MONGODB_TEST_URI;
-    process.env.MONGODB_DB = process.env.MONGODB_TEST_DB || `red_integration_${Date.now()}`;
     process.env.JWT_SECRET = process.env.JWT_SECRET || 'integration-test-secret';
     process.env.JWT_AUTH_EXPIRES = process.env.JWT_AUTH_EXPIRES || '15m';
     process.env.JWT_REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || '1d';
@@ -177,11 +150,11 @@ describeIntegration('API integration', () => {
     });
 
     test('rejects missing and invalid authentication on protected routes', async () => {
-        const missingTokenResponse = await request(app).get('/doc/byUser/ignored');
+        const missingTokenResponse = await request(app).get('/doc/byUser');
         expect(missingTokenResponse.status).toBe(401);
 
         const invalidTokenResponse = await request(app)
-            .get('/doc/byUser/ignored')
+            .get('/doc/byUser')
             .set('Authorization', 'Bearer invalid-token');
         expect(invalidTokenResponse.status).toBe(403);
     });

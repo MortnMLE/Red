@@ -1,6 +1,10 @@
 const { MongoClient } = require('mongodb');
 
-const dbName = process.env.MONGODB_DB || 'main';
+function getDbName() {
+    return process.env.RUN_INTEGRATION_TESTS === '1'
+        ? process.env.MONGODB_TEST_DB || 'main'
+        : process.env.MONGODB_DB || 'main';
+}
 
 let client;
 let db;
@@ -12,7 +16,7 @@ async function connectDB() {
         
         await client.connect();
         
-        db = client.db(dbName);
+        db = client.db(getDbName());
     }
     return db;
 }

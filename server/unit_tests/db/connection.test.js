@@ -28,6 +28,9 @@ describe('Database connection', () => {
         await closeDB();
 
         process.env.MONGODB = 'mongodb://test-url';
+        process.env.RUN_INTEGRATION_TESTS = '0';
+        process.env.MONGODB_DB = 'main';
+        process.env.MONGODB_TEST_DB = 'integration';
 
         mockClient.connect.mockResolvedValue();
         mockClient.close.mockResolvedValue();
@@ -48,6 +51,17 @@ describe('Database connection', () => {
         expect(mockClient.connect).toHaveBeenCalledTimes(1);
         expect(mockClient.db).toHaveBeenCalledWith('main');
         expect(result).toBe(mockDb);
+    });
+
+    test('should use MONGODB_TEST_DB when integration tests are enabled', async () => {
+        process.env.RUN_INTEGRATION_TESTS = '1';
+
+        const mockDb = {};
+        mockClient.db.mockReturnValue(mockDb);
+
+        await connectDB();
+
+        expect(mockClient.db).toHaveBeenCalledWith('integration');
     });
 
     test('should reuse the existing connection', async () => {

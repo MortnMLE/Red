@@ -10,7 +10,7 @@
     "devStart": "nodemon server.js",
     "start": "node app.js",
     "test": "jest",
-    "test:integration": "set RUN_INTEGRATION_TESTS=1&& jest integration_tests --runInBand"
+    "test:integration": "set RUN_INTEGRATION_TESTS=1&& node --env-file=.env node_modules/jest/bin/jest.js integration_tests --runInBand"
   },
   "repository": {
     "type": "git",
