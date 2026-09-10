@@ -3,10 +3,10 @@
 ## Contents
 
 - [Concept](#Concept)
-- Features
-- Tech Stack
-- Dependencies
-- Documentation
+- [Features](#Features)
+- [Tech Stack](#Tech-Stack)
+- [Dependencies](#Dependencies)
+- [Documentation Links](#Documentation-Links)
 
 ## Concept
 
@@ -117,4 +117,4 @@ Navigation is streamlined through full-text search, linked-note traversal, and V
 - `nodemon`  
   Restarts the server automatically while developing.
 
-## Documentation
+## Documentation Links
