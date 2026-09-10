@@ -265,7 +265,6 @@ describeIntegration('API integration', () => {
                 contentType: 'image/png',
             });
         
-        console.log(`uploadResponse: ${uploadResponse.error}`);
 
         expect(uploadResponse.status).toBe(200);
         expect(uploadResponse.body).toEqual({
@@ -277,14 +276,12 @@ describeIntegration('API integration', () => {
         const listResponse = await user.agent
             .get(`/img/allForDocId/${documentId}`)
             .set('Authorization', `Bearer ${user.token}`);
-        console.log(`listResponse.error: ${listResponse.error}`);
         expect(listResponse.status).toBe(200);
         expect(listResponse.body.images).toContain(uploadResponse.body.id);
 
         const downloadResponse = await user.agent
             .get(`/img/byId/${uploadResponse.body.id}`)
             .set('Authorization', `Bearer ${user.token}`);
-        console.log(`downloadResponse.error: ${downloadResponse.error}`);
         expect(downloadResponse.status).toBe(200);
         expect(downloadResponse.headers['content-type']).toContain('image/png');
         expect(downloadResponse.headers['content-disposition']).toContain(
@@ -296,7 +293,6 @@ describeIntegration('API integration', () => {
             .delete('/img')
             .set('Authorization', `Bearer ${user.token}`)
             .send({ id: uploadResponse.body.id });
-        console.log(`deleteResponse.error: ${deleteResponse.error}`);
         expect(deleteResponse.status).toBe(200);
     });
 

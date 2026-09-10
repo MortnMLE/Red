@@ -106,8 +106,6 @@ exports.getAllIdsByDocId = async (req, res) => {
     try {
         const { docId } = req.params;
 
-        console.log(`getAllbyIds, docId ${docId}`);
-
         if (!validate([docId]) || !ObjectId.isValid(docId)) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
@@ -129,8 +127,6 @@ exports.getAllIdsByDocId = async (req, res) => {
 
         const cursor = await db.getAll(imageDbName, { docId: new ObjectId(docId) });
         const images = await cursor.toArray();
-
-        console.log(`fetched images: ${images}`);
 
         if (!images) {
             return res.status(404).json({
