@@ -39,7 +39,7 @@ export async function tryUpdateServerDocument(localDocument, serverDocument) {
 }
 
 export async function tryPostNewDocumentToServer(document) {
-    if (!document.flags.isNew || document.flags.deleted) {
+    if (document.flags.deleted) {
         return;
     }
 

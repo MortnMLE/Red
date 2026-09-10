@@ -31,14 +31,27 @@ describe('serverDocumentServer -> tryPostNewDocumentToServer', () => {
         };
     });
 
-    test('should not fetch if document is not new', async () => {
+    test('should fetch if document is not new', async () => {
         document.flags.isNew = false;
 
-        authenticatedFetch.mockResolvedValue({});
+        authenticatedFetch.mockResolvedValue({
+            status: 500,
+        });
 
         await tryPostNewDocumentToServer(document);
 
-        expect(authenticatedFetch).not.toHaveBeenCalled(); 
+        expect(authenticatedFetch).toHaveBeenCalledWith(POSTnewDocument, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: document.title,
+                content: document.content,
+                version: document.version,
+                flags: document.flags
+            }),
+        });
     });
 
     test('should not fetch if document is deleted', async () => {
