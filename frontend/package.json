@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "test:integration": "set RUN_FRONTEND_INTEGRATION_TESTS=1&& vitest --run integration_tests"
+    "test:integration": "set RUN_FRONTEND_INTEGRATION_TESTS=1&& vitest --run tests/integration_tests"
   },
   "dependencies": {
     "@codemirror/lang-markdown": "^6.5.0",
