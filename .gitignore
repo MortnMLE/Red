@@ -2,4 +2,3 @@ node_modules/
 other/
 *.txt
 *.env
-*.env.integration
