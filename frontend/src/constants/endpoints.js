@@ -1,7 +1,7 @@
 const API_BASE_URL = 'http://localhost:5000';
 
 // documents
-export const GETdocsForUser = `${API_BASE_URL}/doc/byUser/`;
+export const GETdocsForUser = `${API_BASE_URL}/doc/byUser`;
 export const POSTnewDocument = `${API_BASE_URL}/doc`;
 export const DELETEdoc = `${API_BASE_URL}/doc`;
 export const PATCHdocument = `${API_BASE_URL}/doc`;

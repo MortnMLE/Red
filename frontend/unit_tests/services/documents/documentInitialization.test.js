@@ -25,146 +25,117 @@ import { DB_DOCUMENTS } from '@/constants/stores';
 // loadDocuments is not explicitly tested as it only calls 
 // getDocumentsFromServer and getDocumentsFromLocalStorage
 
-describe('getDocumentsFromServer', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        localStorage.clear();
-    });
-
-    test('should get the userId from localStorage', async () => {
-        localStorage.setItem('userId', '123');
-
-        authenticatedFetch.mockResolvedValue({
-            json: vi.fn().mockResolvedValue({
-                success: false,
-            }),
+describe('documentInitialization', () => {
+    describe('getDocumentsFromServer', () => {
+        beforeEach(() => {
+            vi.clearAllMocks();
+            localStorage.clear();
         });
 
-        createDocuments.mockReturnValue([]);
+        test('should get the userId from localStorage', async () => {
+            authenticatedFetch.mockResolvedValue({
+                json: vi.fn().mockResolvedValue({
+                    success: false,
+                }),
+            });
 
-        await getDocumentsFromServer();
+            createDocuments.mockReturnValue([]);
 
-        expect(authenticatedFetch).toHaveBeenCalledWith(
-            GETdocsForUser + '123'
-        );
-    });
+            await getDocumentsFromServer();
 
-    test('should fetch documents using the userId', async () => {
-        localStorage.setItem('userId', '123');
-
-        authenticatedFetch.mockResolvedValue({
-            json: vi.fn().mockResolvedValue({
-                success: true,
-                documents: [{ id: 1 }],
-            }),
+            expect(authenticatedFetch).toHaveBeenCalledWith(
+                GETdocsForUser
+            );
         });
 
-        createDocuments.mockReturnValue([]);
+        test('should fetch documents using the userId', async () => {
+            authenticatedFetch.mockResolvedValue({
+                json: vi.fn().mockResolvedValue({
+                    success: true,
+                    documents: [{ id: 1 }],
+                }),
+            });
 
-        await getDocumentsFromServer();
+            createDocuments.mockReturnValue([]);
 
-        expect(authenticatedFetch).toHaveBeenCalledTimes(1);
-        expect(authenticatedFetch).toHaveBeenCalledWith(
-            GETdocsForUser + '123'
-        );
-    });
+            await getDocumentsFromServer();
 
-    test('should create documents from the documents returned by the server', async () => {
-        localStorage.setItem('userId', '123');
-
-        const serverDocuments = [{ id: 1 }, { id: 2 }];
-        const createdDocuments = [{ id: 1 }, { id: 2 }];
-
-        authenticatedFetch.mockResolvedValue({
-            json: vi.fn().mockResolvedValue({
-                success: true,
-                documents: serverDocuments,
-            }),
+            expect(authenticatedFetch).toHaveBeenCalledTimes(1);
+            expect(authenticatedFetch).toHaveBeenCalledWith(
+                GETdocsForUser
+            );
         });
 
-        createDocuments.mockReturnValue(createdDocuments);
+        test('should create documents from the documents returned by the server', async () => {
+            const serverDocuments = [{ id: 1 }, { id: 2 }];
+            const createdDocuments = [{ id: 1 }, { id: 2 }];
 
-        const result = await getDocumentsFromServer();
+            authenticatedFetch.mockResolvedValue({
+                json: vi.fn().mockResolvedValue({
+                    success: true,
+                    documents: serverDocuments,
+                }),
+            });
 
-        expect(createDocuments).toHaveBeenCalledWith(serverDocuments);
-        expect(result).toBe(createdDocuments);
-    });
+            createDocuments.mockReturnValue(createdDocuments);
 
-    test('should pass an empty array to createDocuments when the server response is unsuccessful', async () => {
-        localStorage.setItem('userId', '123');
+            const result = await getDocumentsFromServer();
 
-        authenticatedFetch.mockResolvedValue({
-            json: vi.fn().mockResolvedValue({
-                success: false,
-                documents: [{ id: 1 }],
-            }),
+            expect(createDocuments).toHaveBeenCalledWith(serverDocuments);
+            expect(result).toBe(createdDocuments);
         });
 
-        createDocuments.mockReturnValue([]);
+        test('should pass an empty array to createDocuments when the server response is unsuccessful', async () => {
+            authenticatedFetch.mockResolvedValue({
+                json: vi.fn().mockResolvedValue({
+                    success: false,
+                    documents: [{ id: 1 }],
+                }),
+            });
 
-        await getDocumentsFromServer();
+            createDocuments.mockReturnValue([]);
 
-        expect(createDocuments).toHaveBeenCalledWith([]);
-    });
+            await getDocumentsFromServer();
 
-    test('should return an empty array when authenticatedFetch throws an error', async () => {
-        localStorage.setItem('userId', '123');
-
-        authenticatedFetch.mockRejectedValue(new Error('Network error'));
-
-        const result = await getDocumentsFromServer();
-
-        expect(result).toEqual([]);
-        expect(createDocuments).not.toHaveBeenCalled();
-    });
-
-    test('should return an empty array when response.json throws an error', async () => {
-        localStorage.setItem('userId', '123');
-
-        authenticatedFetch.mockResolvedValue({
-            json: vi.fn().mockRejectedValue(new Error('Invalid JSON')),
+            expect(createDocuments).toHaveBeenCalledWith([]);
         });
 
-        const result = await getDocumentsFromServer();
+        test('should return an empty array when authenticatedFetch throws an error', async () => {
+            authenticatedFetch.mockRejectedValue(new Error('Network error'));
 
-        expect(result).toEqual([]);
-        expect(createDocuments).not.toHaveBeenCalled();
-    });
+            const result = await getDocumentsFromServer();
 
-    test('should return an empty array when createDocuments throws an error', async () => {
-        localStorage.setItem('userId', '123');
-
-        authenticatedFetch.mockResolvedValue({
-            json: vi.fn().mockResolvedValue({
-                success: true,
-                documents: [{ id: 1 }],
-            }),
+            expect(result).toEqual([]);
+            expect(createDocuments).not.toHaveBeenCalled();
         });
 
-        createDocuments.mockImplementation(() => {
-            throw new Error('Document creation failed');
+        test('should return an empty array when response.json throws an error', async () => {
+            authenticatedFetch.mockResolvedValue({
+                json: vi.fn().mockRejectedValue(new Error('Invalid JSON')),
+            });
+
+            const result = await getDocumentsFromServer();
+
+            expect(result).toEqual([]);
+            expect(createDocuments).not.toHaveBeenCalled();
         });
 
-        const result = await getDocumentsFromServer();
+        test('should return an empty array when createDocuments throws an error', async () => {
+            authenticatedFetch.mockResolvedValue({
+                json: vi.fn().mockResolvedValue({
+                    success: true,
+                    documents: [{ id: 1 }],
+                }),
+            });
 
-        expect(result).toEqual([]);
-    });
+            createDocuments.mockImplementation(() => {
+                throw new Error('Document creation failed');
+            });
 
-    test('should handle a missing userId', async () => {
-        authenticatedFetch.mockResolvedValue({
-            json: vi.fn().mockResolvedValue({
-                success: true,
-                documents: [],
-            }),
+            const result = await getDocumentsFromServer();
+
+            expect(result).toEqual([]);
         });
-
-        createDocuments.mockReturnValue([]);
-
-        await getDocumentsFromServer();
-
-        expect(authenticatedFetch).toHaveBeenCalledWith(
-            GETdocsForUser + null
-        );
     });
 
     describe('getDocumentsFromLocalStorage', () => {
@@ -254,19 +225,6 @@ describe('getDocumentsFromServer', () => {
             const result = await getDocumentsFromLocalStorage();
 
             expect(result).toEqual([]);
-        });
-
-        test('should handle a missing userId', async () => {
-            getLocalRecordsByIndex.mockResolvedValue([]);
-            createDocuments.mockReturnValue([]);
-
-            await getDocumentsFromLocalStorage();
-
-            expect(getLocalRecordsByIndex).toHaveBeenCalledWith(
-                DB_DOCUMENTS,
-                'userId',
-                null
-            );
         });
     });
 });

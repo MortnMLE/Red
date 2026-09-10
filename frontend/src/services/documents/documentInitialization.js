@@ -16,10 +16,8 @@ export async function loadDocuments() {
 // get all documents that belong to the user from the server
 export async function getDocumentsFromServer() {
     try {
-        const userId = localStorage.getItem('userId');
-
         const response = await authenticatedFetch(
-            GETdocsForUser + userId
+            GETdocsForUser
         );
 
         const json = await response.json();
