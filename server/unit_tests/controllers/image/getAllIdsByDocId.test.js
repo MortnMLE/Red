@@ -1,8 +1,9 @@
 jest.mock('../../../db/databaseService', () => ({
     getAll: jest.fn(),
+    getOne: jest.fn(),
 }));
 
-const { getAll } = require('../../../db/databaseService');
+const { getAll, getOne } = require('../../../db/databaseService');
 const controller = require('../../../controllers/imageController');
 
 describe('imageController.getAllIdsByDocId', () => {
@@ -11,6 +12,7 @@ describe('imageController.getAllIdsByDocId', () => {
 
     beforeEach(() => {
         mReq = {
+            user: '507f1f77bcf86cd799439014',
             params: {
                 docId: '507f1f77bcf86cd799439011'
             }
@@ -22,6 +24,7 @@ describe('imageController.getAllIdsByDocId', () => {
         };
 
         jest.clearAllMocks();
+        getOne.mockResolvedValue({});
     });
 
     test('should return 400 on empty param', async () => {

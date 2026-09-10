@@ -1,5 +1,6 @@
 jest.mock('../../../db/databaseService', () => ({
     insertOne: jest.fn(),
+    getOne: jest.fn(),
 }));
 
 jest.mock('../../../models/image', () => ({
@@ -7,7 +8,7 @@ jest.mock('../../../models/image', () => ({
 }));
 
 const controller = require('../../../controllers/imageController');
-const { insertOne } = require('../../../db/databaseService');
+const { insertOne, getOne } = require('../../../db/databaseService');
 const { create } = require('../../../models/image');
 
 describe('imageController.create', () => {
@@ -18,14 +19,15 @@ describe('imageController.create', () => {
 
     beforeEach(() => {
         newImage = {
-            docId: 'docId',
+            docId: '507f1f77bcf86cd799439013',
             name: 'image.png',
             file: 'file'
         }
 
         mReq = {
+            user: '507f1f77bcf86cd799439014',
             body: {
-                docId: 'docId',
+                docId: '507f1f77bcf86cd799439013',
                 name: 'image.png'
             },
             file: {
@@ -43,6 +45,7 @@ describe('imageController.create', () => {
         create.mockReturnValue(newImage);
 
         jest.clearAllMocks();
+        getOne.mockResolvedValue({});
     });
 
     test('should create an image and return 200 with the inserted id', async () => {

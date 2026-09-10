@@ -11,6 +11,7 @@ describe('imageController.getById', () => {
 
     beforeEach(() => {
         mReq = {
+            user: '507f1f77bcf86cd799439014',
             params: {
                 id: '507f1f77bcf86cd799439013'
             }
@@ -73,7 +74,9 @@ describe('imageController.getById', () => {
             }
         };
 
-        getOne.mockResolvedValue(image);
+        getOne
+            .mockResolvedValueOnce(image)
+            .mockResolvedValueOnce({});
 
         await controller.getById(mReq, mRes);
 

@@ -1,9 +1,12 @@
 jest.mock('../../../db/databaseService', () => ({
     deleteOne: jest.fn(),
+    getOne: jest.fn(),
 }));
 
-const { deleteOne } = require('../../../db/databaseService');
+const { deleteOne, getOne } = require('../../../db/databaseService');
 const controller = require('../../../controllers/imageController');
+const { imageDbName } = require('../../../constants');
+const { ObjectId } = require('mongodb');
 
 describe('imageController.delete', () => {
     let mReq;
@@ -11,6 +14,7 @@ describe('imageController.delete', () => {
     
     beforeEach(() => {
         mReq = {
+            user: '507f1f77bcf86cd799439014',
             body: {
                 id: '507f1f77bcf86cd799439013'
             }
@@ -22,6 +26,9 @@ describe('imageController.delete', () => {
         };
 
         jest.clearAllMocks();
+        getOne.mockResolvedValue({
+            docId: '507f1f77bcf86cd799439011'
+        });
     });
 
     test('should return 400 on missing param', async () => {
@@ -57,6 +64,9 @@ describe('imageController.delete', () => {
         expect(mRes.status).toHaveBeenCalledWith(200);
         expect(mRes.json).toHaveBeenCalledWith({
             success: true
+        });
+        expect(deleteOne).toHaveBeenCalledWith(imageDbName, {
+            _id: new ObjectId(mReq.body.id)
         });
     });
 

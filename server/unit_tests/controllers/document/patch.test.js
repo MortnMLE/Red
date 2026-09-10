@@ -88,15 +88,15 @@ describe('documentController.patch', () => {
         });
     });
 
-    test('should return 500 if update has not updated any documents', async () => {
+    test('should return 409 if the version-guarded update matches no documents', async () => {
         getOne.mockResolvedValue(doc);
         update.mockResolvedValue({modifiedCount: 0});
 
         await controller.patch(mReq, mRes);
 
-        expect(mRes.status).toHaveBeenCalledWith(500);
+        expect(mRes.status).toHaveBeenCalledWith(409);
         expect(mRes.json).toHaveBeenCalledWith({
-            error: 'NOT_CHANGED',
+            error: 'VERSION_CONFLICT',
             success: false
         });
     });
@@ -122,8 +122,8 @@ describe('documentController.patch', () => {
 
         expect(mRes.status).toHaveBeenCalledWith(200);
         expect(mRes.json).toHaveBeenCalledWith({
-            id: doc.id,
-            newSyncedVersion: doc.version,
+            id: mReq.body.id,
+            newSyncedVersion: mReq.body.version,
             success: true
         });        
     });
