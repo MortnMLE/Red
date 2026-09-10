@@ -541,6 +541,7 @@ async function handleDeleteActiveDocument() {
   background: #202020; 
   color: #d4d4d4; 
   line-height: 1.65; 
+  white-space: pre-line;
 }
 
 .preview :deep(a),
@@ -550,6 +551,11 @@ async function handleDeleteActiveDocument() {
 .preview :deep(a:focus) {
   color: #f14c4c;
   text-decoration: none;
+}
+
+.preview :deep(ul),
+.preview :deep(ol) {
+  white-space: normal;
 }
 
 .preview :deep(img) { 
