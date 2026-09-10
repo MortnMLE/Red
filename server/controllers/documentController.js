@@ -42,14 +42,17 @@ exports.getById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!validate([id])) {
+        if (!validate([id]) || !ObjectId.isValid(id)) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
                 success: false
             });
         }
 
-        const document = await db.getOne(documentDbName, new ObjectId(id));
+        const document = await db.getOne(documentDbName, {
+            _id: new ObjectId(id),
+            userId: new ObjectId(req.user)
+        });
 
         if (!document) {
             return res.status(404).json({
@@ -59,7 +62,7 @@ exports.getById = async (req, res) => {
         }
 
         return res.status(200).json({
-            id: document.id,
+            id: document._id,
             title: document.title,
             content: document.content,
             version: document.version,
@@ -78,14 +81,24 @@ exports.delete = async (req, res) => {
     try {
         const { id } = req.body;
 
-        if (!validate([id])) {
+        if (!validate([id]) || !ObjectId.isValid(id)) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
                 success: false
             });
         }
 
-        const document = await db.getOne(documentDbName, new ObjectId(id));
+        const document = await db.getOne(documentDbName, {
+            _id: new ObjectId(id),
+            userId: new ObjectId(req.user)
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                error: 'NOT_FOUND',
+                success: false
+            });
+        }
 
         if (!document.flags?.deleted) {
             document.flags.deleted = true;
@@ -162,14 +175,17 @@ exports.patch = async (req, res) => {
     try {
         const { id, content, title, version } = req.body;
 
-        if (!validate([id, title, version])) {
+        if (!validate([id, title, version]) || !ObjectId.isValid(id)) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
                 success: false
             });
         }
 
-        const existingDocument = await db.getOne(documentDbName, new ObjectId(id));
+        const existingDocument = await db.getOne(documentDbName, {
+            _id: new ObjectId(id),
+            userId: new ObjectId(req.user)
+        });
 
         if (!existingDocument) {
             return res.status(404).json({
@@ -185,7 +201,11 @@ exports.patch = async (req, res) => {
             });
         }
 
-        const filter = { _id: new ObjectId(id)};
+        const filter = {
+            _id: new ObjectId(id),
+            userId: new ObjectId(req.user),
+            version: { $lt: version },
+        };
         const query = {
             $set: {
                 title,
@@ -197,15 +217,15 @@ exports.patch = async (req, res) => {
         const result = await db.update(documentDbName, filter, query);
 
         if (result.modifiedCount === 0) {
-            return res.status(500).json({
-                error: 'NOT_CHANGED',
+            return res.status(409).json({
+                error: 'VERSION_CONFLICT',
                 success: false
             });
         }
 
         return res.status(200).json({
-            id: existingDocument.uuid,
-            newSyncedVersion: existingDocument.version,
+            id,
+            newSyncedVersion: version,
             success: true
         });
     } catch (error) {

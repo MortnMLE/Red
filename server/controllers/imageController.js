@@ -1,6 +1,6 @@
 const image = require('../models/image');
 const db = require('../db/databaseService');
-const { imageDbName } = require('../constants');
+const { imageDbName, documentDbName } = require('../constants');
 const { validate } = require('../utils/validate');
 const { ObjectId } = require('mongodb');
 
@@ -12,6 +12,25 @@ exports.create = async (req, res) => {
         if (!validate([docId, name, file])) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
+                success: false
+            });
+        }
+
+        if (!ObjectId.isValid(docId)) {
+            return res.status(400).json({
+                error: 'BAD_REQUEST',
+                success: false
+            });
+        }
+
+        const document = await db.getOne(documentDbName, {
+            _id: new ObjectId(docId),
+            userId: new ObjectId(req.user)
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                error: 'NOT_FOUND',
                 success: false
             });
         }
@@ -36,7 +55,7 @@ exports.getById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!validate([id])) {
+        if (!validate([id]) || !ObjectId.isValid(id)) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
                 success: false
@@ -46,6 +65,18 @@ exports.getById = async (req, res) => {
         const image = await db.getOne(imageDbName, new ObjectId(id));
 
         if (!image) {
+            return res.status(404).json({
+                error: 'NOT_FOUND',
+                success: false
+            });
+        }
+
+        const document = await db.getOne(documentDbName, {
+            _id: image.docId,
+            userId: new ObjectId(req.user)
+        });
+
+        if (!document) {
             return res.status(404).json({
                 error: 'NOT_FOUND',
                 success: false
@@ -77,9 +108,21 @@ exports.getAllIdsByDocId = async (req, res) => {
 
         console.log(`getAllbyIds, docId ${docId}`);
 
-        if (!validate([docId])) {
+        if (!validate([docId]) || !ObjectId.isValid(docId)) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
+                success: false
+            });
+        }
+
+        const document = await db.getOne(documentDbName, {
+            _id: new ObjectId(docId),
+            userId: new ObjectId(req.user)
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                error: 'NOT_FOUND',
                 success: false
             });
         }
@@ -117,14 +160,45 @@ exports.delete = async (req, res) => {
     try {
         const { id } = req.body;
 
-        if (!validate([id])) {
+        if (!validate([id]) || !ObjectId.isValid(id)) {
             return res.status(400).json({
                 error: 'BAD_REQUEST',
                 success: false
             });
         }
 
-        const response = await db.deleteOne(imageDbName, new ObjectId(id));
+        const existingImage = await db.getOne(imageDbName, new ObjectId(id));
+
+        if (!existingImage) {
+            return res.status(404).json({
+                error: 'NOT_FOUND',
+                success: false
+            });
+        }
+
+        const documentId = String(existingImage.docId);
+        if (!ObjectId.isValid(documentId)) {
+            return res.status(404).json({
+                error: 'NOT_FOUND',
+                success: false
+            });
+        }
+
+        const document = await db.getOne(documentDbName, {
+            _id: new ObjectId(documentId),
+            userId: new ObjectId(req.user)
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                error: 'NOT_FOUND',
+                success: false
+            });
+        }
+
+        const response = await db.deleteOne(imageDbName, {
+            _id: new ObjectId(id)
+        });
 
         if (response.deletedCount === 1) {
             return res.status(200).json({

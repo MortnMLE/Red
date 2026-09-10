@@ -35,7 +35,8 @@ exports.register = async (req, res) => {
         // create new user
         const newUser = user.create(username, hashPassword);
 
-        const id = await db.insertOne(userDbName, newUser);
+        const response = await db.insertOne(userDbName, newUser);
+        const id = String(response.insertedId ?? response);
         
         // create tokens
         const authToken = createToken(id, process.env.JWT_AUTH_EXPIRES);
@@ -71,18 +72,26 @@ exports.login = async (req, res) => {
             });
         }
 
-        existingUser = await db.getOne(userDbName, {username});
+        const existingUser = await db.getOne(userDbName, {username});
+
+        if (!existingUser) {
+            return res.status(400).json({
+                error: 'INVALID_CREDENTIALS',
+                success: false
+            });
+        }
 
         if (await user.passwordIsEqual(password, existingUser.password)) {
-            const authToken = createToken(existingUser._id, process.env.JWT_AUTH_EXPIRES);
-            const refreshToken = createToken(existingUser._id, process.env.JWT_REFRESH_EXPIRES);
+            const id = String(existingUser._id);
+            const authToken = createToken(id, process.env.JWT_AUTH_EXPIRES);
+            const refreshToken = createToken(id, process.env.JWT_REFRESH_EXPIRES);
 
             refreshTokens.push(refreshToken);
 
             res.cookie('refreshToken', refreshToken, createRefreshTokenSettings());
 
             return res.status(200).json({
-                id: existingUser._id,
+                id,
                 token: authToken,
                 success: true
             });
