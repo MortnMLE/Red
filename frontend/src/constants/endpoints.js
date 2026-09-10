@@ -1,15 +1,17 @@
+const API_BASE_URL = 'http://localhost:5000';
+
 // documents
-export const GETdocsForUser = 'http://localhost:5000/doc/byUser/';
-export const POSTnewDocument = 'http://localhost:5000/doc';
-export const DELETEdoc = 'http://localhost:5000/doc';
-export const PATCHdocument = 'http://localhost:5000/doc';
-export const GETdocById = 'http://localhost:5000/doc/byId/';
+export const GETdocsForUser = `${API_BASE_URL}/doc/byUser/`;
+export const POSTnewDocument = `${API_BASE_URL}/doc`;
+export const DELETEdoc = `${API_BASE_URL}/doc`;
+export const PATCHdocument = `${API_BASE_URL}/doc`;
+export const GETdocById = `${API_BASE_URL}/doc/byId/`;
 // images
-export const GETimageById = 'http://localhost:5000/img/byId/';
-export const POSTnewImage = 'http://localhost:5000/img';
-export const DELETEimage = 'http://localhost:5000/img';
-export const GETimageIdsForDocumentId = 'http://localhost:5000/img/allForDocId/';
+export const GETimageById = `${API_BASE_URL}/img/byId/`;
+export const POSTnewImage = `${API_BASE_URL}/img`;
+export const DELETEimage = `${API_BASE_URL}/img`;
+export const GETimageIdsForDocumentId = `${API_BASE_URL}/img/allForDocId/`;
 // authentication
-export const POSTrefreshAccessToken = 'http://localhost:5000/auth/refresh';
-export const POSTauthRegister = 'http://localhost:5000/auth/register';
-export const POSTauthLogin = 'http://localhost:5000/auth/login';
+export const POSTrefreshAccessToken = `${API_BASE_URL}/auth/refresh`;
+export const POSTauthRegister = `${API_BASE_URL}/auth/register`;
+export const POSTauthLogin = `${API_BASE_URL}/auth/login`;
