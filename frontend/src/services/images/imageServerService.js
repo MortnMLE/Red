@@ -60,7 +60,8 @@ export async function deleteImageFromServer(id) {
             body: JSON.stringify({ id }),
         });
 
-        result = await response.json().success;
+        const data = await response.json();
+        result = data.success;
     } finally {
         return result;
     }
