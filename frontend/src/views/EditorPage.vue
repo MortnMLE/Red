@@ -7,11 +7,11 @@
           R
       </div>
       
-      <button class="activity-item active" aria-label="Explorer" title="Explorer">
+      <button class="activity-item" :class="{ active: activeActivity === 'explorer' }" aria-label="Explorer" title="Explorer" @click="showExplorer">
         <span>☷</span>
       </button>
       
-      <button class="activity-item" aria-label="Search" title="Search">
+      <button class="activity-item" :class="{ active: activeActivity === 'search' }" aria-label="Search" title="Search" @click="showSearch">
         <span>⌕</span>
       </button>
     </nav>
@@ -21,11 +21,21 @@
         <span>RED Notes</span>
       </div>
 
-      <div class="workspace-name">
-        Explorer
-      </div>
+      <div class="workspace-name">{{ activeActivity === 'search' ? 'Search' : 'Explorer' }}</div>
 
-      <div class="document-toolbar">
+      <form v-if="activeActivity === 'search'" class="document-toolbar search-toolbar" @submit.prevent="handleSearch">
+        <input
+          v-model="searchInput"
+          ref="searchInputElement"
+          class="search-input"
+          type="search"
+          aria-label="Search documents"
+          placeholder="Search documents"
+        >
+        <button class="toolbar-button" type="submit">Search</button>
+      </form>
+
+      <div v-else class="document-toolbar">
         <button class="toolbar-button" @click="handleDocumentCreation()">
           + New file
         </button>
@@ -36,7 +46,7 @@
       </div>
 
       <div class="document-list" aria-label="Documents">
-        <button v-for="doc in documents" :key="doc.id"
+        <button v-for="doc in visibleDocuments" :key="doc.id"
           class="sidebar-item" :class="{ active: activeDocument && activeDocument.id === doc.id }" 
           @click="openDocument(doc.id); handleChangeActiveDocument(doc.id)"
         >
@@ -90,6 +100,7 @@
 </template>
 
 <script setup>
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useSettings } from '@/composables/useSettings';
 import { useDocuments } from '@/composables/useDocuments';
 import { useEditor } from '@/composables/useEditor';
@@ -97,6 +108,10 @@ import { useImages } from '@/composables/useImages';
 import { ImageCache } from '../services/images/imageCache';
 
 const imageCache = new ImageCache();
+const activeActivity = ref('explorer');
+const searchInput = ref('');
+const searchQuery = ref('');
+const searchInputElement = ref(null);
 
 const { countTempIds, updateCountTempIds, enableVim } = useSettings();
 
@@ -121,6 +136,50 @@ const {
 });
 
 setUpdateEditorContent(updateEditorContent);
+
+function handleGlobalKeydown(event) {
+  if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'f') {
+    event.preventDefault();
+    showSearch();
+  }
+
+  if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'e') {
+    event.preventDefault();
+    showExplorer();
+    editorElement.value?.querySelector('.cm-content')?.focus();
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', handleGlobalKeydown));
+onBeforeUnmount(() => window.removeEventListener('keydown', handleGlobalKeydown));
+
+const visibleDocuments = computed(() => {
+  if (activeActivity.value !== 'search' || !searchQuery.value.trim()) {
+    return documents.value;
+  }
+
+  const query = searchQuery.value.trim().toLowerCase();
+  return documents.value.filter(doc =>
+    doc.title.toLowerCase().includes(query) ||
+    doc.content.toLowerCase().includes(query)
+  );
+});
+
+function showExplorer() {
+  activeActivity.value = 'explorer';
+  searchInput.value = '';
+  searchQuery.value = '';
+}
+
+async function showSearch() {
+  activeActivity.value = 'search';
+  await nextTick();
+  searchInputElement.value?.focus();
+}
+
+function handleSearch() {
+  searchQuery.value = searchInput.value.trim();
+}
 
 async function handlePreviewClick(event) {
   event.preventDefault();
@@ -324,6 +383,26 @@ async function handleDeleteActiveDocument() {
   display: flex; 
   gap: 4px; 
   padding: 0 12px 9px; 
+}
+
+.search-toolbar {
+  align-items: center;
+}
+
+.search-input {
+  min-width: 0;
+  flex: 1;
+  padding: 5px 7px;
+  border: 1px solid #3b3b3b;
+  outline: none;
+  background: #252526;
+  color: #cccccc;
+  font: inherit;
+  font-size: 11px;
+}
+
+.search-input:focus {
+  border-color: #f14c4c;
 }
 
 /**/
