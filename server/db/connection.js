@@ -1,7 +1,6 @@
 const { MongoClient } = require('mongodb');
 
-//File containing the connection string
-const dbName = 'main';
+const dbName = process.env.MONGODB_DB || 'main';
 
 let client;
 let db;
