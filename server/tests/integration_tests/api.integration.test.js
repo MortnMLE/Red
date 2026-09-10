@@ -22,7 +22,7 @@ if (integrationEnabled) {
 
 const request = require('supertest');
 const { ObjectId } = require('mongodb');
-const { app } = require('../../app');
+const { app } = require('../../src/app');
 const { connectDB, closeDB, getConnection } = require('../../src/db/connection');
 const { userDbName, documentDbName, imageDbName } = require('../../src/constants');
 const authenticationController = require('../../src/controllers/authenticationController');

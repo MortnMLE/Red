@@ -1,9 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const cookieparser = require('cookie-parser');
-const authenticationRoute = require('./src/routes/authenticationRoute');
-const documentRoute = require('./src/routes/documentRoute');
-const imageRoute = require('./src/routes/imageRoute');
+const authenticationRoute = require('./routes/authenticationRoute');
+const documentRoute = require('./routes/documentRoute');
+const imageRoute = require('./routes/imageRoute');
 
 process.loadEnvFile('.env');
 
@@ -27,7 +27,7 @@ function createApp() {
 
 //Start server and initialize connection to Atlas
 async function start() {
-    const { connectDB } = require('./src/db/connection');
+    const { connectDB } = require('./db/connection');
     const port = process.env.PORT || 5000;
 
     try {
@@ -46,7 +46,7 @@ async function start() {
 process.on('SIGINT', async () => {
     console.log('Shutting down.');
 
-    const { closeDB } = require('./src/db/connection');
+    const { closeDB } = require('./db/connection');
     await closeDB();
     process.exit(0);
 });
