@@ -5,6 +5,7 @@ In the following sections implemented API routes, as well as used production and
 ## Contents
 
 - [API Routes](#API-Routes)
+- [Middleware](#Middleware)
 - [Dependencies](#Dependencies)
 
 # API Routes
@@ -277,6 +278,27 @@ Responses:
 | `400 Bad Request` | `{ "error": "BAD_REQUEST", "success": false }` | `id` is missing or is not a valid ObjectId. |
 | `404 Not Found` | `{ "error": "NOT_FOUND", "success": false }` | The image, its document, or the deletion target is not found or not owned by the user. |
 | `500 Internal Server Error` | `{ "error": <error>, "success": false }` | Database or another server error occurs. |
+
+## Middleware
+
+### `authenticateToken`
+
+Authenticates a request by reading the bearer token from the `Authorization`
+header and validating it with the JWT secret. When valid, it stores the decoded
+user ID on `req.user` and allows the request to continue.
+
+Header format:
+
+```text
+Authorization: Bearer <accessToken>
+```
+
+Responses in case of verification failure:
+
+| Status | Body | Condition |
+| --- | --- | --- |
+| `401 Unauthorized` | `{ "message": "Token missing" }` | The header is absent, has no token, or contains `undefined` or `null`. |
+| `403 Forbidden` | `{ "message": "Invalid or expired token" }` | JWT verification fails. |
 
 ## Dependencies
 
