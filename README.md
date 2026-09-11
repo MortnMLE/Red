@@ -8,11 +8,6 @@
 - [Tech Stack](#Tech-Stack)
 - [Dependencies](#Dependencies)
 - [Technical Documentation](#Technical-Documentation)
-    - [Database](https://github.com/MortnMLE/Red/tree/main/docs/Database)
-    - [Server](https://github.com/MortnMLE/Red/tree/main/docs/Server)
-        - [API Routes](https://github.com/MortnMLE/Red/tree/main/docs/Server#API-Routes)
-        - [Middlware](https://github.com/MortnMLE/Red/tree/main/docs/Server#Middleware)
-        - [Dependencies](https://github.com/MortnMLE/Red/tree/main/docs/Server#Dependencies)
 
 ## Concept
 
@@ -58,3 +53,7 @@ Authorization and authentication are handled using JSON Web Tokens (JWTs). Upon 
 
 ## Technical Documentation
 - Technical documentation for the database can be found here: [Database](https://github.com/MortnMLE/Red/tree/main/docs/Database)
+- Technical documentation regarding the server can be found here: [Server](https://github.com/MortnMLE/Red/tree/main/docs/Server)
+    - [API Routes](https://github.com/MortnMLE/Red/tree/main/docs/Server#API-Routes)
+    - [Middlware](https://github.com/MortnMLE/Red/tree/main/docs/Server#Middleware)
+    - [Dependencies](https://github.com/MortnMLE/Red/tree/main/docs/Server#Dependencies)
