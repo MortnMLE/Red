@@ -6,7 +6,7 @@
 - [Features](#Features)
 - [Tech Stack](#Tech-Stack)
 - [Dependencies](#Dependencies)
-- [Documentation Links](#Documentation-Links)
+- [Technical Documentation](#Technical-Documentation)
 
 ## Concept
 
@@ -117,4 +117,5 @@ Navigation is streamlined through full-text search, linked-note traversal, and V
 - `nodemon`  
   Restarts the server automatically while developing.
 
-## Documentation Links
+## Technical Documentation
+- Technical documentation for the database can be found here: [Database](https://github.com/MortnMLE/Red/tree/main/docs/Database)
