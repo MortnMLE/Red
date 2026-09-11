@@ -3,6 +3,7 @@
 ## Contents
 
 - [Concept](#Concept)
+- [Technical Approach](#Technical-Approach)
 - [Features](#Features)
 - [Tech Stack](#Tech-Stack)
 - [Dependencies](#Dependencies)
@@ -20,13 +21,24 @@ The app includes full user and account management, a clean editing environment w
 
 Navigation is streamlined through full-text search, linked-note traversal, and Vim-based movement, forming a lightweight workspace for writing and organizing information.
 
+## Technical Approach
+
+For this project, a fat-client architecture was chosen, placing the majority of data processing and application logic on the client device. This approach allows independent user interaction in the event of server connectivity issues or a loss of internet connection.
+The server primarily acts as the interface for data storage and retrieval while applying security measures to block clients from accessing unauthorized resources.
+
+On startup, the application synchronizes data between the server and local client storage, enabling users to work sequentially across different devices. Once logged in, users can continue working even without an internet connection.
+
+User interaction is limited to two pages: a registration/login page at the `/` path and the single-page editor at `/editor`. Upon successful login or registration, the user is routed to `/editor`.
+
+Authorization and authentication are handled using JSON Web Tokens (JWTs). Upon successful registration or login, the client receives a JWT refresh token, valid for seven days, and a JWT access token, valid for 15 minutes. Middleware is used to verify the authenticity, validity, and expiration of the access token, which is included in all read and write requests to the server. In case of an expired access token, the client requests a new access token by sending a `/refresh` request. After successful validation of the refresh token on the server, a new access token is returned.
+
 ## Features
 - **User & Account**: 
     - Account Creation
     - Login
     - Logout
 - **Content & Editing**:
-    - Text Editor Interface
+    - Single-Page Text Editor Interface
     - Rendered Preview
     - Inline Image Embedding
     - Internal References Between Documents
