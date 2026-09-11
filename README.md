@@ -11,6 +11,7 @@
     - [Database](https://github.com/MortnMLE/Red/tree/main/docs/Database)
     - [Server](https://github.com/MortnMLE/Red/tree/main/docs/Server)
         - [API Routes](https://github.com/MortnMLE/Red/tree/main/docs/Server#API-Routes)
+        - [Middlware](https://github.com/MortnMLE/Red/tree/main/docs/Server#Middleware)
         - [Dependencies](https://github.com/MortnMLE/Red/tree/main/docs/Server#Dependencies)
 
 ## Concept
