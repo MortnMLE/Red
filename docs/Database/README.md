@@ -7,6 +7,7 @@ This document describes the database structure, collection relationships, and JS
 ![ERM-Model](database_Schema.png)
 
 users : documents (1:cm) -> One user *can* have *multiple* documents. One document *must* be assigned to *one* user.
+
 documents : images (1:cm) -> One document *can* have *multiple* images. One image *must* be assigned to *one* document.
 
 ## JSON Schema
