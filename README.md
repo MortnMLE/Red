@@ -53,7 +53,13 @@ Authorization and authentication are handled using JSON Web Tokens (JWTs). Upon 
 
 ## Technical Documentation
 - Technical documentation for the database can be found here: [Database](https://github.com/MortnMLE/Red/tree/main/docs/Database)
-- Technical documentation regarding the server can be found here: [Server](https://github.com/MortnMLE/Red/tree/main/docs/Server)
+- Technical documentation for the server can be found here: [Server](https://github.com/MortnMLE/Red/tree/main/docs/Server)
     - [API Routes](https://github.com/MortnMLE/Red/tree/main/docs/Server#API-Routes)
-    - [Middlware](https://github.com/MortnMLE/Red/tree/main/docs/Server#Middleware)
+    - [Middleware](https://github.com/MortnMLE/Red/tree/main/docs/Server#Middleware)
     - [Dependencies](https://github.com/MortnMLE/Red/tree/main/docs/Server#Dependencies)
+- Technical documentation for the frontend can be found here: [Frontend](https://github.com/MortnMLE/Red/tree/main/docs/Frontend)
+    - [Processes](https://github.com/MortnMLE/Red/blob/main/docs/Frontend/README.md#processes)
+        - [Documents](https://github.com/MortnMLE/Red/blob/main/docs/Frontend/README.md#documents)
+        - [Images](https://github.com/MortnMLE/Red/blob/main/docs/Frontend/README.md#images)
+    - [Responsiveness](https://github.com/MortnMLE/Red/blob/main/docs/Frontend/README.md#responsiveness)
+    - [Dependencies](https://github.com/MortnMLE/Red/blob/main/docs/Frontend/README.md#dependencies)
