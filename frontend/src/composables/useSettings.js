@@ -34,7 +34,7 @@ export function useSettings() {
                 enableVim.value = vimSetting.value ?? false;
             }        
         } catch (err) {
-            console.error('Error initializing local settings database: ' + err.message);
+            enableVim.value = false;
         }
     }
 

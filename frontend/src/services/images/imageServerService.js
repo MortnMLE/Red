@@ -95,7 +95,6 @@ export async function serverFetchImageIdsForDocuments(documents) {
     }
 
     for (const response of responses) {
-        // continue if fetch was not successfull
         if (response.status != 200) {
             continue;
         }

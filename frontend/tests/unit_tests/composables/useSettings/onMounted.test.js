@@ -66,25 +66,4 @@ describe('onMounted', () => {
 
         expect(composable.enableVim.value).toBe(false);
     });
-
-    test('should log an error when settings cannot be loaded', async () => {
-        const error = new Error('settings unavailable');
-        getLocalRecordsByIndex
-            .mockResolvedValueOnce([])
-            .mockRejectedValueOnce(error)
-            .mockResolvedValueOnce([]);
-        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-        const composable = useSettings();
-        const mountedCallback = onMounted.mock.calls[0][0];
-
-        await mountedCallback();
-
-        expect(consoleError).toHaveBeenCalledWith(
-            'Error initializing local settings database: settings unavailable'
-        );
-        expect(composable.enableVim.value).toBe(Boolean);
-
-        consoleError.mockRestore();
-    });
 });

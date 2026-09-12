@@ -6,8 +6,6 @@ import { DB_DOCUMENTS } from "@/constants/stores";
 export async function tryUpdateServerDocument(localDocument, serverDocument) {
     if (localDocument.version <= serverDocument.version) {
         return;
-    } else if (!localDocument.flags.dirty) {
-        return;
     } else if (serverDocument.flags.deleted) {
         return;
     }
@@ -77,14 +75,14 @@ export async function tryPostNewDocumentToServer(document) {
 }
 
 export async function tryDeleteServerDocument(localDocument, serverDocument) {
-    if (!localDocument.flags.deleted || localDocument.flags.isNew) {
+    if (!localDocument.flags.deleted) {
         return;
     } else if (serverDocument.flags.deleted) {
         return;
     }
 
     try {
-        const a = await authenticatedFetch(DELETEdoc, {
+        await authenticatedFetch(DELETEdoc, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json'

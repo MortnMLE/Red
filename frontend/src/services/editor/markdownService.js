@@ -100,11 +100,11 @@ export function removeMarkdown(str = '') {
         // ordered lists
         .replace(/^\d+\.\s+/gm, '')
 
-        // links
-        .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
-
         // images
         .replace(/!\[(.*?)\]\((.*?)\)/g, '$1')
+
+        // links
+        .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
 
         // horizontal rules
         .replace(/^---$/gm, '')

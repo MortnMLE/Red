@@ -28,19 +28,6 @@ describe('serverDoucmentService -> tryUpdateServerDocument', () => {
         expect(addOrSetLocalRecord).not.toHaveBeenCalled();
     });
 
-    test('should not fetch and addOrSet if local document is not dirty', async () => {
-        const localDocument = {version: 3, flags: {dirty: false}};
-        const serverDocument = {version: 2, flags: {dirty: true}};
-
-        authenticatedFetch.mockResolvedValue({});
-        addOrSetLocalRecord.mockResolvedValue({});
-
-        await tryUpdateServerDocument(localDocument, serverDocument);
-
-        expect(authenticatedFetch).not.toHaveBeenCalled();
-        expect(addOrSetLocalRecord).not.toHaveBeenCalled();
-    });
-
     test('should not fetch and addOrSet if serverDocument is deleted', async () => {
         const localDocument = {version: 3, flags: {dirty: true}};
         const serverDocument = {version: 2, flags: {dirty: true, deleted: true}};

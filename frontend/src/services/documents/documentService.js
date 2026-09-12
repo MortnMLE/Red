@@ -1,6 +1,9 @@
 import { DB_DOCUMENTS } from '@/constants/stores';
 import { Validator } from '@/services/validator';
-import { addOrSetLocalRecord } from '../indexedDB/indexedDbApi';
+import {
+    addOrSetLocalRecord,
+    getLocalRecord
+} from '../indexedDB/indexedDbApi';
 
 export async function replaceImageIdForStoredDocument(oldId, newId, docId) {
     // validate input
@@ -16,14 +19,13 @@ export async function replaceImageIdForStoredDocument(oldId, newId, docId) {
         }
 
         // update content of the document
-        doc.content = doc.content.replace(oldId, newId);
+        doc.content = doc.content.replaceAll(oldId, newId);
 
         // update the entry in the local storage
         await addOrSetLocalRecord(DB_DOCUMENTS, doc);
         
         return 1;
     } catch (err) {
-        console.warn('could not update document', err);
         return 0;
     }
 }

@@ -53,7 +53,6 @@ export async function getServerImageIds(documents) {
     }
 
     // fetch imageIds that belong to the passed documents
-    // result: { tasks: string[], serverWasReached: boolean }
     const result = await serverFetchImageIdsForDocuments(documents);
 
     Validator.validateObjectNotNull(result);
@@ -66,7 +65,6 @@ export async function getServerImageIds(documents) {
 }
 
 // fetches images that do not exist locally from server
-// returns [{image: response, id: string}]
 export async function fetchMissingImages(embeddedImageIds, serverImageIds) {
     // validate parameters
     Validator.validateArrEmptyAllowed(embeddedImageIds);
@@ -167,7 +165,6 @@ export async function postMissingImages(embeddedImageIds, serverImages) {
             };
         } catch (err) {
             // if there is an error, we add undefined to the result
-            console.warn('error while posting image to server', err);
             return;
         }
     }));

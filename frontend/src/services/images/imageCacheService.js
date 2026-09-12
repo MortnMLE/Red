@@ -60,7 +60,6 @@ export async function revokeAllForDocId(docId) {
             imageCache.revokeUrl(image.id);
         }    
     } catch (err) {
-        console.warn('could not get local records for document id', err);
         return 0;
     }
 
@@ -95,9 +94,8 @@ export async function createCacheEntriesForDocument(docId) {
         }
 
         // create all Url objects and set them to imageCache
-        await createCacheEntriesForImages(urlCreationImages);
+        createCacheEntriesForImages(urlCreationImages);
     } catch (err) {
-        console.warn('could not create cache entries', err);
         return 0;
     }
 

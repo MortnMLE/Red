@@ -367,7 +367,7 @@ async function handleDeleteActiveDocument() {
 .sidebar { 
   display: flex; 
   width: 248px; 
-  min-width: 190px; 
+  min-width: 100px; 
   flex-direction: column; 
   background: #181818;
   border-right: 1px solid #2b2b2b; 
@@ -691,11 +691,13 @@ async function handleDeleteActiveDocument() {
   flex: 1; 
 }
 
-@media (max-width: 1400px) { 
+@media (max-width: 1200px) {
   .sidebar {
-    width: 180px;
+    width: 160px;
   }
+}
 
+@media (max-width: 960px) { 
   .editor-container { 
     grid-template-columns: 1fr; 
   } 
@@ -707,12 +709,22 @@ async function handleDeleteActiveDocument() {
 
 @media (max-width: 576px) {
   .editor-layout {
-    min-width: 380px;
+    min-width: 360px;
   }
 
   .sidebar {
     width: 105px;
     min-width: 100px;
+  }
+
+  .search-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-input,
+  .search-toolbar .toolbar-button {
+    width: 100%;
   }
 
   .tab {

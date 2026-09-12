@@ -88,7 +88,7 @@ export function useImages(options = {}) {
                 file: file
             });
         } catch (err) {
-            console.error('Error saving image to local database: ' + err.message);
+            // do nothing
         }
 
         // create the Url object
@@ -125,7 +125,7 @@ export function useImages(options = {}) {
                 // revoke url if it currently exists
                 imageCache.revokeUrl(id);
             } catch (err) {
-                console.error(`could not delete ${id}`);
+                //do nothing
             }
         }
 

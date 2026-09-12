@@ -241,7 +241,6 @@ export async function replaceLocalDbEntry(store, newEntry, oldId) {
         await addOrSetLocalRecord(store, newEntry);
         await deleteLocalRecord(store, oldId);
     } catch (err) {
-        console.error(err);
         result = false;
     }
 

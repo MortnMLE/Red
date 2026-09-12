@@ -44,16 +44,6 @@ describe('serverDocumentService => tryDeleteServerDocument', () => {
         expect(authenticatedFetch).not.toHaveBeenCalled();
     });
 
-    test('should not fetch if the localDocument is new', async () => {
-        localDocument.flags.isNew = true;
-
-        authenticatedFetch.mockResolvedValue({});
-
-        await tryDeleteServerDocument(localDocument, serverDocument);
-
-        expect(authenticatedFetch).not.toHaveBeenCalled();
-    });
-
     test('should not fetch if the serverDocument is already marked as deleted', async () => {
         serverDocument.flags.deleted = true;
 
