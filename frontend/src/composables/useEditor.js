@@ -123,6 +123,10 @@ export function useEditor(options = {}) {
 
                     '.cm-line': {
                         overflow: 'visible',
+                    },
+
+                    '.cm-vim-panel input': {
+                        color: '#ffffff',
                     }
                 }),
 
