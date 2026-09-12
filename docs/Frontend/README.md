@@ -79,6 +79,8 @@ A change triggers:
 
 ### Images
 
+The synchronization process starts when `useImages` is mounted and waits for the completion of the document synchronization.
+
 #### Image Synchronization
 
 ![images_synchronization_activity_diagram.png](screenshots/images_synchronization_activity_diagram.png)
@@ -99,12 +101,12 @@ These URLs are managed by a cache and appropriate services, which are responsibl
 
 1. Create URLs for all images that belong to the document that is becoming active.
 2. Revoke URLs for all images that belong to the document that is becoming inactive. 
-3. Create a URL after a document has been created by drag and drop event.
+3. Create a URL after a document has been created by drag-and-drop event.
 4. Replace cached URL after a temporary image record was replaced by a permanent image.
 
 #### Image Creation
 
-Image creation is initiated by a drag and drop event at the editor window.
+Image creation is initiated by a drag-and-drop event at the editor window.
 
 1. A local image record is created using a temporary id.
 2. An embedding is inserted at the dropped row.
