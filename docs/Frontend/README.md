@@ -20,7 +20,7 @@ This document provides an overview of the frontend architecture and implementati
         - [Image Creation](#image-creation)
         - [Image Deletion](#image-deletion)
 - [Responsiveness](#responsiveness)
-    - [Login Page](#login-page)a
+    - [Login Page](#login-page)
     - [Editor Page](#editor-page)
 - [Dependencies](#dependencies)
     - [Production Dependencies](#production-dependencies)
