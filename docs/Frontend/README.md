@@ -19,12 +19,12 @@
         - [Image Display](#image-display)
         - [Image Creation](#image-creation)
         - [Image Deletion](#image-deletion)
-    - [Responsiveness](#responsiveness)
-        - [Login Page](#login-page)
-        - [Editor Page](#editor-page)
-    - [Dependencies](#dependencies)
-        - [Production Dependencies](#production-dependencies)
-        - [Development Dependencies](#development-dependencies)
+- [Responsiveness](#responsiveness)
+    - [Login Page](#login-page)
+    - [Editor Page](#editor-page)
+- [Dependencies](#dependencies)
+    - [Production Dependencies](#production-dependencies)
+    - [Development Dependencies](#development-dependencies)
 
 ## Processes
 
