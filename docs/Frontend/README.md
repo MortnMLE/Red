@@ -1,6 +1,6 @@
 # Frontend
 
---> introduction
+This document provides an overview of the frontend architecture and implementation, covering document and image synchronization, responsive design, and project dependencies. It describes the key processes that ensure a consistent user experience.
 
 ## Contents
 
@@ -20,7 +20,7 @@
         - [Image Creation](#image-creation)
         - [Image Deletion](#image-deletion)
 - [Responsiveness](#responsiveness)
-    - [Login Page](#login-page)
+    - [Login Page](#login-page)a
     - [Editor Page](#editor-page)
 - [Dependencies](#dependencies)
     - [Production Dependencies](#production-dependencies)
@@ -30,7 +30,7 @@
 
 ### Documents
 
-The synchronization process starts with useDocuments being mounted. The application loads the documents from local storage and from the server in parallel, creates individual synchronization tasks, executes the tasks, and waits for all tasks to finish:
+The synchronization process starts when `useDocuments` is mounted. The application loads the documents from local storage and the server in parallel, creates individual synchronization tasks, executes the tasks, and waits for all tasks to complete.
 
 #### Document Synchronization
 
@@ -61,7 +61,7 @@ Document records are not physically deleted from either the local storage or the
 1. Set the local document's `deleted` flag to `true`.
 2. Synchronize the soft-deletion with the server.
     - If an internet connection is available, update the corresponding server document immediately.
-    - If the server cannot be reached, synchronize the change during the next synchronization.
+    - If the server cannot be reached, changes are coordinated during the next synchronization.
 
 Purpose: This allows the deletion to be propagated reliably even when the client is temporarily offline.
 
@@ -73,7 +73,7 @@ A change triggers:
 
 1. `dirty` flag of the document is set to `true`
 2. The document is written to local storage (debounced)
-3. A patch is send to the server.
+3. A patch is sent to the server.
     - If the patch was successful, `dirty` is set to `false`
     - If the patch was not successful, the `dirty` flag is retained
 
@@ -95,11 +95,11 @@ A change triggers:
 
 An embedding `![image](id)` in the document acts as a placeholder for the actual image. 
 A codemirror plugin substitutes these placeholders with the URL of the corresponding image.
-These URLs are managed by a cache and appropriate services, which is responsible for the following functions:
+These URLs are managed by a cache and appropriate services, which are responsible for the following functions:
 
 1. Create URLs for all images that belong to the document that is becoming active.
 2. Revoke URLs for all images that belong to the document that is becoming inactive. 
-3. Create URL after a document has been created by drag and drop event.
+3. Create a URL after a document has been created by drag and drop event.
 4. Replace cached URL after a temporary image record was replaced by a permanent image.
 
 #### Image Creation
@@ -110,12 +110,12 @@ Image creation is initiated by a drag and drop event at the editor window.
 2. An embedding is inserted at the dropped row.
 3. The image is displayed.
 4. Post the image to the server. 
-    - If the server returns 200 replace the temporary record with the newly created image and replace the embedded ID in the document.
+    - If the server returns 200, replace the temporary record with the newly created image and replace the embedded ID in the document.
     - Else retain the temporary record.
 
 #### Image Deletion
 
-The user initiates image deletion by initiating a document deletion. Here, all images with the corresponding `docId` field are deleted both from local storage and from the server.
+The user initiates image deletion by deleting a document. Here, all images with the corresponding `docId` field are deleted from both local storage and the server.
 
 ## Responsiveness
 
@@ -132,7 +132,7 @@ Below max-height 576px breakpoint:
 ![login_page_576px](screenshots/login_page_576px.png)
 ![register_page_576px](screenshots/register_page_576px.png)
 
-No width-breakpoint has been specified as the login/registration page remains readable down to 320 pixels of viewpoint width.
+No width-breakpoint has been specified as the login/registration page remains readable down to a viewport width of 320 pixels.
 
 ### Editor Page
 
@@ -142,15 +142,15 @@ Full-size:
 
 The editor page includes 3 media breakpoints:
 
-- max-width 1200px: reduce the size of the sidebar
+- max-width of 1200px: reduce the size of the sidebar
 
 ![editor_page_1200px](screenshots/editor_page_1200px.png)
 
-- max-width 960px: no longer display the preview pane
+- max-width of 960px: no longer display the preview pane
 
 ![editor_page_960px](screenshots/editor_page_960px.png)
 
-- max-width 576px: 
+- max-width of 576px: 
   - further reduce the size of the sidebar
   - adjust sidebar elements to fit the new size
   - reduce the width of individual tabs
