@@ -118,6 +118,7 @@ export function useEditor(options = {}) {
 
                     '.cm-content': {
                         whiteSpace: 'pre-wrap',
+                        tabSize: '4',
                         wordBreak: 'break-word',
                     },
 
