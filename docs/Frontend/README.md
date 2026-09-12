@@ -153,7 +153,7 @@ The editor page includes 3 media breakpoints:
 ![editor_page_960px](screenshots/editor_page_960px.png)
 
 - max-width of 576px: 
-  - further reduce the size of the sidebar
+  - further reduction of the sidebar width
   - adjust sidebar elements to fit the new size
   - reduce the width of individual tabs
 
