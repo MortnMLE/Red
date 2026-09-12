@@ -27,7 +27,7 @@ This file lists the packages currently used by the server app and briefly explai
 
 ## Development dependencies
 
-- `jest`  
+- `jest`
   Main test runner for server-side unit tests.
 
 - `supertest`  
