@@ -4,10 +4,9 @@
 
 - [Concept](#Concept)
 - [Technical Approach](#Technical-Approach)
-- [Installation & Setup](#Installation-&-Setup)
+- [Installation & Setup](#Installation--Setup)
 - [Features](#Features)
 - [Tech Stack](#Tech-Stack)
-- [Dependencies](#Dependencies)
 - [Technical Documentation](#Technical-Documentation)
 
 ## Concept
