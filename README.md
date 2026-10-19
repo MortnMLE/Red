@@ -75,6 +75,7 @@ Step-by-step:
 2. Run the Vite dev-environment:
    - Navigate to the `frontend` directory
    - Run `npm run dev`
+3. Open the web app on http://localhost:3000/
 
 ## Features
 - **User & Account**: 
