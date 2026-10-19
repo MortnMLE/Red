@@ -2,6 +2,10 @@
 
 This document describes the database structure, collection relationships, and JSON schema used by the application.
 
+## Startup
+
+On server startup, the application checks whether the database configured by `MONGODB_DB` exists. If it does not, it creates the `users`, `images`, and `documents` collections. If the database already exists, startup leaves its collections unchanged.
+
 ## Relationships
 
 ![ERM-Model](database_Schema.png)
