@@ -57,7 +57,7 @@ Required tools: npm, vite
 ### MongoDB Connection
 Store the MongoDB connection string in the .env-`MONGODB` variable.
 Step-by-step:
-- Login / Create an account on https://cloud.mongodb.com and follow.
+- Login / Create an account on https://cloud.mongodb.com
 - Create a free database
 - Setup the connection
     - (If not directly prompted after creation of the database, click "Connect" in the cluster)
