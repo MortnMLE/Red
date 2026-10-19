@@ -1,6 +1,7 @@
 const { MongoClient } = require('mongodb');
 const {
     connectDB,
+    initializeDB,
     getConnection,
     closeDB,
 } = require('../../../src/db/connection');
@@ -88,6 +89,62 @@ describe('Database connection', () => {
         await expect(connectDB()).rejects.toThrow('Connection failed');
 
         expect(mockClient.connect).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('initializeDB', () => {
+    test('should create the configured collections when the database does not exist', async () => {
+        const databaseName = 'main';
+        const mockDb = {
+            databaseName,
+            createCollection: jest.fn().mockResolvedValue({}),
+        };
+        const mockAdmin = {
+            listDatabases: jest.fn().mockResolvedValue({ databases: [] }),
+        };
+        const mockAdminDb = {
+            admin: jest.fn().mockReturnValue(mockAdmin),
+        };
+
+        mockClient.db.mockImplementation((name) =>
+            name === 'admin' ? mockAdminDb : mockDb
+        );
+
+        const result = await initializeDB();
+
+        expect(mockAdmin.listDatabases).toHaveBeenCalledWith({
+            nameOnly: true,
+            filter: { name: databaseName },
+        });
+        expect(mockDb.createCollection).toHaveBeenCalledTimes(3);
+        expect(mockDb.createCollection).toHaveBeenNthCalledWith(1, 'users');
+        expect(mockDb.createCollection).toHaveBeenNthCalledWith(2, 'images');
+        expect(mockDb.createCollection).toHaveBeenNthCalledWith(3, 'documents');
+        expect(result).toBe(mockDb);
+    });
+
+    test('should not create collections when the database already exists', async () => {
+        const databaseName = 'main';
+        const mockDb = {
+            databaseName,
+            createCollection: jest.fn(),
+        };
+        const mockAdmin = {
+            listDatabases: jest.fn().mockResolvedValue({
+                databases: [{ name: databaseName }],
+            }),
+        };
+        const mockAdminDb = {
+            admin: jest.fn().mockReturnValue(mockAdmin),
+        };
+
+        mockClient.db.mockImplementation((name) =>
+            name === 'admin' ? mockAdminDb : mockDb
+        );
+
+        await initializeDB();
+
+        expect(mockDb.createCollection).not.toHaveBeenCalled();
     });
   });
 

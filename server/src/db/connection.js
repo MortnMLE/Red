@@ -1,4 +1,5 @@
 const { MongoClient } = require('mongodb');
+const { userDbName, imageDbName, documentDbName } = require('../constants');
 
 function getDbName() {
     return process.env.RUN_INTEGRATION_TESTS === '1'
@@ -19,6 +20,22 @@ async function connectDB() {
         db = client.db(getDbName());
     }
     return db;
+}
+
+async function initializeDB() {
+    const database = await connectDB();
+    const { databases } = await client.db('admin').admin().listDatabases({
+        nameOnly: true,
+        filter: { name: database.databaseName },
+    });
+
+    if (!databases.some(({ name }) => name === database.databaseName)) {
+        for (const collectionName of [userDbName, imageDbName, documentDbName]) {
+            await database.createCollection(collectionName);
+        }
+    }
+
+    return database;
 }
 
 //Returns a connection to the individual collection in Atlas
@@ -43,6 +60,7 @@ async function closeDB() {
 //Exports
 module.exports = {
     connectDB,
+    initializeDB,
     getConnection,
     closeDB
 }

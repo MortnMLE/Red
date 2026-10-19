@@ -27,11 +27,11 @@ function createApp() {
 
 //Start server and initialize connection to Atlas
 async function start() {
-    const { connectDB } = require('./db/connection');
+    const { initializeDB } = require('./db/connection');
     const port = process.env.PORT || 5000;
 
     try {
-        await connectDB();
+        await initializeDB();
 
         createApp().listen(port, () => {
             console.log(`Server running on port ${port}`);
